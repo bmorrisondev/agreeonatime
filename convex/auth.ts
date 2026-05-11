@@ -1,7 +1,7 @@
 // @ts-nocheck — Run `pnpm convex:dev` to generate `convex/_generated` and enable full types.
 import { expo } from '@better-auth/expo';
 import { createClient, type GenericCtx } from '@convex-dev/better-auth';
-import { convex } from '@convex-dev/better-auth/plugins';
+import { convex, crossDomain } from '@convex-dev/better-auth/plugins';
 import { betterAuth, type BetterAuthOptions } from 'better-auth/minimal';
 import { magicLink } from 'better-auth/plugins';
 import { importPKCS8, SignJWT } from 'jose';
@@ -66,25 +66,37 @@ function appleConfigured(): boolean {
 }
 
 export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof betterAuth> => {
-  const siteUrl = process.env.EXPO_PUBLIC_CONVEX_SITE_URL ?? '';
-  const origins = [siteUrl, 'agreeonatime://', 'exp://', 'https://appleid.apple.com'].filter(
-    Boolean,
-  ) as string[];
+  const convexSite = process.env.EXPO_PUBLIC_CONVEX_SITE_URL ?? '';
+  /** Origin where Expo web runs (e.g. http://localhost:8081). Set in Convex: `npx convex env set SITE_URL ...` */
+  const webAppSiteUrl = process.env.SITE_URL ?? '';
+  const origins = [
+    convexSite,
+    webAppSiteUrl,
+    'agreeonatime://',
+    'exp://',
+    'https://appleid.apple.com',
+  ].filter(Boolean) as string[];
+
+  const plugins: BetterAuthOptions['plugins'] = [
+    expo(),
+    convex({ authConfig }),
+    magicLink({
+      sendMagicLink: async ({ email, url }) => {
+        await sendMagicLinkEmail(email, url);
+      },
+    }),
+  ];
+
+  if (webAppSiteUrl.length > 0) {
+    plugins.push(crossDomain({ siteUrl: webAppSiteUrl }));
+  }
 
   const base: BetterAuthOptions = {
-    baseURL: siteUrl,
+    baseURL: convexSite,
     trustedOrigins: origins,
     database: authComponent.adapter(ctx),
     emailAndPassword: { enabled: false },
-    plugins: [
-      expo(),
-      convex({ authConfig }),
-      magicLink({
-        sendMagicLink: async ({ email, url }) => {
-          await sendMagicLinkEmail(email, url);
-        },
-      }),
-    ],
+    plugins,
   };
 
   if (appleConfigured()) {
