@@ -1,5 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
+import { Link } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { Collapsible } from '@/components/ui/collapsible';
@@ -40,6 +41,15 @@ export default function TabTwoScreen() {
         </ThemedText>
       </ThemedView>
       <ThemedText>This app includes example code to help you get started.</ThemedText>
+      <Collapsible title="Design system (DEV-383)">
+        <ThemedText>
+          Open the internal gallery of UI primitives:{' '}
+          <Link href="/design-system">
+            <ThemedText type="link">Design system preview</ThemedText>
+          </Link>
+          .
+        </ThemedText>
+      </Collapsible>
       <Collapsible title="File-based routing">
         <ThemedText>
           This app has two screens:{' '}

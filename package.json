@@ -17,6 +17,7 @@
     "@better-auth/expo": "~1.6.10",
     "@convex-dev/better-auth": "^0.12.2",
     "@expo/vector-icons": "^15.0.3",
+    "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
