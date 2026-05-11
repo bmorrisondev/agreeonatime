@@ -8,6 +8,7 @@ import { Link, router } from 'expo-router';
 
 import { authClient } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
+import { resetPosthogFromRef } from '@/lib/analytics/posthog-ref';
 import { useAppStore } from '@/lib/store/app-store';
 
 export default function HomeScreen() {
@@ -50,6 +51,7 @@ export default function HomeScreen() {
             className="mt-3 self-start rounded-lg border border-neutral-400 px-3 py-2 dark:border-neutral-500"
             onPress={() => {
               void (async () => {
+                resetPosthogFromRef();
                 await authClient.signOut();
                 router.replace('/sign-in');
               })();

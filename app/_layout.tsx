@@ -12,6 +12,7 @@ import { EnsureConvexUser } from '@/components/auth/ensure-convex-user';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { authClient } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
+import { NativePostHogRoot } from '@/lib/analytics/native-posthog-root';
 
 function NavigationTree(): ReactElement {
   const colorScheme = useColorScheme();
@@ -45,7 +46,9 @@ export default function RootLayout(): ReactElement {
     <ConvexProvider client={convex}>
       <ConvexBetterAuthProvider authClient={authClient} client={convex}>
         <EnsureConvexUser />
-        <NavigationTree />
+        <NativePostHogRoot>
+          <NavigationTree />
+        </NativePostHogRoot>
       </ConvexBetterAuthProvider>
     </ConvexProvider>
   );
