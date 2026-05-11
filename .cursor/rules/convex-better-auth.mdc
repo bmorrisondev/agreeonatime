@@ -1,0 +1,27 @@
+---
+description: Convex, Better Auth, and session persistence conventions
+globs:
+  - convex/**/*
+  - lib/auth-client.ts
+  - lib/storage/better-auth*.ts
+  - components/auth/**/*
+  - app/_layout.tsx
+---
+
+# Convex
+
+- **Schema and functions** live under `convex/`. Use `v` validators for args; keep multi-step writes consistent (transactions where appropriate).
+- After schema or function changes, rely on **`pnpm convex:dev`** (or CI codegen) so **`convex/_generated/api`** stays in sync. Until then, `// @ts-nocheck` in thin Convex entry files is acceptable; restore strict typing once generated types exist.
+- For **one-off client calls** without importing `api`, `makeFunctionReference<'mutation'>('moduleName:exportName')` is allowed when the string matches the Convex module export (e.g. `users:ensureProfile` for `convex/users.ts` exporting `ensureProfile`). Prefer `api` from `_generated` when available.
+
+# Environment and secrets
+
+- **`EXPO_PUBLIC_*`** is client-visible (Expo bundles it). Never put secrets there.
+- **Resend, Apple Sign In keys, `BETTER_AUTH_SECRET`:** configure on the **Convex** deployment / dashboard, aligned with `.env.example`. Client needs **`EXPO_PUBLIC_CONVEX_URL`** and **`EXPO_PUBLIC_CONVEX_SITE_URL`** (HTTP site origin for Better Auth).
+
+# Better Auth + Expo
+
+- **Auth client** (`lib/auth-client.ts`): **`baseURL`** = `EXPO_PUBLIC_CONVEX_SITE_URL` (Convex `.site` origin).
+- **Web vs native:** On **`Platform.OS === 'web'`**, use **`crossDomainClient`** + web storage only — do **not** load **`expoClient`** on web (it pulls native-only modules such as `expo-network`). On iOS/Android, use **`expoClient`** with the app scheme from `app.json`.
+- **Session persistence:** Use **MMKV** (dedicated MMKV id, e.g. `better-auth-session`) for Better Auth cookie storage on real native builds; use **in-memory** storage in **Expo Go** (MMKV not linked there), mirroring `lib/storage/zustand-storage.ts`.
+- **Root layout:** `ConvexProvider` + `ConvexBetterAuthProvider` wrap routes that need auth; keep Convex-only bootstrap components (e.g. profile ensure) inside that tree.

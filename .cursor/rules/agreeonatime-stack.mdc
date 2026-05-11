@@ -1,0 +1,25 @@
+---
+description: Expo + Convex stack boundaries and workflow for Agree on a Time
+alwaysApply: true
+---
+
+# Stack and layout
+
+- **Client app:** Expo (SDK 54+) with **Expo Router** under `app/`. Use file-based routes; `@/` path alias maps to the repo root.
+- **UI:** React Native + **NativeWind** (`className`). Reuse patterns from existing screens (e.g. `app/sign-in.tsx`, tabs).
+- **Shared client code:** `lib/`, `hooks/`, `components/`.
+- **Backend:** **Convex only** — `convex/` for schema, queries, mutations, actions, HTTP (`http.ts`), auth wiring. No Next.js API routes, no `app/` “server components”, no Drizzle/Neon/Postgres in this repo.
+
+# Commands
+
+- Prefer **`pnpm lint`** and **`pnpm exec tsc --noEmit`** before treating a change as complete.
+- Convex: **`pnpm convex:dev`** links deployment and regenerates `convex/_generated/`; do not assume `_generated` exists in a fresh clone until codegen has run.
+
+# Issues and branches
+
+- Use **task branches** off `main` (e.g. `feature/dev-###-short-name`). Do not land unrelated work on `main` without a PR.
+- When work maps to Linear, reference **`DEV-###`** in commit messages and **update Linear status** when starting, finishing review, and merging.
+
+# Accessibility (baseline)
+
+- Interactive controls need meaningful **`accessibilityLabel`** (and `accessibilityRole` where helpful). Favor patterns already used on auth and tab screens.
