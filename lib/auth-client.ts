@@ -3,8 +3,9 @@ import { convexClient, crossDomainClient } from '@convex-dev/better-auth/client/
 import { magicLinkClient } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 import Constants from 'expo-constants';
-import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+
+import { createBetterAuthNativeStorage } from '@/lib/storage/better-auth-mmkv-storage';
 
 const scheme = Constants.expoConfig?.scheme;
 const storagePrefix = typeof scheme === 'string' ? scheme : 'agreeonatime';
@@ -55,7 +56,7 @@ export const authClient = createAuthClient({
           expoClient({
             scheme: storagePrefix,
             storagePrefix,
-            storage: SecureStore,
+            storage: createBetterAuthNativeStorage(),
           }),
         ]),
   ],

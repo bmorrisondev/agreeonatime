@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 
 import '../global.css';
 
+import { EnsureConvexUser } from '@/components/auth/ensure-convex-user';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { authClient } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
@@ -43,6 +44,7 @@ export default function RootLayout(): ReactElement {
   return (
     <ConvexProvider client={convex}>
       <ConvexBetterAuthProvider authClient={authClient} client={convex}>
+        <EnsureConvexUser />
         <NavigationTree />
       </ConvexBetterAuthProvider>
     </ConvexProvider>

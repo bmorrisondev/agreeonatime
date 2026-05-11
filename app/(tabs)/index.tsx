@@ -1,11 +1,10 @@
 import { Image } from 'expo-image';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 
 import { authClient } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
@@ -49,7 +48,12 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Sign out"
             className="mt-3 self-start rounded-lg border border-neutral-400 px-3 py-2 dark:border-neutral-500"
-            onPress={() => void authClient.signOut()}
+            onPress={() => {
+              void (async () => {
+                await authClient.signOut();
+                router.replace('/sign-in');
+              })();
+            }}
           >
             <Text className="font-medium text-neutral-900 dark:text-neutral-100">Sign out</Text>
           </Pressable>
