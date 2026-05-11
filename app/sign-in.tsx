@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Linking from 'expo-linking';
-import { Redirect } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
 
 import { authClient, isAuthClientConfigured } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
@@ -17,6 +17,14 @@ export default function SignInScreen(): ReactElement {
   if (!isConvexConfigured() || !isAuthClientConfigured()) {
     return (
       <View className="flex-1 justify-center bg-white px-6 dark:bg-black">
+        <Link
+          accessibilityLabel="Back to marketing home"
+          accessibilityRole="link"
+          className="mb-6 text-base font-medium text-[#FF6B5C]"
+          href="/"
+        >
+          ← Home
+        </Link>
         <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
           Convex not configured
         </Text>
@@ -108,6 +116,14 @@ export default function SignInScreen(): ReactElement {
 
   return (
     <View className="flex-1 justify-center bg-white px-6 dark:bg-black">
+      <Link
+        accessibilityLabel="Back to marketing home"
+        accessibilityRole="link"
+        className="mb-6 self-start text-base font-medium text-[#FF6B5C]"
+        href="/"
+      >
+        ← Home
+      </Link>
       <Text className="mb-1 text-3xl font-bold text-neutral-900 dark:text-neutral-100">
         Agree on a Time
       </Text>
