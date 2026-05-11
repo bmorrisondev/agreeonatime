@@ -1,0 +1,12 @@
+---
+description: Run pnpm install after dependency manifest or lockfile changes
+globs:
+  - package.json
+  - pnpm-lock.yaml
+---
+
+# Package manifests and install
+
+- **Whenever `package.json` changes** in a way that affects tooling or installs — `dependencies`, `devDependencies`, `packageManager`, `pnpm.overrides`, related scripts or fields — run **`pnpm install`** from the **repository root** before treating the task as complete. Manually editing JSON does not update `node_modules` until install runs.
+- **Prefer CLI adds:** use **`pnpm add`** / **`pnpm remove`** when adding or dropping packages so the lockfile and install stay aligned.
+- If **`pnpm-lock.yaml`** was regenerated or conflict-resolved, run **`pnpm install`** so the workspace matches the lockfile.
