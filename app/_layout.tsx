@@ -24,6 +24,7 @@ function NavigationTree(): ReactElement {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="create-event" options={{ presentation: 'modal', title: 'New event' }} />
         <Stack.Screen name="event/[id]" options={{ title: 'Event' }} />
+        <Stack.Screen name="design-system" options={{ headerShown: true }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />
