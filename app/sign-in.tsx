@@ -112,7 +112,7 @@ export default function SignInScreen(): ReactElement {
         Agree on a Time
       </Text>
       <Text className="mb-8 text-base text-neutral-600 dark:text-neutral-400">
-        Sign in to create and manage scheduling polls (DEV-382).
+        Sign in to create and manage scheduling polls.
       </Text>
 
       <Text className="mb-2 font-medium text-neutral-800 dark:text-neutral-200">Email</Text>
