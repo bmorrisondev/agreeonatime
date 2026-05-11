@@ -1,5 +1,6 @@
+import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { Collapsible } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/external-link';
@@ -8,6 +9,12 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Fonts } from '@/constants/theme';
+
+const FLASH_LIST_DEMO = [
+  { id: '1', title: 'NativeWind + FlashList smoke test' },
+  { id: '2', title: 'Row 2' },
+  { id: '3', title: 'Row 3' },
+];
 
 export default function TabTwoScreen() {
   return (
@@ -20,13 +27,15 @@ export default function TabTwoScreen() {
           name="chevron.left.forwardslash.chevron.right"
           style={styles.headerImage}
         />
-      }>
+      }
+    >
       <ThemedView style={styles.titleContainer}>
         <ThemedText
           type="title"
           style={{
             fontFamily: Fonts.rounded,
-          }}>
+          }}
+        >
           Explore
         </ThemedText>
       </ThemedView>
@@ -74,6 +83,25 @@ export default function TabTwoScreen() {
         <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
           <ThemedText type="link">Learn more</ThemedText>
         </ExternalLink>
+      </Collapsible>
+      <Collapsible title="FlashList">
+        <View className="mb-2">
+          <ThemedText>
+            <ThemedText type="defaultSemiBold">@shopify/flash-list</ThemedText> is wired for long
+            lists (DEV-380).
+          </ThemedText>
+        </View>
+        <View className="h-44 overflow-hidden rounded-lg border border-neutral-300 dark:border-neutral-600">
+          <FlashList
+            data={FLASH_LIST_DEMO}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View className="border-b border-neutral-200 px-3 py-3 dark:border-neutral-700">
+                <ThemedText>{item.title}</ThemedText>
+              </View>
+            )}
+          />
+        </View>
       </Collapsible>
       <Collapsible title="Animations">
         <ThemedText>

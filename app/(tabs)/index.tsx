@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -7,7 +7,13 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
 
+import { isConvexConfigured } from '@/lib/convex/client';
+import { useAppStore } from '@/lib/store/app-store';
+
 export default function HomeScreen() {
+  const bootstrapDemoSeen = useAppStore((s) => s.bootstrapDemoSeen);
+  const setBootstrapDemoSeen = useAppStore((s) => s.setBootstrapDemoSeen);
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -16,7 +22,27 @@ export default function HomeScreen() {
           source={require('@/assets/images/partial-react-logo.png')}
           style={styles.reactLogo}
         />
-      }>
+      }
+    >
+      <View className="mb-4 rounded-xl bg-[#FF6B5C]/15 p-4 dark:bg-[#FF6B5C]/25">
+        <Text className="text-base text-neutral-900 dark:text-neutral-100">
+          NativeWind + Zustand/MMKV (DEV-380):{' '}
+          <Text className="font-semibold">{bootstrapDemoSeen ? 'saved' : 'not saved'}</Text>
+          {' · '}
+          Convex (DEV-381):{' '}
+          <Text className="font-semibold">
+            {isConvexConfigured() ? 'URL set' : 'not configured'}
+          </Text>
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Toggle bootstrap persistence demo"
+          className="mt-3 self-start rounded-lg bg-[#FF6B5C] px-3 py-2 active:opacity-80"
+          onPress={() => setBootstrapDemoSeen(!bootstrapDemoSeen)}
+        >
+          <Text className="font-medium text-white">Toggle persisted flag</Text>
+        </Pressable>
+      </View>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Welcome!</ThemedText>
         <HelloWave />
