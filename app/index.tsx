@@ -3,6 +3,7 @@ import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useConvexAuth } from 'convex/react';
 
+import { MarketingLanding } from '@/components/marketing/marketing-landing';
 import { isConvexConfigured } from '@/lib/convex/client';
 
 function IndexWithConvexAuth(): ReactElement {
@@ -17,7 +18,7 @@ function IndexWithConvexAuth(): ReactElement {
   }
 
   if (!isAuthenticated) {
-    return <Redirect href="/sign-in" />;
+    return <MarketingLanding />;
   }
 
   return <Redirect href="/(tabs)" />;
@@ -25,7 +26,7 @@ function IndexWithConvexAuth(): ReactElement {
 
 export default function Index(): ReactElement {
   if (!isConvexConfigured()) {
-    return <Redirect href="/(tabs)" />;
+    return <MarketingLanding />;
   }
 
   return <IndexWithConvexAuth />;
