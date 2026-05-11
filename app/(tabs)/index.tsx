@@ -7,10 +7,12 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
 
+import { authClient } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
 import { useAppStore } from '@/lib/store/app-store';
 
 export default function HomeScreen() {
+  const { data: session } = authClient.useSession();
   const bootstrapDemoSeen = useAppStore((s) => s.bootstrapDemoSeen);
   const setBootstrapDemoSeen = useAppStore((s) => s.setBootstrapDemoSeen);
 
@@ -42,6 +44,16 @@ export default function HomeScreen() {
         >
           <Text className="font-medium text-white">Toggle persisted flag</Text>
         </Pressable>
+        {session?.user ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+            className="mt-3 self-start rounded-lg border border-neutral-400 px-3 py-2 dark:border-neutral-500"
+            onPress={() => void authClient.signOut()}
+          >
+            <Text className="font-medium text-neutral-900 dark:text-neutral-100">Sign out</Text>
+          </Pressable>
+        ) : null}
       </View>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Welcome!</ThemedText>

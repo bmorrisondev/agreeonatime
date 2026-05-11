@@ -8,11 +8,15 @@ import { v } from 'convex/values';
  */
 export default defineSchema({
   users: defineTable({
+    /** Better Auth user id (string from auth session). */
+    authUserId: v.string(),
     email: v.string(),
     name: v.string(),
     createdAt: v.number(),
     pushTokens: v.array(v.string()),
-  }).index('by_email', ['email']),
+  })
+    .index('by_auth_user', ['authUserId'])
+    .index('by_email', ['email']),
 
   events: defineTable({
     ownerId: v.id('users'),
