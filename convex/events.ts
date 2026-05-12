@@ -5,6 +5,7 @@ import type { Id } from './_generated/dataModel';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 
 import { authComponent } from './auth';
+import { ensureAppUserIdForAuthUser, betterAuthUserIdString } from './users';
 
 function randomShareTokenHex(): string {
   const bytes = new Uint8Array(24);
@@ -55,9 +56,14 @@ export const listForHome = query({
       return null;
     }
 
+    const authId = betterAuthUserIdString(authUser);
+    if (authId == null) {
+      return { groups: [] as { title: string; events: HomeEventDoc[] }[] };
+    }
+
     const user = await ctx.db
       .query('users')
-      .withIndex('by_auth_user', (q) => q.eq('authUserId', authUser.id))
+      .withIndex('by_auth_user', (q) => q.eq('authUserId', authId))
       .unique();
     if (!user) {
       return { groups: [] as { title: string; events: HomeEventDoc[] }[] };
@@ -146,13 +152,7 @@ export const create = mutation({
     if (!authUser) {
       throw new ConvexError('Sign in to create an event');
     }
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_auth_user', (q) => q.eq('authUserId', authUser.id))
-      .unique();
-    if (!user) {
-      throw new ConvexError('Profile not ready — try again in a moment');
-    }
+    const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
 
     const title = args.title.trim();
     if (title.length === 0) {
@@ -179,7 +179,7 @@ export const create = mutation({
     const shareToken = await uniqueShareToken(ctx);
     const createdAt = now;
     const eventId = await ctx.db.insert('events', {
-      ownerId: user._id,
+      ownerId: userId,
       title,
       description,
       status: 'open',
@@ -193,7 +193,7 @@ export const create = mutation({
       await ctx.db.insert('timeslots', {
         eventId,
         startTime,
-        proposedBy: user._id,
+        proposedBy: userId,
         approvalStatus: 'approved',
         createdAt,
       });
@@ -210,9 +210,13 @@ export const getForOwner = query({
     if (!authUser) {
       return null;
     }
+    const authId = betterAuthUserIdString(authUser);
+    if (authId == null) {
+      return null;
+    }
     const user = await ctx.db
       .query('users')
-      .withIndex('by_auth_user', (q) => q.eq('authUserId', authUser.id))
+      .withIndex('by_auth_user', (q) => q.eq('authUserId', authId))
       .unique();
     if (!user) {
       return null;

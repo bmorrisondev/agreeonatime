@@ -1,5 +1,5 @@
-import type { ReactElement } from 'react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import type { ChangeEvent, CSSProperties, ReactElement } from 'react';
+import { createElement, useCallback, useMemo, useRef, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { makeFunctionReference } from 'convex/server';
 import { useMutation } from 'convex/react';
@@ -26,6 +26,51 @@ const createEventMutation = makeFunctionReference<'mutation'>('events:create');
 const MAX_SLOTS = 20;
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
+
+function formatMsForDatetimeLocal(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number): string => String(n).padStart(2, '0');
+  return `${String(d.getFullYear())}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function webDatetimeLocalStyle(scheme: 'light' | 'dark' | null): CSSProperties {
+  const dark = scheme === 'dark';
+  return {
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: dark ? '#525252' : '#d4d4d4',
+    backgroundColor: dark ? '#0a0a0a' : '#fafafa',
+    color: dark ? '#fafafa' : '#171717',
+    fontSize: 16,
+  };
+}
+
+function WebDatetimeLocalInput(props: {
+  valueMs: number;
+  onChangeMs: (ms: number) => void;
+  disabled?: boolean;
+  accessibilityLabel: string;
+  colorScheme: 'light' | 'dark' | null;
+}): ReactElement {
+  return createElement('input', {
+    type: 'datetime-local',
+    step: 60,
+    'aria-label': props.accessibilityLabel,
+    disabled: props.disabled,
+    value: formatMsForDatetimeLocal(props.valueMs),
+    onChange: (e: ChangeEvent<HTMLInputElement>) => {
+      const ms = new Date(e.target.value).getTime();
+      if (!Number.isNaN(ms)) {
+        props.onChangeMs(ms);
+      }
+    },
+    style: webDatetimeLocalStyle(props.colorScheme),
+  });
+}
 
 function buildDefaultForm(): { slotStarts: number[]; deadline: number } {
   const now = Date.now();
@@ -117,7 +162,14 @@ export default function CreateEventScreen(): ReactElement {
         return rows;
       }
       const last = rows[rows.length - 1] ?? Date.now();
-      return [...rows, last + HOUR_MS];
+      const newIndex = rows.length;
+      const next = [...rows, last + HOUR_MS];
+      if (Platform.OS !== 'web') {
+        queueMicrotask(() => {
+          setPicker({ kind: 'slot', index: newIndex });
+        });
+      }
+      return next;
     });
   }, []);
 
@@ -208,24 +260,45 @@ export default function CreateEventScreen(): ReactElement {
 
         <Text className="mb-1 text-sm font-medium text-neutral-700 dark:text-neutral-300">Proposed times</Text>
         <Text className="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
-          At least 2 times, up to {MAX_SLOTS}. Voting must end before your latest time.
+          At least 2 times, up to {MAX_SLOTS}. Voting must end before your latest time.{' '}
+          {Platform.OS === 'web'
+            ? 'Use the date and time fields below each row to change a slot.'
+            : 'Tap a time to open the picker; new rows open the picker automatically.'}
         </Text>
 
         {slotStarts.map((ms, index) => {
           const label = `Proposed time ${index + 1}, ${formatDateTimeMs(ms)}. Opens date and time picker.`;
           return (
             <View key={`slot-row-${String(index)}`} className="mb-2 flex-row items-center gap-2">
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={label}
-                className="flex-1 rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-3 dark:border-neutral-600 dark:bg-neutral-900"
-                disabled={submitting}
-                onPress={() => {
-                  setPicker({ kind: 'slot', index });
-                }}
-              >
-                <Text className="text-base text-neutral-900 dark:text-neutral-100">{formatDateTimeMs(ms)}</Text>
-              </Pressable>
+              {Platform.OS === 'web' ? (
+                <View className="flex-1">
+                  <WebDatetimeLocalInput
+                    accessibilityLabel={`Proposed time ${String(index + 1)}`}
+                    colorScheme={colorScheme ?? 'light'}
+                    disabled={submitting}
+                    valueMs={ms}
+                    onChangeMs={(nextMs) => {
+                      setSlotStarts((rows) => {
+                        const next = [...rows];
+                        next[index] = nextMs;
+                        return next;
+                      });
+                    }}
+                  />
+                </View>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  className="flex-1 rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-3 dark:border-neutral-600 dark:bg-neutral-900"
+                  disabled={submitting}
+                  onPress={() => {
+                    setPicker({ kind: 'slot', index });
+                  }}
+                >
+                  <Text className="text-base text-neutral-900 dark:text-neutral-100">{formatDateTimeMs(ms)}</Text>
+                </Pressable>
+              )}
               {slotStarts.length > 2 ? (
                 <Pressable
                   accessibilityRole="button"
@@ -258,17 +331,29 @@ export default function CreateEventScreen(): ReactElement {
         )}
 
         <Text className="mb-1 text-sm font-medium text-neutral-700 dark:text-neutral-300">Voting deadline</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Voting deadline, ${formatDateTimeMs(deadline)}. Opens date and time picker.`}
-          className="mb-6 rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-3 dark:border-neutral-600 dark:bg-neutral-900"
-          disabled={submitting}
-          onPress={() => {
-            setPicker({ kind: 'deadline' });
-          }}
-        >
-          <Text className="text-base text-neutral-900 dark:text-neutral-100">{formatDateTimeMs(deadline)}</Text>
-        </Pressable>
+        {Platform.OS === 'web' ? (
+          <View className="mb-6">
+            <WebDatetimeLocalInput
+              accessibilityLabel="Voting deadline"
+              colorScheme={colorScheme ?? 'light'}
+              disabled={submitting}
+              valueMs={deadline}
+              onChangeMs={setDeadline}
+            />
+          </View>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Voting deadline, ${formatDateTimeMs(deadline)}. Opens date and time picker.`}
+            className="mb-6 rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-3 dark:border-neutral-600 dark:bg-neutral-900"
+            disabled={submitting}
+            onPress={() => {
+              setPicker({ kind: 'deadline' });
+            }}
+          >
+            <Text className="text-base text-neutral-900 dark:text-neutral-100">{formatDateTimeMs(deadline)}</Text>
+          </Pressable>
+        )}
 
         <View className="mb-6 flex-row items-center justify-between gap-3">
           <Text className="shrink text-base text-neutral-900 dark:text-neutral-100">
@@ -282,24 +367,22 @@ export default function CreateEventScreen(): ReactElement {
           />
         </View>
 
-        {picker != null && (Platform.OS === 'ios' || Platform.OS === 'web') ? (
+        {picker != null && Platform.OS === 'ios' ? (
           <View className="mb-4">
-            {Platform.OS === 'ios' ? (
-              <View className="mb-2 flex-row justify-end">
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Close date and time picker"
-                  className="px-3 py-2"
-                  onPress={() => {
-                    setPicker(null);
-                  }}
-                >
-                  <Text className="text-base font-semibold text-[#FF6B5C]">Done</Text>
-                </Pressable>
-              </View>
-            ) : null}
+            <View className="mb-2 flex-row justify-end">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close date and time picker"
+                className="px-3 py-2"
+                onPress={() => {
+                  setPicker(null);
+                }}
+              >
+                <Text className="text-base font-semibold text-[#FF6B5C]">Done</Text>
+              </Pressable>
+            </View>
             <DateTimePicker
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              display="spinner"
               mode="datetime"
               themeVariant={colorScheme === 'dark' ? 'dark' : 'light'}
               value={pickerValue}

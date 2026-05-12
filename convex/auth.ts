@@ -65,17 +65,28 @@ function appleConfigured(): boolean {
   );
 }
 
+/** Expo `pnpm web` defaults — must match `trustedOrigins` or magic-link `callbackURL` is rejected. */
+const EXPO_WEB_DEV_ORIGINS = ['http://localhost:8081', 'http://127.0.0.1:8081'] as const;
+
 export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof betterAuth> => {
   const convexSite = process.env.EXPO_PUBLIC_CONVEX_SITE_URL ?? '';
-  /** Origin where Expo web runs (e.g. http://localhost:8081). Set in Convex: `npx convex env set SITE_URL ...` */
-  const webAppSiteUrl = process.env.SITE_URL ?? '';
+  /** Production / preview web origin. Convex: `npx convex env set SITE_URL https://…` */
+  const webAppSiteUrl = process.env.SITE_URL?.trim() ?? '';
+  const crossDomainSiteUrl =
+    webAppSiteUrl.length > 0 ? webAppSiteUrl : EXPO_WEB_DEV_ORIGINS[0];
+
   const origins = [
-    convexSite,
-    webAppSiteUrl,
-    'agreeonatime://',
-    'exp://',
-    'https://appleid.apple.com',
-  ].filter(Boolean) as string[];
+    ...new Set(
+      [
+        convexSite,
+        webAppSiteUrl,
+        ...EXPO_WEB_DEV_ORIGINS,
+        'agreeonatime://',
+        'exp://',
+        'https://appleid.apple.com',
+      ].filter((o) => o.length > 0),
+    ),
+  ];
 
   const plugins: BetterAuthOptions['plugins'] = [
     expo(),
@@ -85,11 +96,8 @@ export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof better
         await sendMagicLinkEmail(email, url);
       },
     }),
+    crossDomain({ siteUrl: crossDomainSiteUrl }),
   ];
-
-  if (webAppSiteUrl.length > 0) {
-    plugins.push(crossDomain({ siteUrl: webAppSiteUrl }));
-  }
 
   const base: BetterAuthOptions = {
     baseURL: convexSite,
