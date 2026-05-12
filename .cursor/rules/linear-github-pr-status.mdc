@@ -1,0 +1,23 @@
+---
+description: Keep Linear issue status in sync with GitHub PR state (Development team)
+alwaysApply: true
+---
+
+# Linear ↔ GitHub PR status
+
+Applies when work maps to a **Linear** issue (e.g. **DEV-###**) on the **Development** team. Use the Linear MCP (`save_issue`) or update manually in Linear.
+
+## States (exact names)
+
+Use **Needs Review** and **Done** (not “Needs review”).
+
+## Rules
+
+1. **Open PR** — If a GitHub PR exists for the branch/ticket and is **open** (`gh pr view`, `state: OPEN`), set the Linear issue to **Needs Review** (unless you are actively coding before the first PR: **In Progress** is fine until the PR exists; once the PR is opened, move to **Needs Review**).
+2. **PR merged or closed** — If the PR is **merged** or **closed** (any non-open terminal state), set the Linear issue to **Done**.
+3. **No PR yet** — Keep **In Progress** (or **Todo** if not started). Do not set **Needs Review** until a PR exists.
+4. **After push/PR** — When following `.cursor/rules/git-push-and-pr.mdc`, if a PR was created or merged for a **DEV-###** ticket, **update Linear in the same session** when the Linear MCP is available.
+
+## Quick check
+
+Run `gh pr list --state all --search "DEV-NNN"` (or list by head branch) and align the linked issue’s status with the PR state above.

@@ -30,3 +30,15 @@ export function formatDecidedTime(startTimeMs: number): string {
 export function formatVoteSummary(yes: number, no: number): string {
   return `${yes} yes · ${no} no`;
 }
+
+/** Proposed time in the device (owner) timezone with short zone label. */
+export function formatTimeslotWithTimezone(startTimeMs: number): string {
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(new Date(startTimeMs));
+}
