@@ -19,6 +19,7 @@ alwaysApply: true
 
 - Use **task branches** off `main` (e.g. `feature/dev-###-short-name`). Do not land unrelated work on `main` without a PR.
 - When work maps to Linear, reference **`DEV-###`** in commit messages and **update Linear status** when starting, finishing review, and merging.
+- After commits exist on a task branch, **push to `origin` and open a PR to `main`** (GitHub CLI when available). Follow `.cursor/rules/git-push-and-pr.mdc`.
 
 # Accessibility (baseline)
 
