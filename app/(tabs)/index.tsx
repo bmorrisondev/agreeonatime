@@ -1,140 +1,179 @@
-import { Image } from 'expo-image';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link, router } from 'expo-router';
+import type { ReactElement } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { makeFunctionReference } from 'convex/server';
+import { useConvex, useQuery } from 'convex/react';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { authClient } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
-import { useAppStore } from '@/lib/store/app-store';
+import {
+  formatDeadlineLine,
+  formatDecidedTime,
+  formatVoteSummary,
+} from '@/lib/events/format-event-home';
 
-export default function HomeScreen() {
-  const { data: session } = authClient.useSession();
-  const bootstrapDemoSeen = useAppStore((s) => s.bootstrapDemoSeen);
-  const setBootstrapDemoSeen = useAppStore((s) => s.setBootstrapDemoSeen);
+const listForHomeQuery = makeFunctionReference<'query'>('events:listForHome');
+
+type HomeEventRow = {
+  _id: string;
+  title: string;
+  status: 'open' | 'closed' | 'decided';
+  deadline: number;
+  createdAt: number;
+  timeslotCount: number;
+  yesVotes: number;
+  noVotes: number;
+  decidedStartTime?: number;
+};
+
+type FlatRow =
+  | { kind: 'header'; key: string; title: string }
+  | { kind: 'event'; key: string; event: HomeEventRow };
+
+export default function HomeScreen(): ReactElement {
+  const configured = isConvexConfigured();
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const convex = useConvex();
+  const insets = useSafeAreaInsets();
+
+  const raw = useQuery(listForHomeQuery, configured ? { refreshNonce } : 'skip');
+
+  const onRefresh = useCallback(async () => {
+    if (!configured) {
+      return;
+    }
+    setRefreshing(true);
+    const next = refreshNonce + 1;
+    setRefreshNonce(next);
+    try {
+      await convex.query(listForHomeQuery, { refreshNonce: next });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [configured, convex, refreshNonce]);
+
+  const flatData = useMemo((): FlatRow[] => {
+    if (raw == null || raw.groups == null) {
+      return [];
+    }
+    const rows: FlatRow[] = [];
+    for (const g of raw.groups) {
+      rows.push({ kind: 'header', key: `h-${g.title}`, title: g.title });
+      for (const e of g.events) {
+        rows.push({ kind: 'event', key: e._id, event: e as HomeEventRow });
+      }
+    }
+    return rows;
+  }, [raw]);
+
+  const isEmpty =
+    configured &&
+    raw !== undefined &&
+    raw !== null &&
+    (raw.groups?.length ?? 0) === 0;
+
+  const renderItem = useCallback(({ item }: { item: FlatRow }) => {
+    if (item.kind === 'header') {
+      return (
+        <View className="bg-neutral-100 px-4 py-2 dark:bg-neutral-900">
+          <Text className="text-sm font-semibold uppercase text-neutral-600 dark:text-neutral-400">
+            {item.title}
+          </Text>
+        </View>
+      );
+    }
+    const e = item.event;
+    const nowMs = Date.now();
+    const line2 = formatVoteSummary(e.yesVotes, e.noVotes);
+    let line1: string;
+    if (e.status === 'decided' && e.decidedStartTime != null) {
+      line1 = formatDecidedTime(e.decidedStartTime);
+    } else if (e.status === 'open') {
+      line1 = `Closes ${formatDeadlineLine(e.deadline, nowMs)}`;
+    } else {
+      line1 = 'Archived';
+    }
+    const a11y = `Event: ${e.title}. ${line1}. ${line2}. ${e.timeslotCount} proposed times. Double tap to open.`;
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={a11y}
+        className="border-b border-neutral-200 bg-white px-4 py-3 active:bg-neutral-50 dark:border-neutral-800 dark:bg-black dark:active:bg-neutral-950"
+        onPress={() => {
+          router.push(`/event/${e._id}`);
+        }}
+      >
+        <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{e.title}</Text>
+        <Text className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{line1}</Text>
+        <Text className="mt-0.5 text-sm text-neutral-500 dark:text-neutral-500">{line2}</Text>
+      </Pressable>
+    );
+  }, []);
+
+  if (!configured) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
+        <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
+          Set EXPO_PUBLIC_CONVEX_URL in your environment to load your events from Convex.
+        </Text>
+      </View>
+    );
+  }
+
+  if (raw === undefined) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white dark:bg-black">
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (raw === null) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
+        <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
+          Sign in to see your events.
+        </Text>
+      </View>
+    );
+  }
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }
-    >
-      <View className="mb-4 rounded-xl bg-[#FF6B5C]/15 p-4 dark:bg-[#FF6B5C]/25">
-        <Text className="text-base text-neutral-900 dark:text-neutral-100">
-          NativeWind + Zustand/MMKV (DEV-380):{' '}
-          <Text className="font-semibold">{bootstrapDemoSeen ? 'saved' : 'not saved'}</Text>
-          {' · '}
-          Convex (DEV-381):{' '}
-          <Text className="font-semibold">
-            {isConvexConfigured() ? 'URL set' : 'not configured'}
-          </Text>
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Toggle bootstrap persistence demo"
-          className="mt-3 self-start rounded-lg bg-[#FF6B5C] px-3 py-2 active:opacity-80"
-          onPress={() => setBootstrapDemoSeen(!bootstrapDemoSeen)}
-        >
-          <Text className="font-medium text-white">Toggle persisted flag</Text>
-        </Pressable>
-        {session?.user ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Sign out"
-            className="mt-3 self-start rounded-lg border border-neutral-400 px-3 py-2 dark:border-neutral-500"
-            onPress={() => {
-              void (async () => {
-                await authClient.signOut();
-                router.replace('/sign-in');
-              })();
-            }}
-          >
-            <Text className="font-medium text-neutral-900 dark:text-neutral-100">Sign out</Text>
-          </Pressable>
-        ) : null}
-      </View>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View className="flex-1 bg-white dark:bg-black">
+      <FlashList
+        data={flatData}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.key}
+        getItemType={(item) => item.kind}
+        refreshing={refreshing}
+        onRefresh={() => void onRefresh()}
+        ListEmptyComponent={
+          isEmpty ? (
+            <View className="flex-1 items-center justify-center px-8 py-24">
+              <Text className="text-center text-lg text-neutral-700 dark:text-neutral-300">
+                No events yet. Tap + to plan something.
+              </Text>
+            </View>
+          ) : null
+        }
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 88,
+        }}
+      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Create new event"
+        className="absolute right-5 h-14 w-14 items-center justify-center rounded-full bg-[#FF6B5C] shadow-md active:opacity-90"
+        style={{ bottom: insets.bottom + 72 }}
+        onPress={() => {
+          router.push('/create-event');
+        }}
+      >
+        <Text className="text-3xl font-light text-white">+</Text>
+      </Pressable>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
