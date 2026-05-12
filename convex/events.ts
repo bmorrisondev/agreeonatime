@@ -203,6 +203,20 @@ export const create = mutation({
   },
 });
 
+function voterKey(v: {
+  voterName: string;
+  voterUserId?: Id<'users'>;
+  voterSessionId?: string;
+}): string {
+  if (v.voterUserId != null) {
+    return `u:${v.voterUserId}`;
+  }
+  if (v.voterSessionId != null && v.voterSessionId.length > 0) {
+    return `s:${v.voterSessionId}`;
+  }
+  return `n:${v.voterName}`;
+}
+
 export const getForOwner = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, { eventId }) => {
@@ -230,6 +244,69 @@ export const getForOwner = query({
       const slot = await ctx.db.get(event.decidedTimeslotId);
       decidedStartTime = slot?.startTime;
     }
+
+    const allVotes = await ctx.db
+      .query('votes')
+      .withIndex('by_event', (q) => q.eq('eventId', eventId))
+      .collect();
+
+    const votesByTimeslot = new Map<string, typeof allVotes>();
+    for (const row of allVotes) {
+      const key = row.timeslotId;
+      const bucket = votesByTimeslot.get(key);
+      if (bucket) {
+        bucket.push(row);
+      } else {
+        votesByTimeslot.set(key, [row]);
+      }
+    }
+
+    const voterKeys = new Set<string>();
+    for (const row of allVotes) {
+      voterKeys.add(voterKey(row));
+    }
+
+    const timeslots = await ctx.db
+      .query('timeslots')
+      .withIndex('by_event', (q) => q.eq('eventId', eventId))
+      .collect();
+    timeslots.sort((a, b) => a.startTime - b.startTime);
+
+    const approvedTimeslots = timeslots
+      .filter((t) => t.approvalStatus === 'approved')
+      .map((slot) => {
+        const slotVotes = votesByTimeslot.get(slot._id) ?? [];
+        let yesCount = 0;
+        let noCount = 0;
+        for (const v of slotVotes) {
+          if (v.vote === 'yes') {
+            yesCount += 1;
+          } else {
+            noCount += 1;
+          }
+        }
+        const votes = slotVotes.map((v) => ({
+          voterName: v.voterName,
+          vote: v.vote as 'yes' | 'no',
+          voterKey: voterKey(v),
+        }));
+        return {
+          _id: slot._id,
+          startTime: slot.startTime,
+          yesCount,
+          noCount,
+          votes,
+        };
+      });
+
+    const pendingTimeslots = timeslots
+      .filter((t) => t.approvalStatus === 'pending')
+      .map((slot) => ({
+        _id: slot._id,
+        startTime: slot.startTime,
+        createdAt: slot.createdAt,
+      }));
+
     return {
       _id: event._id,
       title: event.title,
@@ -237,7 +314,45 @@ export const getForOwner = query({
       status: event.status,
       deadline: event.deadline,
       shareToken: event.shareToken,
+      allowInviteeProposals: event.allowInviteeProposals,
+      createdAt: event.createdAt,
+      decidedTimeslotId: event.decidedTimeslotId,
       decidedStartTime,
+      distinctVoterCount: voterKeys.size,
+      approvedTimeslots,
+      pendingTimeslots,
     };
+  },
+});
+
+/** Owner approves or rejects an invitee-proposed timeslot (DEV-387). */
+export const resolvePendingTimeslot = mutation({
+  args: {
+    eventId: v.id('events'),
+    timeslotId: v.id('timeslots'),
+    decision: v.union(v.literal('approve'), v.literal('reject')),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (!authUser) {
+      throw new ConvexError('Sign in to manage proposals');
+    }
+    const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
+
+    const event = await ctx.db.get(args.eventId);
+    if (!event || event.ownerId !== userId) {
+      throw new ConvexError('Event not found or you are not the owner');
+    }
+
+    const slot = await ctx.db.get(args.timeslotId);
+    if (!slot || slot.eventId !== args.eventId) {
+      throw new ConvexError('Timeslot not found');
+    }
+    if (slot.approvalStatus !== 'pending') {
+      throw new ConvexError('This proposal is not pending');
+    }
+
+    const nextStatus = args.decision === 'approve' ? 'approved' : 'rejected';
+    await ctx.db.patch(args.timeslotId, { approvalStatus: nextStatus });
   },
 });
