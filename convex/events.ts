@@ -1,10 +1,31 @@
 // @ts-nocheck — Run `pnpm convex:dev` for generated types.
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
-import { query, type QueryCtx } from './_generated/server';
+import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 
 import { authComponent } from './auth';
+import { ensureAppUserIdForAuthUser, betterAuthUserIdString } from './users';
+
+function randomShareTokenHex(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function uniqueShareToken(ctx: MutationCtx): Promise<string> {
+  for (let i = 0; i < 8; i++) {
+    const shareToken = randomShareTokenHex();
+    const clash = await ctx.db
+      .query('events')
+      .withIndex('by_share_token', (q) => q.eq('shareToken', shareToken))
+      .unique();
+    if (!clash) {
+      return shareToken;
+    }
+  }
+  throw new ConvexError('Could not allocate a unique share link');
+}
 
 async function voteTotalsForEvent(ctx: QueryCtx, eventId: Id<'events'>): Promise<{ yes: number; no: number }> {
   const votes = await ctx.db
@@ -35,9 +56,14 @@ export const listForHome = query({
       return null;
     }
 
+    const authId = betterAuthUserIdString(authUser);
+    if (authId == null) {
+      return { groups: [] as { title: string; events: HomeEventDoc[] }[] };
+    }
+
     const user = await ctx.db
       .query('users')
-      .withIndex('by_auth_user', (q) => q.eq('authUserId', authUser.id))
+      .withIndex('by_auth_user', (q) => q.eq('authUserId', authId))
       .unique();
     if (!user) {
       return { groups: [] as { title: string; events: HomeEventDoc[] }[] };
@@ -111,6 +137,72 @@ type HomeEventDoc = {
   decidedStartTime?: number;
 };
 
+/** Owner create flow (DEV-385): validates, inserts event + approved owner timeslots, random `shareToken`. */
+export const create = mutation({
+  args: {
+    title: v.string(),
+    description: v.optional(v.string()),
+    /** Proposed slot start instants (ms since epoch), in submission order. */
+    timeslotStarts: v.array(v.number()),
+    deadline: v.number(),
+    allowInviteeProposals: v.boolean(),
+  },
+  handler: async (ctx, args): Promise<Id<'events'>> => {
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (!authUser) {
+      throw new ConvexError('Sign in to create an event');
+    }
+    const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
+
+    const title = args.title.trim();
+    if (title.length === 0) {
+      throw new ConvexError('Title is required');
+    }
+
+    const starts = args.timeslotStarts;
+    if (starts.length < 2 || starts.length > 20) {
+      throw new ConvexError('Add between 2 and 20 proposed times');
+    }
+
+    const now = Date.now();
+    if (args.deadline <= now) {
+      throw new ConvexError('Voting deadline must be in the future');
+    }
+    const latestSlot = Math.max(...starts);
+    if (args.deadline >= latestSlot) {
+      throw new ConvexError('Voting deadline must be before the latest proposed time');
+    }
+
+    const descRaw = args.description?.trim();
+    const description = descRaw != null && descRaw.length > 0 ? descRaw : undefined;
+
+    const shareToken = await uniqueShareToken(ctx);
+    const createdAt = now;
+    const eventId = await ctx.db.insert('events', {
+      ownerId: userId,
+      title,
+      description,
+      status: 'open',
+      deadline: args.deadline,
+      allowInviteeProposals: args.allowInviteeProposals,
+      createdAt,
+      shareToken,
+    });
+
+    for (const startTime of starts) {
+      await ctx.db.insert('timeslots', {
+        eventId,
+        startTime,
+        proposedBy: userId,
+        approvalStatus: 'approved',
+        createdAt,
+      });
+    }
+
+    return eventId;
+  },
+});
+
 export const getForOwner = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, { eventId }) => {
@@ -118,9 +210,13 @@ export const getForOwner = query({
     if (!authUser) {
       return null;
     }
+    const authId = betterAuthUserIdString(authUser);
+    if (authId == null) {
+      return null;
+    }
     const user = await ctx.db
       .query('users')
-      .withIndex('by_auth_user', (q) => q.eq('authUserId', authUser.id))
+      .withIndex('by_auth_user', (q) => q.eq('authUserId', authId))
       .unique();
     if (!user) {
       return null;

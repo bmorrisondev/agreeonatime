@@ -1,0 +1,21 @@
+---
+description: End-of-task summaries — tight bullets, then test checklist
+alwaysApply: true
+---
+
+# Change summary format
+
+When you finish a fix or feature, reply with **two sections only**:
+
+## What changed
+
+- **Bullets** — one change per line, **≤10 words** when possible (stretch only if needed).
+- No long prose, no architecture essays, no duplicate bullets.
+
+## How to verify
+
+- **Bullets** — concrete steps **I** take locally (commands, URLs, clicks).
+- Short imperatives: “Run X”, “Open Y”, “Expect Z”.
+- Skip obvious fluff (“save files”, “restart computer”).
+
+If nothing to test, one bullet: **No manual test steps.**
