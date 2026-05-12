@@ -2,6 +2,7 @@
 import { ConvexError, v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
+import { internal } from './_generated/api';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 
 import { authComponent } from './auth';
@@ -359,8 +360,7 @@ export const resolvePendingTimeslot = mutation({
 });
 
 /**
- * Owner finalizes the event time (DEV-388). Sets `decided`.
- * DEV-391 adds optional owner email via scheduler after notifications land.
+ * Owner finalizes the event time (DEV-388). Sets `decided` and schedules optional owner email (DEV-391).
  */
 export const finalizeEventTime = mutation({
   args: {
@@ -394,5 +394,15 @@ export const finalizeEventTime = mutation({
       status: 'decided',
       decidedTimeslotId: args.timeslotId,
     });
+
+    const owner = await ctx.db.get(userId);
+    const ownerEmail = owner?.email ?? '';
+    if (ownerEmail.length > 0) {
+      await ctx.scheduler.runAfter(0, internal.notifications.ownerDecidedEmail, {
+        ownerEmail,
+        eventTitle: event.title,
+        startTime: slot.startTime,
+      });
+    }
   },
 });
