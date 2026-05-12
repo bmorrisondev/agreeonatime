@@ -3,6 +3,8 @@ description: Convex, Better Auth, and session persistence conventions
 globs:
   - convex/**/*
   - lib/auth-client.ts
+  - lib/auth-client.web.ts
+  - lib/auth-client.native.ts
   - lib/storage/better-auth*.ts
   - components/auth/**/*
   - app/_layout.tsx
@@ -21,7 +23,6 @@ globs:
 
 # Better Auth + Expo
 
-- **Auth client** (`lib/auth-client.ts`): **`baseURL`** = `EXPO_PUBLIC_CONVEX_SITE_URL` (Convex `.site` origin).
-- **Web vs native:** On **`Platform.OS === 'web'`**, use **`crossDomainClient`** + web storage only — do **not** load **`expoClient`** on web (it pulls native-only modules such as `expo-network`). On iOS/Android, use **`expoClient`** with the app scheme from `app.json`.
+- **Auth client:** **`baseURL`** = `EXPO_PUBLIC_CONVEX_SITE_URL` (Convex `.site` origin). Implementations: **`lib/auth-client.web.ts`** (`crossDomainClient` only) and **`lib/auth-client.native.ts`** (`expoClient`). **`lib/auth-client.ts`** re-exports for TypeScript; Metro resolves the platform file so web never bundles `@better-auth/expo/client` / `expo-network`.
 - **Session persistence:** Use **MMKV** (dedicated MMKV id, e.g. `better-auth-session`) for Better Auth cookie storage on real native builds; use **in-memory** storage in **Expo Go** (MMKV not linked there), mirroring `lib/storage/zustand-storage.ts`.
 - **Root layout:** `ConvexProvider` + `ConvexBetterAuthProvider` wrap routes that need auth; keep Convex-only bootstrap components (e.g. profile ensure) inside that tree.

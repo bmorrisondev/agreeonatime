@@ -14,10 +14,14 @@ export const authComponent = createClient<DataModel>(components.betterAuth);
 async function sendMagicLinkEmail(email: string, url: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    console.warn(`[auth] Magic link for ${email}: ${url}`);
+    console.warn(
+      `[auth] Magic link for ${email}: ${url}\n` +
+        `Email not sent: set RESEND_API_KEY and RESEND_FROM_EMAIL in the Convex dashboard (see .env.example).`,
+    );
     return;
   }
   const from = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev';
+  const hrefAttr = url.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -28,7 +32,7 @@ async function sendMagicLinkEmail(email: string, url: string): Promise<void> {
       from,
       to: [email],
       subject: 'Your Agree on a Time sign-in link',
-      html: `<p>Click to sign in:</p><p><a href="${url}">${url}</a></p>`,
+      html: `<p><a href="${hrefAttr}">Sign in to Agree on a Time</a></p><p style="font-size:12px;color:#666;word-break:break-all">${hrefAttr}</p>`,
     }),
   });
   if (!res.ok) {
@@ -65,17 +69,36 @@ function appleConfigured(): boolean {
   );
 }
 
+/** Expo web dev servers — hostnames differ (`localhost` vs `127.0.0.1`); both must be trusted or the browser blocks session fetch (CORS). */
+const EXPO_WEB_DEV_ORIGINS = [
+  'http://localhost:8081',
+  'http://127.0.0.1:8081',
+  'http://localhost:19006',
+  'http://127.0.0.1:19006',
+];
+
+/** Default when Convex `SITE_URL` is unset — cross-domain magic links need the cross-domain plugin so redirects append `?ott=…`. Match your browser origin via `npx convex env set SITE_URL …`. */
+const DEFAULT_EXPO_WEB_SITE_URL = 'http://localhost:8081';
+
 export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof betterAuth> => {
   const convexSite = process.env.EXPO_PUBLIC_CONVEX_SITE_URL ?? '';
-  /** Origin where Expo web runs (e.g. http://localhost:8081). Set in Convex: `npx convex env set SITE_URL ...` */
+  /** Origin where Expo web runs (e.g. http://localhost:8081). Set in Convex: `npx convex env set SITE_URL ...` — must match the address bar (localhost vs 127.0.0.1). */
   const webAppSiteUrl = process.env.SITE_URL ?? '';
+  /** Required for magic-link → web: `@convex-dev/better-auth` adds `ott` to redirects only when `crossDomain` is registered. */
+  const crossDomainSiteUrl =
+    webAppSiteUrl.trim().length > 0 ? webAppSiteUrl.trim() : DEFAULT_EXPO_WEB_SITE_URL;
   const origins = [
-    convexSite,
-    webAppSiteUrl,
-    'agreeonatime://',
-    'exp://',
-    'https://appleid.apple.com',
-  ].filter(Boolean) as string[];
+    ...new Set(
+      [
+        convexSite,
+        webAppSiteUrl,
+        ...EXPO_WEB_DEV_ORIGINS,
+        'agreeonatime://',
+        'exp://',
+        'https://appleid.apple.com',
+      ].filter(Boolean),
+    ),
+  ] as string[];
 
   const plugins: BetterAuthOptions['plugins'] = [
     expo(),
@@ -87,9 +110,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof better
     }),
   ];
 
-  if (webAppSiteUrl.length > 0) {
-    plugins.push(crossDomain({ siteUrl: webAppSiteUrl }));
-  }
+  plugins.push(crossDomain({ siteUrl: crossDomainSiteUrl }));
 
   const base: BetterAuthOptions = {
     baseURL: convexSite,

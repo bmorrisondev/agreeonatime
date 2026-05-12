@@ -5,6 +5,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { formatDecidedTime } from '@/lib/events/format-event-home';
+import { isConvexConfigured } from '@/lib/convex/client';
 
 const getForOwnerQuery = makeFunctionReference<'query'>('events:getForOwner');
 
@@ -12,11 +13,22 @@ const getForOwnerQuery = makeFunctionReference<'query'>('events:getForOwner');
  * Owner event detail placeholder until DEV-387.
  */
 export default function EventDetailScreen(): ReactElement {
+  const configured = isConvexConfigured();
   const { id } = useLocalSearchParams<{ id: string }>();
   const event = useQuery(
     getForOwnerQuery,
-    id != null && id.length > 0 ? { eventId: id } : 'skip',
+    configured && id != null && id.length > 0 ? { eventId: id } : 'skip',
   );
+
+  if (!configured) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
+        <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
+          Set EXPO_PUBLIC_CONVEX_URL in your environment to load your events from Convex.
+        </Text>
+      </View>
+    );
+  }
 
   if (event === undefined) {
     return (

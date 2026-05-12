@@ -8,6 +8,17 @@ import { Redirect } from 'expo-router';
 import { authClient, isAuthClientConfigured } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
 
+/** Magic links must use an http(s) URL on web — `Linking.createURL` often yields `exp://…`. Use `/sign-in` so redirects stay on a real route (avoids broken relative redirects). */
+function getMagicLinkCallbackURL(): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const { origin, protocol } = window.location;
+    if (protocol === 'http:' || protocol === 'https:') {
+      return `${origin}/sign-in`;
+    }
+  }
+  return Linking.createURL('/sign-in');
+}
+
 export default function SignInScreen(): ReactElement {
   const { data: session, isPending } = authClient.useSession();
   const [email, setEmail] = useState('');
@@ -40,12 +51,11 @@ export default function SignInScreen(): ReactElement {
     return <Redirect href="/(tabs)" />;
   }
 
-  const callbackURL = Linking.createURL('/');
-
   const onMagicLink = async (): Promise<void> => {
     setBusy(true);
     setNotice(null);
     try {
+      const callbackURL = getMagicLinkCallbackURL();
       const result = await authClient.signIn.magicLink({
         email: email.trim(),
         callbackURL,

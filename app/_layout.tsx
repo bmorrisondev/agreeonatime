@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { useMemo } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
 import { ConvexReactClient, ConvexProvider } from 'convex/react';
@@ -9,9 +10,14 @@ import 'react-native-reanimated';
 import '../global.css';
 
 import { EnsureConvexUser } from '@/components/auth/ensure-convex-user';
+import { WebOttLandingFix } from '@/components/auth/web-ott-landing-fix';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { authClient } from '@/lib/auth-client';
-import { isConvexConfigured } from '@/lib/convex/client';
+import { syncNormalizeMagicLinkLandingUrl } from '@/lib/auth/sync-magic-link-url';
+import { getConvexDeploymentUrl } from '@/lib/convex/client';
+
+/** Before Expo Router's first render — fixes bogus magic-link landings (see `sync-magic-link-url.ts`). */
+syncNormalizeMagicLinkLandingUrl();
 
 function NavigationTree(): ReactElement {
   const colorScheme = useColorScheme();
@@ -21,6 +27,7 @@ function NavigationTree(): ReactElement {
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+        <Stack.Screen name="[slug]" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="create-event" options={{ presentation: 'modal', title: 'New event' }} />
         <Stack.Screen name="event/[id]" options={{ title: 'Event' }} />
@@ -33,20 +40,21 @@ function NavigationTree(): ReactElement {
 }
 
 export default function RootLayout(): ReactElement {
-  const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
+  const deploymentUrl = getConvexDeploymentUrl();
 
-  if (!isConvexConfigured() || convexUrl == null || convexUrl.length === 0) {
-    return <NavigationTree />;
-  }
-
-  const convex = new ConvexReactClient(convexUrl, {
-    expectAuth: false,
-    unsavedChangesWarning: false,
-  });
+  const convex = useMemo(
+    () =>
+      new ConvexReactClient(deploymentUrl, {
+        expectAuth: false,
+        unsavedChangesWarning: false,
+      }),
+    [deploymentUrl],
+  );
 
   return (
     <ConvexProvider client={convex}>
       <ConvexBetterAuthProvider authClient={authClient} client={convex}>
+        <WebOttLandingFix />
         <EnsureConvexUser />
         <NavigationTree />
       </ConvexBetterAuthProvider>

@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react';
 import { makeFunctionReference } from 'convex/server';
 import { useConvexAuth, useMutation } from 'convex/react';
 
+import { isConvexConfigured } from '@/lib/convex/client';
+
 /** `convex/users.ts` — matches generated `api.users.ensureProfile` after `pnpm convex:dev`. */
 const ensureProfileMutation = makeFunctionReference<'mutation'>('users:ensureProfile');
 
@@ -21,7 +23,7 @@ export function EnsureConvexUser(): ReactElement | null {
   }, [isAuthenticated, isLoading]);
 
   useEffect(() => {
-    if (isLoading || !isAuthenticated || profileEnsured.current) {
+    if (!isConvexConfigured() || isLoading || !isAuthenticated || profileEnsured.current) {
       return;
     }
     profileEnsured.current = true;
