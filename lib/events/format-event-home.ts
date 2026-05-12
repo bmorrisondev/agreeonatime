@@ -16,11 +16,15 @@ export function formatDeadlineLine(deadlineMs: number, nowMs: number): string {
   return rtf.format(diffDays, 'day');
 }
 
-export function formatDecidedTime(startTimeMs: number): string {
-  return `Decided: ${new Date(startTimeMs).toLocaleString(undefined, {
+export function formatDateTimeMs(ms: number): string {
+  return new Date(ms).toLocaleString(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',
-  })}`;
+  });
+}
+
+export function formatDecidedTime(startTimeMs: number): string {
+  return `Decided: ${formatDateTimeMs(startTimeMs)}`;
 }
 
 export function formatVoteSummary(yes: number, no: number): string {

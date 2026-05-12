@@ -1,0 +1,13 @@
+---
+description: Add Playwright coverage when adding or changing app screens
+globs:
+  - app/**/*.tsx
+alwaysApply: false
+---
+
+# Playwright tests for screens
+
+- **Every Expo Router screen** under `app/` (routes users can open) should have a **Playwright** test that proves the route loads on **web** and exercises at least one meaningful interaction when the screen is interactive (tap/submit/navigate).
+- **When you add a new route or materially change a screen’s behavior**, add or update the matching spec in the repo’s E2E suite (use **`e2e/**/*.spec.ts`** unless the project already defines another folder — keep new specs consistent with existing tests).
+- **Naming:** tie specs to routes (e.g. sign-in → `e2e/sign-in.spec.ts`, dynamic segments → cover representative URLs).
+- **Runtime:** Tests run against the **web** bundle (local dev or exported static output). If Playwright is not yet installed, **add `@playwright/test` + minimal config** when you add the first screen spec; keep required env (e.g. `EXPO_PUBLIC_*`) documented next to the tests.
