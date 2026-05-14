@@ -2,6 +2,7 @@
 import { ConvexError, v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
+import { internal } from './_generated/api';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 
 import { authComponent } from './auth';
@@ -394,5 +395,112 @@ export const finalizeEventTime = mutation({
       status: 'decided',
       decidedTimeslotId: args.timeslotId,
     });
+  },
+});
+
+/** Cast a vote on an approved timeslot (DEV-391). */
+export const castVote = mutation({
+  args: {
+    eventId: v.id('events'),
+    timeslotId: v.id('timeslots'),
+    voterName: v.string(),
+    voterSessionId: v.optional(v.string()),
+    vote: v.union(v.literal('yes'), v.literal('no')),
+  },
+  handler: async (ctx, args): Promise<Id<'votes'>> => {
+    const event = await ctx.db.get(args.eventId);
+    if (!event || event.status !== 'open') {
+      throw new ConvexError('Event not found or voting is closed');
+    }
+    if (event.deadline < Date.now()) {
+      throw new ConvexError('Voting deadline has passed');
+    }
+
+    const slot = await ctx.db.get(args.timeslotId);
+    if (!slot || slot.eventId !== args.eventId || slot.approvalStatus !== 'approved') {
+      throw new ConvexError('Timeslot not available for voting');
+    }
+
+    let voterUserId: Id<'users'> | undefined;
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (authUser) {
+      voterUserId = await ensureAppUserIdForAuthUser(ctx, authUser);
+    }
+
+    const existingVotes = await ctx.db
+      .query('votes')
+      .withIndex('by_timeslot', (q) => q.eq('timeslotId', args.timeslotId))
+      .collect();
+
+    const newKey = voterKey({
+      voterName: args.voterName,
+      voterUserId,
+      voterSessionId: args.voterSessionId,
+    });
+    const duplicate = existingVotes.find((v) => voterKey(v) === newKey);
+    if (duplicate) {
+      await ctx.db.patch(duplicate._id, { vote: args.vote });
+      return duplicate._id;
+    }
+
+    const voteId = await ctx.db.insert('votes', {
+      eventId: args.eventId,
+      timeslotId: args.timeslotId,
+      voterName: args.voterName,
+      voterUserId,
+      voterSessionId: args.voterSessionId,
+      vote: args.vote,
+      createdAt: Date.now(),
+    });
+
+    await ctx.scheduler.runAfter(0, internal.notifications.notifyOwnerOfVote, {
+      eventId: args.eventId,
+      voterName: args.voterName,
+      timeslotStart: slot.startTime,
+      vote: args.vote,
+    });
+
+    return voteId;
+  },
+});
+
+/** Invitee proposes a new timeslot (requires event.allowInviteeProposals, DEV-391). */
+export const proposeTimeslot = mutation({
+  args: {
+    eventId: v.id('events'),
+    startTime: v.number(),
+  },
+  handler: async (ctx, args): Promise<Id<'timeslots'>> => {
+    const event = await ctx.db.get(args.eventId);
+    if (!event || event.status !== 'open') {
+      throw new ConvexError('Event not found or not open');
+    }
+    if (!event.allowInviteeProposals) {
+      throw new ConvexError('This event does not accept new time proposals');
+    }
+    if (args.startTime <= Date.now()) {
+      throw new ConvexError('Proposed time must be in the future');
+    }
+
+    let proposedBy: Id<'users'> | undefined;
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (authUser) {
+      proposedBy = await ensureAppUserIdForAuthUser(ctx, authUser);
+    }
+
+    const slotId = await ctx.db.insert('timeslots', {
+      eventId: args.eventId,
+      startTime: args.startTime,
+      proposedBy,
+      approvalStatus: 'pending',
+      createdAt: Date.now(),
+    });
+
+    await ctx.scheduler.runAfter(0, internal.notifications.notifyOwnerOfProposal, {
+      eventId: args.eventId,
+      timeslotStart: args.startTime,
+    });
+
+    return slotId;
   },
 });
