@@ -7,12 +7,14 @@ import { useConvex, useQuery } from 'convex/react';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { isConvexConfigured } from '@/lib/convex/client';
 import {
   formatDeadlineLine,
   formatDecidedTime,
   formatVoteSummary,
 } from '@/lib/events/format-event-home';
+import { t } from '@/lib/i18n/t';
 
 const listForHomeQuery = makeFunctionReference<'query'>('events:listForHome');
 
@@ -143,6 +145,22 @@ export default function HomeScreen(): ReactElement {
 
   return (
     <View className="flex-1 bg-white dark:bg-black">
+      <View
+        className="flex-row items-center justify-between border-b border-neutral-200 bg-white px-4 pb-2 dark:border-neutral-800 dark:bg-black"
+        style={{ paddingTop: insets.top + 4 }}
+      >
+        <Text className="text-display font-bold text-neutral-900 dark:text-neutral-100">
+          Home
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('settings_gear_a11y')}
+          hitSlop={8}
+          onPress={() => router.push('/settings')}
+        >
+          <IconSymbol name="gearshape.fill" size={24} color="#A3A3A3" />
+        </Pressable>
+      </View>
       <FlashList
         data={flatData}
         renderItem={renderItem}
