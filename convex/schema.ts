@@ -38,6 +38,8 @@ export default defineSchema({
     startTime: v.number(),
     endTime: v.optional(v.number()),
     proposedBy: v.optional(v.id('users')),
+    proposedByGuestName: v.optional(v.string()),
+    proposedByGuestSessionId: v.optional(v.string()),
     approvalStatus: v.union(v.literal('approved'), v.literal('pending'), v.literal('rejected')),
     createdAt: v.number(),
   }).index('by_event', ['eventId']),
