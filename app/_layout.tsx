@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
 import { ConvexReactClient, ConvexProvider } from 'convex/react';
 import { Stack } from 'expo-router';
@@ -9,9 +9,14 @@ import 'react-native-reanimated';
 import '../global.css';
 
 import { EnsureConvexUser } from '@/components/auth/ensure-convex-user';
+import { RevenueCatIdentify } from '@/components/purchases/revenuecat-identify';
+import { RevenueCatInit } from '@/components/revenue-cat-init';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { authClient } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
+import { configurePurchases } from '@/lib/purchases';
+
+configurePurchases();
 
 function NavigationTree(): ReactElement {
   const colorScheme = useColorScheme();
@@ -48,7 +53,9 @@ export default function RootLayout(): ReactElement {
   return (
     <ConvexProvider client={convex}>
       <ConvexBetterAuthProvider authClient={authClient} client={convex}>
+        <RevenueCatInit />
         <EnsureConvexUser />
+        <RevenueCatIdentify />
         <NavigationTree />
       </ConvexBetterAuthProvider>
     </ConvexProvider>
