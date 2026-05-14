@@ -7,18 +7,46 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://fastidious-cardinal-591.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://fastidious-cardinal-591.convex.site",
+        "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_cjcVUrUIUtyrwWtWkQXmNmgTUbI"
+      },
       "ios": {
-        "simulator": true
+        "simulator": true,
+        "buildConfiguration": "Debug"
+      }
+    },
+    "development-device": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://fastidious-cardinal-591.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://fastidious-cardinal-591.convex.site",
+        "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_cjcVUrUIUtyrwWtWkQXmNmgTUbI"
+      },
+      "ios": {
+        "simulator": false
       }
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://fastidious-cardinal-591.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://fastidious-cardinal-591.convex.site",
+        "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_cjcVUrUIUtyrwWtWkQXmNmgTUbI"
+      },
       "ios": {
         "simulator": false
       }
     },
     "production": {
       "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://fastidious-cardinal-591.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://fastidious-cardinal-591.convex.site",
+        "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_cjcVUrUIUtyrwWtWkQXmNmgTUbI"
+      },
       "ios": {
         "resourceClass": "m-medium"
       }

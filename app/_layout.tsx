@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
 import { ConvexReactClient, ConvexProvider } from 'convex/react';
 import { Stack } from 'expo-router';

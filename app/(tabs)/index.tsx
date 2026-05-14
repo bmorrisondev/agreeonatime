@@ -32,19 +32,15 @@ type FlatRow =
   | { kind: 'header'; key: string; title: string }
   | { kind: 'event'; key: string; event: HomeEventRow };
 
-export default function HomeScreen(): ReactElement {
-  const configured = isConvexConfigured();
+function HomeScreenContent(): ReactElement {
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const convex = useConvex();
   const insets = useSafeAreaInsets();
 
-  const raw = useQuery(listForHomeQuery, configured ? { refreshNonce } : 'skip');
+  const raw = useQuery(listForHomeQuery, { refreshNonce });
 
   const onRefresh = useCallback(async () => {
-    if (!configured) {
-      return;
-    }
     setRefreshing(true);
     const next = refreshNonce + 1;
     setRefreshNonce(next);
@@ -53,7 +49,7 @@ export default function HomeScreen(): ReactElement {
     } finally {
       setRefreshing(false);
     }
-  }, [configured, convex, refreshNonce]);
+  }, [convex, refreshNonce]);
 
   const flatData = useMemo((): FlatRow[] => {
     if (raw == null || raw.groups == null) {
@@ -70,7 +66,6 @@ export default function HomeScreen(): ReactElement {
   }, [raw]);
 
   const isEmpty =
-    configured &&
     raw !== undefined &&
     raw !== null &&
     (raw.groups?.length ?? 0) === 0;
@@ -112,16 +107,6 @@ export default function HomeScreen(): ReactElement {
       </Pressable>
     );
   }, []);
-
-  if (!configured) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
-        <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
-          Set EXPO_PUBLIC_CONVEX_URL in your environment to load your events from Convex.
-        </Text>
-      </View>
-    );
-  }
 
   if (raw === undefined) {
     return (
@@ -176,4 +161,18 @@ export default function HomeScreen(): ReactElement {
       </Pressable>
     </View>
   );
+}
+
+export default function HomeScreen(): ReactElement {
+  if (!isConvexConfigured()) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
+        <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
+          Set EXPO_PUBLIC_CONVEX_URL in your environment to load your events from Convex.
+        </Text>
+      </View>
+    );
+  }
+
+  return <HomeScreenContent />;
 }
