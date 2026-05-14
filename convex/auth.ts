@@ -119,7 +119,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof better
     baseURL: convexSite,
     trustedOrigins: origins,
     database: authComponent.adapter(ctx),
-    emailAndPassword: { enabled: false },
+    emailAndPassword: { enabled: true, minPasswordLength: 8 },
     plugins,
   };
 
