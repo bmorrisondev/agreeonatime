@@ -8,7 +8,7 @@ import { Redirect } from 'expo-router';
 import { authClient, isAuthClientConfigured } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
 
-type AuthMode = 'magic-link' | 'sign-in' | 'sign-up';
+type AuthMode = 'forgot-password' | 'magic-link' | 'sign-in' | 'sign-up';
 
 export default function SignInScreen(): ReactElement {
   const { data: session, isPending } = authClient.useSession();
@@ -16,6 +16,9 @@ export default function SignInScreen(): ReactElement {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [mode, setMode] = useState<AuthMode>('sign-in');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [resetCodeSent, setResetCodeSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -92,6 +95,47 @@ export default function SignInScreen(): ReactElement {
     }
   };
 
+  const onRequestResetCode = async (): Promise<void> => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const result = await authClient.emailOtp.requestPasswordReset({
+        email: email.trim(),
+      });
+      if (result.error) {
+        setNotice(result.error.message ?? 'Could not send reset code.');
+      } else {
+        setResetCodeSent(true);
+        setNotice('Check your email for the 6-digit code.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onResetPassword = async (): Promise<void> => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const result = await authClient.emailOtp.resetPassword({
+        email: email.trim(),
+        otp: otp.trim(),
+        password: newPassword,
+      });
+      if (result.error) {
+        setNotice(result.error.message ?? 'Password reset failed.');
+      } else {
+        setNotice('Password reset! You can now sign in.');
+        setMode('sign-in');
+        setOtp('');
+        setNewPassword('');
+        setResetCodeSent(false);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onApple = async (): Promise<void> => {
     if (Platform.OS !== 'ios') {
       setNotice('Sign in with Apple is available on iOS.');
@@ -150,7 +194,9 @@ export default function SignInScreen(): ReactElement {
       <Text className="mb-8 text-base text-neutral-600 dark:text-neutral-400">
         {mode === 'sign-up'
           ? 'Create an account to get started.'
-          : 'Sign in to create and manage scheduling polls.'}
+          : mode === 'forgot-password'
+            ? 'Reset your password via a code sent to your email.'
+            : 'Sign in to create and manage scheduling polls.'}
       </Text>
 
       {mode === 'sign-up' && (
@@ -192,13 +238,94 @@ export default function SignInScreen(): ReactElement {
             autoCapitalize="none"
             autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
             autoCorrect={false}
-            className="mb-4 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
+            className="mb-2 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
             onChangeText={setPassword}
             placeholder="Min. 8 characters"
             placeholderTextColor="#9ca3af"
             secureTextEntry
             value={password}
           />
+          {mode === 'sign-in' && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Forgot password"
+              className="mb-4 self-end"
+              onPress={() => {
+                setMode('forgot-password');
+                setPassword('');
+                setOtp('');
+                setNewPassword('');
+                setResetCodeSent(false);
+                setNotice(null);
+              }}
+            >
+              <Text className="text-sm font-medium text-[#FF6B5C]">Forgot password?</Text>
+            </Pressable>
+          )}
+          {mode === 'sign-up' && <View className="mb-2" />}
+        </>
+      )}
+
+      {mode === 'forgot-password' && !resetCodeSent && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Send reset code"
+          className="mb-3 items-center rounded-xl bg-[#FF6B5C] py-4 opacity-100 active:opacity-90 disabled:opacity-50"
+          disabled={busy || email.trim().length === 0}
+          onPress={() => void onRequestResetCode()}
+        >
+          <Text className="text-base font-semibold text-white">
+            {busy ? 'Sending…' : 'Send reset code'}
+          </Text>
+        </Pressable>
+      )}
+
+      {mode === 'forgot-password' && resetCodeSent && (
+        <>
+          <Text className="mb-2 font-medium text-neutral-800 dark:text-neutral-200">
+            6-digit code
+          </Text>
+          <TextInput
+            accessibilityLabel="6-digit reset code"
+            autoCapitalize="none"
+            autoComplete="one-time-code"
+            autoCorrect={false}
+            className="mb-4 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-center text-2xl font-bold tracking-widest text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
+            keyboardType="number-pad"
+            maxLength={6}
+            onChangeText={setOtp}
+            placeholder="000000"
+            placeholderTextColor="#9ca3af"
+            value={otp}
+          />
+
+          <Text className="mb-2 font-medium text-neutral-800 dark:text-neutral-200">
+            New password
+          </Text>
+          <TextInput
+            accessibilityLabel="New password"
+            autoCapitalize="none"
+            autoComplete="new-password"
+            autoCorrect={false}
+            className="mb-4 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
+            onChangeText={setNewPassword}
+            placeholder="Min. 8 characters"
+            placeholderTextColor="#9ca3af"
+            secureTextEntry
+            value={newPassword}
+          />
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Reset password"
+            className="mb-3 items-center rounded-xl bg-[#FF6B5C] py-4 opacity-100 active:opacity-90 disabled:opacity-50"
+            disabled={busy || otp.trim().length !== 6 || newPassword.length < 8}
+            onPress={() => void onResetPassword()}
+          >
+            <Text className="text-base font-semibold text-white">
+              {busy ? 'Resetting…' : 'Reset password'}
+            </Text>
+          </Pressable>
         </>
       )}
 
@@ -214,7 +341,7 @@ export default function SignInScreen(): ReactElement {
             {busy ? 'Please wait…' : mode === 'sign-up' ? 'Create account' : 'Sign in'}
           </Text>
         </Pressable>
-      ) : (
+      ) : mode === 'magic-link' ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Email magic link sign-in"
@@ -226,7 +353,7 @@ export default function SignInScreen(): ReactElement {
             {busy ? 'Sending…' : 'Email me a magic link'}
           </Text>
         </Pressable>
-      )}
+      ) : null}
 
       {/* Mode switchers */}
       <View className="mb-6 flex-row justify-center gap-4">
@@ -236,13 +363,16 @@ export default function SignInScreen(): ReactElement {
             accessibilityLabel="Switch to sign in with password"
             onPress={() => {
               setMode('sign-in');
+              setResetCodeSent(false);
+              setOtp('');
+              setNewPassword('');
               setNotice(null);
             }}
           >
             <Text className="text-sm font-medium text-[#FF6B5C]">Sign in with password</Text>
           </Pressable>
         )}
-        {mode !== 'sign-up' && (
+        {mode !== 'sign-up' && mode !== 'forgot-password' && (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Switch to create account"
@@ -254,7 +384,7 @@ export default function SignInScreen(): ReactElement {
             <Text className="text-sm font-medium text-[#FF6B5C]">Create account</Text>
           </Pressable>
         )}
-        {mode !== 'magic-link' && (
+        {mode !== 'magic-link' && mode !== 'forgot-password' && (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Switch to magic link"
