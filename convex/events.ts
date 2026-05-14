@@ -305,6 +305,7 @@ export const getForOwner = query({
         _id: slot._id,
         startTime: slot.startTime,
         createdAt: slot.createdAt,
+        proposedByGuestName: slot.proposedByGuestName,
       }));
 
     return {
@@ -354,5 +355,44 @@ export const resolvePendingTimeslot = mutation({
 
     const nextStatus = args.decision === 'approve' ? 'approved' : 'rejected';
     await ctx.db.patch(args.timeslotId, { approvalStatus: nextStatus });
+  },
+});
+
+/**
+ * Owner finalizes the event time (DEV-388). Sets `decided`.
+ * DEV-391 adds optional owner email via scheduler after notifications land.
+ */
+export const finalizeEventTime = mutation({
+  args: {
+    eventId: v.id('events'),
+    timeslotId: v.id('timeslots'),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (!authUser) {
+      throw new ConvexError('Sign in to pick a time');
+    }
+    const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
+
+    const event = await ctx.db.get(args.eventId);
+    if (!event || event.ownerId !== userId) {
+      throw new ConvexError('Event not found or you are not the owner');
+    }
+    if (event.status !== 'open') {
+      throw new ConvexError('This event is already finalized');
+    }
+
+    const slot = await ctx.db.get(args.timeslotId);
+    if (!slot || slot.eventId !== args.eventId) {
+      throw new ConvexError('Time not found');
+    }
+    if (slot.approvalStatus !== 'approved') {
+      throw new ConvexError('You can only pick from approved times');
+    }
+
+    await ctx.db.patch(args.eventId, {
+      status: 'decided',
+      decidedTimeslotId: args.timeslotId,
+    });
   },
 });
