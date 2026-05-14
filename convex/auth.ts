@@ -3,7 +3,7 @@ import { expo } from '@better-auth/expo';
 import { createClient, type GenericCtx } from '@convex-dev/better-auth';
 import { convex, crossDomain } from '@convex-dev/better-auth/plugins';
 import { betterAuth, type BetterAuthOptions } from 'better-auth/minimal';
-import { magicLink } from 'better-auth/plugins';
+import { emailOTP, magicLink } from 'better-auth/plugins';
 import { importPKCS8, SignJWT } from 'jose';
 
 import authConfig from './auth.config';
@@ -36,6 +36,44 @@ async function sendMagicLinkEmail(email: string, url: string): Promise<void> {
     const text = await res.text();
     console.error('[auth] Resend failed:', res.status, text);
     throw new Error('Failed to send magic link email');
+  }
+}
+
+async function sendVerificationOTPEmail(
+  email: string,
+  otp: string,
+  type: 'sign-in' | 'email-verification' | 'forget-password',
+): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn(`[auth] OTP for ${email} (${type}): ${otp}`);
+    return;
+  }
+  const from = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev';
+
+  const subjectByType: Record<typeof type, string> = {
+    'sign-in': 'Your Agree on a Time sign-in code',
+    'email-verification': 'Verify your email for Agree on a Time',
+    'forget-password': 'Reset your Agree on a Time password',
+  };
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: [email],
+      subject: subjectByType[type],
+      html: `<p>Your verification code is:</p><p style="font-size:32px;font-weight:bold;letter-spacing:4px">${otp}</p><p>This code expires in 5 minutes.</p>`,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    console.error('[auth] Resend OTP failed:', res.status, text);
+    throw new Error('Failed to send verification email');
   }
 }
 
@@ -113,6 +151,11 @@ export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof better
       },
     }),
     crossDomain({ siteUrl: crossDomainSiteUrl }),
+    emailOTP({
+      async sendVerificationOTP({ email, otp, type }) {
+        await sendVerificationOTPEmail(email, otp, type);
+      },
+    }),
   ];
 
   const base: BetterAuthOptions = {
