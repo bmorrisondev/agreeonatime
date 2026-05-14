@@ -43,11 +43,24 @@
       ],
       "expo-apple-authentication",
       "@react-native-community/datetimepicker",
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#E6F4FE"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0184258a-dbc7-4ea4-8540-e69f337d2318"
+      }
+    },
+    "owner": "brianmmdev"
   }
 }

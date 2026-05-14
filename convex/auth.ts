@@ -9,6 +9,7 @@ import { importPKCS8, SignJWT } from 'jose';
 import authConfig from './auth.config';
 import { components } from './_generated/api';
 import { type DataModel } from './_generated/dataModel';
+
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
 async function sendMagicLinkEmail(email: string, url: string): Promise<void> {
@@ -68,18 +69,33 @@ function appleConfigured(): boolean {
 /** Expo `pnpm web` defaults — must match `trustedOrigins` or magic-link `callbackURL` is rejected. */
 const EXPO_WEB_DEV_ORIGINS = ['http://localhost:8081', 'http://127.0.0.1:8081'] as const;
 
+function splitOrigins(raw: string | undefined): string[] {
+  if (raw == null || raw.trim().length === 0) {
+    return [];
+  }
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+function siteUrlOrigins(): string[] {
+  return splitOrigins(process.env.SITE_URL);
+}
+
 export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof betterAuth> => {
   const convexSite = process.env.EXPO_PUBLIC_CONVEX_SITE_URL ?? '';
-  /** Production / preview web origin. Convex: `npx convex env set SITE_URL https://…` */
-  const webAppSiteUrl = process.env.SITE_URL?.trim() ?? '';
+  /** Production / preview web origins from `SITE_URL` (comma-separated supported). */
+  const siteUrls = siteUrlOrigins();
+  const primarySiteUrl = siteUrls[0] ?? '';
   const crossDomainSiteUrl =
-    webAppSiteUrl.length > 0 ? webAppSiteUrl : EXPO_WEB_DEV_ORIGINS[0];
+    primarySiteUrl.length > 0 ? primarySiteUrl : EXPO_WEB_DEV_ORIGINS[0];
 
   const origins = [
     ...new Set(
       [
         convexSite,
-        webAppSiteUrl,
+        ...siteUrls,
         ...EXPO_WEB_DEV_ORIGINS,
         'agreeonatime://',
         'exp://',
@@ -104,6 +120,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof better
     trustedOrigins: origins,
     database: authComponent.adapter(ctx),
     emailAndPassword: { enabled: false },
+    user: { deleteUser: { enabled: true } },
     plugins,
   };
 

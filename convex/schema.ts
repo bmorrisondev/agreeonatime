@@ -29,6 +29,9 @@ export default defineSchema({
     createdAt: v.number(),
     /** Cryptographically random, URL-safe — enforce uniqueness in create/update mutations. */
     shareToken: v.string(),
+    /** Notification tracking — set by cron after sending (DEV-391). */
+    deadlineReminderSent: v.optional(v.boolean()),
+    deadlineReachedSent: v.optional(v.boolean()),
   })
     .index('by_share_token', ['shareToken'])
     .index('by_owner', ['ownerId']),
@@ -38,6 +41,10 @@ export default defineSchema({
     startTime: v.number(),
     endTime: v.optional(v.number()),
     proposedBy: v.optional(v.id('users')),
+    /** Display name when a guest (web) proposes a pending slot. */
+    proposedByGuestName: v.optional(v.string()),
+    /** Session id of the guest who proposed this slot (for rate-limiting). */
+    proposedByGuestSessionId: v.optional(v.string()),
     approvalStatus: v.union(v.literal('approved'), v.literal('pending'), v.literal('rejected')),
     createdAt: v.number(),
   }).index('by_event', ['eventId']),
@@ -52,5 +59,7 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index('by_event', ['eventId'])
-    .index('by_timeslot', ['timeslotId']),
+    .index('by_event_and_session', ['eventId', 'voterSessionId'])
+    .index('by_timeslot', ['timeslotId'])
+    .index('by_voter_user', ['voterUserId']),
 });
