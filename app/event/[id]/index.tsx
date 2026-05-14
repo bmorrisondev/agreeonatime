@@ -42,6 +42,7 @@ interface PendingSlot {
   _id: string;
   startTime: number;
   createdAt: number;
+  proposedByGuestName?: string;
 }
 
 export default function EventDetailScreen(): ReactElement {
@@ -213,6 +214,11 @@ export default function EventDetailScreen(): ReactElement {
                 <Text className="text-base text-neutral-900 dark:text-neutral-100">
                   {formatTimeslotWithTimezone(p.startTime)}
                 </Text>
+                {p.proposedByGuestName != null && p.proposedByGuestName.length > 0 ? (
+                  <Text className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+                    Proposed by {p.proposedByGuestName}
+                  </Text>
+                ) : null}
                 <View className="mt-3 flex-row gap-2">
                   <Pressable
                     accessibilityRole="button"
