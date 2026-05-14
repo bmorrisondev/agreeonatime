@@ -1,8 +1,17 @@
-import { useMemo } from 'react';
-
 /**
- * RevenueCat-backed entitlement (DEV-393). v1.0: everyone is Pro; flip hook body in v1.1.
+ * v1.0 stub — everyone is Pro while the paywall is off.
+ *
+ * When the paywall is enabled, swap this to check RevenueCat
+ * `CustomerInfo.entitlements.active` for the "pro" entitlement.
  */
-export function useEntitlement(): { isPro: boolean; isLoaded: boolean } {
-  return useMemo(() => ({ isPro: true, isLoaded: true }), []);
+
+interface Entitlement {
+  readonly isPro: boolean;
+  readonly isLoaded: boolean;
+}
+
+const PRO_ENTITLEMENT: Entitlement = { isPro: true, isLoaded: true } as const;
+
+export function useEntitlement(): Entitlement {
+  return PRO_ENTITLEMENT;
 }
