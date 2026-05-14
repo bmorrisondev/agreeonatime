@@ -88,25 +88,25 @@ export const getCurrentUser = query({
   },
 });
 
-/** Registers an Expo push token for the current user (DEV-391). Deduplicates. */
+/** Register or refresh this device's Expo push token (DEV-391). */
 export const registerPushToken = mutation({
   args: { token: v.string() },
-  handler: async (ctx, { token }) => {
+  handler: async (ctx, { token }): Promise<void> => {
     const authUser = await authComponent.safeGetAuthUser(ctx);
     if (!authUser) {
-      throw new ConvexError('Sign in to register for notifications');
+      throw new ConvexError('Sign in to enable notifications');
     }
     const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
-    const user = await ctx.db.get(userId);
-    if (!user) {
-      throw new ConvexError('User record not found');
-    }
-    if (user.pushTokens.includes(token)) {
+    const t = token.trim();
+    if (t.length === 0) {
       return;
     }
-    await ctx.db.patch(userId, {
-      pushTokens: [...user.pushTokens, token],
-    });
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      return;
+    }
+    const deduped = Array.from(new Set([...user.pushTokens, t]));
+    await ctx.db.patch(userId, { pushTokens: deduped });
   },
 });
 

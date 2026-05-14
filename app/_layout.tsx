@@ -9,7 +9,7 @@ import 'react-native-reanimated';
 import '../global.css';
 
 import { EnsureConvexUser } from '@/components/auth/ensure-convex-user';
-import { RegisterPushNotifications } from '@/components/auth/register-push-notifications';
+import { RegisterExpoPush } from '@/components/register-expo-push';
 import { RevenueCatIdentify } from '@/components/purchases/revenuecat-identify';
 import { RevenueCatInit } from '@/components/revenue-cat-init';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -56,8 +56,8 @@ export default function RootLayout(): ReactElement {
     <ConvexProvider client={convex}>
       <ConvexBetterAuthProvider authClient={authClient} client={convex}>
         <RevenueCatInit />
+        <RegisterExpoPush />
         <EnsureConvexUser />
-        <RegisterPushNotifications />
         <RevenueCatIdentify />
         <NavigationTree />
       </ConvexBetterAuthProvider>
