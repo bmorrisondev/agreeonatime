@@ -1,5 +1,5 @@
 // @ts-nocheck — Run `pnpm convex:dev` for generated types.
-import { ConvexError } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import { mutation, type MutationCtx } from './_generated/server';
 
@@ -62,5 +62,27 @@ export const ensureProfile = mutation({
       return null;
     }
     return await ensureAppUserIdForAuthUser(ctx, authUser);
+  },
+});
+
+/** Registers an Expo push token for the current user (DEV-391). Deduplicates. */
+export const registerPushToken = mutation({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (!authUser) {
+      throw new ConvexError('Sign in to register for notifications');
+    }
+    const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new ConvexError('User record not found');
+    }
+    if (user.pushTokens.includes(token)) {
+      return;
+    }
+    await ctx.db.patch(userId, {
+      pushTokens: [...user.pushTokens, token],
+    });
   },
 });
