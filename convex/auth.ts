@@ -18,7 +18,7 @@ async function sendMagicLinkEmail(email: string, url: string): Promise<void> {
     console.warn(`[auth] Magic link for ${email}: ${url}`);
     return;
   }
-  const from = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev';
+  const from = 'no-reply@agreeonatime.com';
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
