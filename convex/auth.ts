@@ -120,6 +120,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof better
     trustedOrigins: origins,
     database: authComponent.adapter(ctx),
     emailAndPassword: { enabled: true, minPasswordLength: 8 },
+    user: { deleteUser: { enabled: true } },
     plugins,
   };
 

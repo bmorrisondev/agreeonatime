@@ -29,6 +29,9 @@ export default defineSchema({
     createdAt: v.number(),
     /** Cryptographically random, URL-safe — enforce uniqueness in create/update mutations. */
     shareToken: v.string(),
+    /** Notification tracking — set by cron after sending (DEV-391). */
+    deadlineReminderSent: v.optional(v.boolean()),
+    deadlineReachedSent: v.optional(v.boolean()),
   })
     .index('by_share_token', ['shareToken'])
     .index('by_owner', ['ownerId']),
