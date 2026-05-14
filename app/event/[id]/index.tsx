@@ -50,7 +50,7 @@ export default function EventDetailScreen(): ReactElement {
   const rawId = useLocalSearchParams<{ id: string }>().id;
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const configured = isConvexConfigured();
-  const [tick, setTick] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [busySlotId, setBusySlotId] = useState<string | null>(null);
   const [shareToast, setShareToast] = useState<{ visible: boolean; message: string }>({
@@ -60,7 +60,7 @@ export default function EventDetailScreen(): ReactElement {
 
   useEffect(() => {
     const t = setInterval(() => {
-      setTick((n) => n + 1);
+      setNowMs(Date.now());
     }, 30_000);
     return () => clearInterval(t);
   }, []);
@@ -71,8 +71,6 @@ export default function EventDetailScreen(): ReactElement {
   );
 
   const resolvePending = useMutation(resolvePendingTimeslotMutation);
-
-  const nowMs = Date.now() + tick * 0;
 
   const toggleExpanded = useCallback((slotId: string) => {
     setExpanded((prev) => ({ ...prev, [slotId]: !prev[slotId] }));

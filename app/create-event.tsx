@@ -1,5 +1,5 @@
 import type { ChangeEvent, CSSProperties, ReactElement } from 'react';
-import { createElement, useCallback, useMemo, useRef, useState } from 'react';
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { makeFunctionReference } from 'convex/server';
 import { useMutation } from 'convex/react';
@@ -119,18 +119,21 @@ export default function CreateEventScreen(): ReactElement {
   const [error, setError] = useState<string | null>(null);
 
   const pickerRef = useRef<PickerTarget | null>(null);
-  pickerRef.current = picker;
+  useEffect(() => {
+    pickerRef.current = picker;
+  }, [picker]);
 
   const createEvent = useMutation(createEventMutation);
 
   const pickerValue = useMemo(() => {
     if (picker == null) {
-      return new Date();
+      return new Date(0);
     }
     if (picker.kind === 'deadline') {
       return new Date(deadline);
     }
-    return new Date(slotStarts[picker.index] ?? Date.now());
+    const ms = slotStarts[picker.index] ?? slotStarts[0] ?? 0;
+    return new Date(ms);
   }, [picker, deadline, slotStarts]);
 
   const onPickerChange = useCallback((event: DateTimePickerEvent, date?: Date) => {

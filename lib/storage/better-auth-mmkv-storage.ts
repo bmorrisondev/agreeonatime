@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 /**
@@ -10,12 +11,11 @@ export interface BetterAuthKeyValueStorage {
   setItem: (key: string, value: string) => void;
 }
 
-function createMemoryStorage(): BetterAuthKeyValueStorage {
-  const memory = new Map<string, string>();
+function createSecureStoreStorage(): BetterAuthKeyValueStorage {
   return {
-    getItem: (key: string) => memory.get(key) ?? null,
+    getItem: (key: string) => SecureStore.getItem(key),
     setItem: (key: string, value: string) => {
-      memory.set(key, value);
+      SecureStore.setItem(key, value);
     },
   };
 }
@@ -41,14 +41,14 @@ function createMmkvStorage(): BetterAuthKeyValueStorage {
 
 /**
  * Persists Better Auth session cookies on device (DEV-382).
- * Uses MMKV in dev client / production builds; in-memory in Expo Go (MMKV not linked).
+ * Uses MMKV in dev client / production builds; SecureStore in Expo Go (MMKV not linked).
  */
 export function createBetterAuthNativeStorage(): BetterAuthKeyValueStorage {
   if (Platform.OS === 'web') {
     throw new Error('createBetterAuthNativeStorage is only for native platforms');
   }
   if (Constants.expoGoConfig != null) {
-    return createMemoryStorage();
+    return createSecureStoreStorage();
   }
   return createMmkvStorage();
 }
