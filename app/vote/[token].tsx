@@ -1,7 +1,8 @@
 import type { ReactElement } from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -17,12 +18,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VoteBar } from '@/components/events/vote-bar';
 import { isConvexConfigured } from '@/lib/convex/client';
-import { formatTimeslotWithTimezone } from '@/lib/events/format-event-home';
+import {
+  formatDeadlineLine,
+  formatTimeslotWithTimezone,
+} from '@/lib/events/format-event-home';
 import {
   getOrCreateGuestSessionId,
   getStoredGuestName,
   setStoredGuestName,
 } from '@/lib/guest/voter-session';
+
+const APP_STORE_URL = 'https://apps.apple.com/app/agree-on-a-time/id6743097026';
 
 const guestGetQuery = makeFunctionReference<'query'>('guestEvents:getByShareToken');
 const guestSetVoteMutation = makeFunctionReference<'mutation'>('guestEvents:setGuestVote');
@@ -37,6 +43,7 @@ type GuestEvent = {
   allowInviteeProposals: boolean;
   decidedTimeslotId?: string;
   decidedStartTime?: number;
+  ownerName: string;
   approvedTimeslots: { _id: string; startTime: number; yesCount: number; noCount: number }[];
   pendingCount: number;
 };
@@ -53,6 +60,16 @@ export default function VoteByTokenScreen(): ReactElement {
   const [proposeOpen, setProposeOpen] = useState(false);
   const [proposeAt, setProposeAt] = useState(() => new Date(Date.now() + 60 * 60 * 1000));
   const [proposeIso, setProposeIso] = useState('');
+  const [voted, setVoted] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    tickRef.current = setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current);
+    };
+  }, []);
 
   const event = useQuery(
     guestGetQuery,
@@ -63,9 +80,8 @@ export default function VoteByTokenScreen(): ReactElement {
     if (event == null || typeof event !== 'object' || !('deadline' in event)) {
       return '';
     }
-    const d = new Date(event.deadline);
-    return `Deadline ${d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`;
-  }, [event]);
+    return `Closes ${formatDeadlineLine(event.deadline, nowMs)}`;
+  }, [event, nowMs]);
 
   const setVote = useMutation(guestSetVoteMutation);
   const propose = useMutation(guestProposeMutation);
@@ -91,6 +107,7 @@ export default function VoteByTokenScreen(): ReactElement {
           timeslotId,
           vote,
         });
+        setVoted(true);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'Could not save vote';
         setError(msg);
@@ -195,11 +212,19 @@ export default function VoteByTokenScreen(): ReactElement {
       >
         <Text className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">{event.title}</Text>
         <Text className="mt-4 text-base text-neutral-700 dark:text-neutral-300">
-          The host picked a time:{' '}
+          {event.ownerName} picked a time:{' '}
           <Text className="font-semibold">{formatTimeslotWithTimezone(event.decidedStartTime)}</Text>
         </Text>
-        <Text className="mt-6 text-sm text-neutral-600 dark:text-neutral-400">
-          Get the Agree on a Time app from the App Store when it launches to host your own polls.
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="Get the Agree on a Time app on the App Store"
+          className="mt-8 items-center rounded-xl bg-[#FF6B5C] py-3.5 active:opacity-90"
+          onPress={() => void Linking.openURL(APP_STORE_URL)}
+        >
+          <Text className="text-base font-semibold text-white">Get the app</Text>
+        </Pressable>
+        <Text className="mt-4 text-center text-sm text-neutral-500 dark:text-neutral-500">
+          Host your own polls with Agree on a Time.
         </Text>
       </ScrollView>
     );
@@ -309,14 +334,20 @@ export default function VoteByTokenScreen(): ReactElement {
           {proposeOpen ? (
             <View className="mt-4">
               {Platform.OS === 'web' ? (
-                <TextInput
-                  accessibilityLabel="Proposed time in ISO format"
-                  className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
-                  placeholder="2026-06-01T15:00"
+                <input
+                  type="datetime-local"
+                  aria-label="Proposed date and time"
                   value={proposeIso}
-                  onChangeText={setProposeIso}
-                  autoCapitalize="none"
-                  autoCorrect={false}
+                  onChange={(e) => setProposeIso(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: 10,
+                    borderRadius: 8,
+                    border: '1px solid #d4d4d4',
+                    fontSize: 16,
+                    backgroundColor: 'transparent',
+                    color: 'inherit',
+                  }}
                 />
               ) : (
                 <DateTimePicker
@@ -348,9 +379,17 @@ export default function VoteByTokenScreen(): ReactElement {
         </View>
       ) : null}
 
-      <Text className="mt-10 text-center text-xs text-neutral-500 dark:text-neutral-500">
-        We will let you know when the host picks a time.
-      </Text>
+      {voted ? (
+        <View className="mt-8 rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/30" accessibilityLiveRegion="polite">
+          <Text className="text-center text-base font-semibold text-emerald-800 dark:text-emerald-200">
+            Got it — we&apos;ll let you know when {event.ownerName} picks a time.
+          </Text>
+        </View>
+      ) : (
+        <Text className="mt-10 text-center text-xs text-neutral-500 dark:text-neutral-500">
+          We&apos;ll let you know when {event.ownerName} picks a time.
+        </Text>
+      )}
     </ScrollView>
   );
 }

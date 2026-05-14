@@ -30,15 +30,11 @@ async function voteChangesForSession(
 ): Promise<number> {
   const votes = await ctx.db
     .query('votes')
-    .withIndex('by_event', (q) => q.eq('eventId', eventId))
+    .withIndex('by_event_and_session', (q) =>
+      q.eq('eventId', eventId).eq('voterSessionId', voterSessionId),
+    )
     .collect();
-  let n = 0;
-  for (const row of votes) {
-    if (row.voterSessionId === voterSessionId) {
-      n += 1;
-    }
-  }
-  return n;
+  return votes.length;
 }
 
 export const getByShareToken = query({
@@ -95,6 +91,9 @@ export const getByShareToken = query({
       decidedStartTime = decided?.startTime;
     }
 
+    const owner = await ctx.db.get(event.ownerId);
+    const ownerName = owner?.name ?? 'the host';
+
     return {
       _id: event._id,
       title: event.title,
@@ -104,6 +103,7 @@ export const getByShareToken = query({
       allowInviteeProposals: event.allowInviteeProposals,
       decidedTimeslotId: event.decidedTimeslotId,
       decidedStartTime,
+      ownerName,
       approvedTimeslots: slotsOut,
       pendingCount: pending.length,
     };
@@ -218,12 +218,10 @@ export const proposeGuestTimeslot = mutation({
     await ctx.db.insert('timeslots', {
       eventId: event._id,
       startTime: args.startTime,
-      proposedBy: undefined,
       proposedByGuestName: name,
+      proposedByGuestSessionId: session,
       approvalStatus: 'pending',
       createdAt: now,
     });
-
-    void session;
   },
 });
