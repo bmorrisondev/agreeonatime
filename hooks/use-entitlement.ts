@@ -7,9 +7,10 @@
 
 interface Entitlement {
   readonly isPro: boolean;
+  readonly isLoaded: boolean;
 }
 
-const PRO_ENTITLEMENT: Entitlement = { isPro: true } as const;
+const PRO_ENTITLEMENT: Entitlement = { isPro: true, isLoaded: true } as const;
 
 export function useEntitlement(): Entitlement {
   return PRO_ENTITLEMENT;
