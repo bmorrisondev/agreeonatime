@@ -356,3 +356,50 @@ export const resolvePendingTimeslot = mutation({
     await ctx.db.patch(args.timeslotId, { approvalStatus: nextStatus });
   },
 });
+
+/**
+ * Owner finalizes the event by picking a timeslot (DEV-388).
+ * Sets status to 'decided' and records the chosen timeslot.
+ * Idempotent: re-calling with the same timeslot is a no-op.
+ */
+export const finalizeEventTime = mutation({
+  args: {
+    eventId: v.id('events'),
+    timeslotId: v.id('timeslots'),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (!authUser) {
+      throw new ConvexError('Sign in to pick a time');
+    }
+    const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
+
+    const event = await ctx.db.get(args.eventId);
+    if (!event || event.ownerId !== userId) {
+      throw new ConvexError('Event not found or you are not the owner');
+    }
+
+    if (event.status === 'decided' && event.decidedTimeslotId === args.timeslotId) {
+      return;
+    }
+
+    if (event.status !== 'open' && event.status !== 'decided') {
+      throw new ConvexError('Event is closed and cannot be updated');
+    }
+
+    const slot = await ctx.db.get(args.timeslotId);
+    if (!slot || slot.eventId !== args.eventId) {
+      throw new ConvexError('Timeslot not found');
+    }
+    if (slot.approvalStatus !== 'approved') {
+      throw new ConvexError('Only approved timeslots can be selected');
+    }
+
+    await ctx.db.patch(args.eventId, {
+      status: 'decided',
+      decidedTimeslotId: args.timeslotId,
+    });
+
+    // TODO(DEV-391): send push/email notifications to voters once notification actions exist.
+  },
+});

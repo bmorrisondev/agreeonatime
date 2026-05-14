@@ -35,4 +35,17 @@ export const strings = {
   ds_preview_listRow1Subtitle: 'Closes in 2 days',
   ds_preview_listRow2Title: 'Birthday brunch',
   ds_preview_listRow2Subtitle: 'Decided',
+
+  pick_title: 'Pick the time',
+  pick_suggested: 'Suggested',
+  pick_suggested_hint: 'Most yes votes (earliest if tied)',
+  pick_no_slots: 'No approved timeslots to choose from.',
+  pick_confirm_title: 'Confirm your pick',
+  pick_confirm_body: 'Set "{{slot}}" as the decided time? This will close voting.',
+  pick_confirm_action: 'Confirm',
+  pick_change_warning: 'A time has already been picked. Selecting a new time will replace the previous choice.',
+  pick_current: 'Current pick',
+  pick_change_confirm_body: 'Change the decided time to "{{slot}}"? The previous pick will be replaced.',
+  pick_error_generic: 'Something went wrong. Please try again.',
+  pick_cta_change: 'Change the time',
 } as const;

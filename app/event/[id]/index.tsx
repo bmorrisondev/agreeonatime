@@ -317,24 +317,36 @@ export default function EventDetailScreen(): ReactElement {
           )}
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Pick the time for this event"
-          className={`mt-10 items-center rounded-xl py-3.5 ${
-            pickTimePrimary
-              ? 'bg-[#FF6B5C] active:opacity-90'
-              : 'border border-neutral-300 bg-white active:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800'
-          }`}
-          onPress={() => {
-            router.push(`/event/${id}/pick-time`);
-          }}
-        >
-          <Text
-            className={`text-base font-semibold ${pickTimePrimary ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}
+        {event.status !== 'closed' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              event.status === 'decided'
+                ? 'Change the decided time for this event'
+                : 'Pick the time for this event'
+            }
+            className={`mt-10 items-center rounded-xl py-3.5 ${
+              event.status === 'decided'
+                ? 'border border-neutral-300 bg-white active:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800'
+                : pickTimePrimary
+                  ? 'bg-[#FF6B5C] active:opacity-90'
+                  : 'border border-neutral-300 bg-white active:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800'
+            }`}
+            onPress={() => {
+              router.push(`/event/${id}/pick-time`);
+            }}
           >
-            Pick the time
-          </Text>
-        </Pressable>
+            <Text
+              className={`text-base font-semibold ${
+                event.status !== 'decided' && pickTimePrimary
+                  ? 'text-white'
+                  : 'text-neutral-900 dark:text-neutral-100'
+              }`}
+            >
+              {event.status === 'decided' ? 'Change the time' : 'Pick the time'}
+            </Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
       <DsToast
         message={shareToast.message}
