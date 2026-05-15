@@ -7,8 +7,8 @@
     "icon": "./assets/images/icon.png",
     "scheme": "agreeonatime",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
+      "deploymentTarget": "16.4",
       "bundleIdentifier": "me.brianmm.agreeonatime",
       "supportsTablet": true,
       "infoPlist": {
@@ -23,7 +23,6 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -31,6 +30,12 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "./plugins/withIosPodsDeploymentTarget",
+        {
+          "minimumIosVersion": "16.4"
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -54,7 +59,8 @@
           "icon": "./assets/images/icon.png",
           "color": "#E6F4FE"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
