@@ -15,10 +15,6 @@ import { RevenueCatInit } from '@/components/revenue-cat-init';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { authClient } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
-import { configurePurchases } from '@/lib/purchases';
-
-configurePurchases();
-
 function NavigationTree(): ReactElement {
   const colorScheme = useColorScheme();
 

@@ -18,6 +18,9 @@
     "build:device": "eas build --profile development-device --platform ios --local --output ./builds/agreeonatime.ipa && ./scripts/install-on-device.sh",
     "prebuild:preview": "pnpm install --prefer-offline",
     "build:preview": "bash ./scripts/build-preview.sh",
+    "build:preview:sim": "bash ./scripts/build-preview-simulator.sh",
+    "ios": "expo run:ios",
+    "ios:release": "expo run:ios --configuration Release",
     "prebuild:sim": "pnpm install --prefer-offline",
     "build:sim": "eas build --profile development --platform ios --local --output ./builds/agreeonatime.tar.gz"
   },
@@ -30,7 +33,6 @@
     "@react-navigation/bottom-tabs": "^7.16.1",
     "@react-navigation/elements": "^2.9.18",
     "@react-navigation/native": "^7.2.4",
-    "@shopify/flash-list": "2.0.2",
     "better-auth": "~1.6.11",
     "convex": "^1.39.0",
     "expo": "56.0.0-preview.11",

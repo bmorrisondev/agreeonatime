@@ -1,4 +1,3 @@
-import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
@@ -94,23 +93,22 @@ export default function TabTwoScreen() {
           <ThemedText type="link">Learn more</ThemedText>
         </ExternalLink>
       </Collapsible>
-      <Collapsible title="FlashList">
+      <Collapsible title="List demo">
         <View className="mb-2">
           <ThemedText>
-            <ThemedText type="defaultSemiBold">@shopify/flash-list</ThemedText> is wired for long
-            lists (DEV-380).
+            Home uses <ThemedText type="defaultSemiBold">ScrollView</ThemedText> for the event feed
+            (preview builds: VirtualizedList + NativeWind interop crashes).
           </ThemedText>
         </View>
         <View className="h-44 overflow-hidden rounded-lg border border-neutral-300 dark:border-neutral-600">
-          <FlashList
-            data={FLASH_LIST_DEMO}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View className="border-b border-neutral-200 px-3 py-3 dark:border-neutral-700">
-                <ThemedText>{item.title}</ThemedText>
-              </View>
-            )}
-          />
+          {FLASH_LIST_DEMO.map((item) => (
+            <View
+              key={item.id}
+              className="border-b border-neutral-200 px-3 py-3 dark:border-neutral-700"
+            >
+              <ThemedText>{item.title}</ThemedText>
+            </View>
+          ))}
         </View>
       </Collapsible>
       <Collapsible title="Animations">
