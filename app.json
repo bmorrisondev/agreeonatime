@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "deploymentTarget": "16.4",
       "bundleIdentifier": "me.brianmm.agreeonatime",
       "supportsTablet": true,
       "infoPlist": {
@@ -31,6 +32,15 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.4"
+          }
+        }
+      ],
+      "./plugins/with-ios-pods-deployment-target.js",
       "expo-router",
       [
         "expo-splash-screen",
