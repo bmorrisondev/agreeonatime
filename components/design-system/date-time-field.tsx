@@ -81,6 +81,27 @@ export function DsDateTimeField({
         <Modal animationType="slide" transparent visible={open} onRequestClose={() => setOpen(false)}>
           <View className="flex-1 justify-end bg-black/40">
             <View className="rounded-t-ds-md bg-white p-ds-lg dark:bg-neutral-900">
+              <View className="mb-ds-md flex-row items-center gap-ds-sm">
+                <Pressable
+                  accessibilityLabel={t('ds_modal_close_a11y')}
+                  accessibilityRole="button"
+                  className="rounded-ds-sm p-ds-sm"
+                  hitSlop={8}
+                  onPress={() => setOpen(false)}
+                >
+                  <Text allowFontScaling className="text-body text-brand" maxFontSizeMultiplier={2}>
+                    ✕
+                  </Text>
+                </Pressable>
+                <Text
+                  allowFontScaling
+                  accessibilityRole="header"
+                  className="min-w-0 flex-1 text-heading font-semibold text-neutral-900 dark:text-neutral-100"
+                  maxFontSizeMultiplier={2}
+                >
+                  {labelText}
+                </Text>
+              </View>
               <DateTimePicker
                 display="spinner"
                 mode={pickerMode === 'datetime' ? 'datetime' : pickerMode}
