@@ -1,7 +1,6 @@
-import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
-import { Platform, StyleSheet, View } from 'react-native';
+import { FlatList, Platform, StyleSheet, View } from 'react-native';
 
 import { Collapsible } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/external-link';
@@ -94,15 +93,15 @@ export default function TabTwoScreen() {
           <ThemedText type="link">Learn more</ThemedText>
         </ExternalLink>
       </Collapsible>
-      <Collapsible title="FlashList">
+      <Collapsible title="List demo">
         <View className="mb-2">
           <ThemedText>
-            <ThemedText type="defaultSemiBold">@shopify/flash-list</ThemedText> is wired for long
-            lists (DEV-380).
+            Home uses <ThemedText type="defaultSemiBold">FlatList</ThemedText> for the event feed
+            (preview builds crash with FlashList v2).
           </ThemedText>
         </View>
         <View className="h-44 overflow-hidden rounded-lg border border-neutral-300 dark:border-neutral-600">
-          <FlashList
+          <FlatList
             data={FLASH_LIST_DEMO}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (

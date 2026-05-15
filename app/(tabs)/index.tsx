@@ -1,7 +1,6 @@
 import type { ReactElement } from 'react';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { makeFunctionReference } from 'convex/server';
 import { useConvex, useQuery } from 'convex/react';
 import { router } from 'expo-router';
@@ -146,11 +145,11 @@ function HomeScreenContent(): ReactElement {
           <IconSymbol name="gearshape.fill" size={24} color="#A3A3A3" />
         </Pressable>
       </View>
-      <FlashList
+      <FlatList
+        className="flex-1"
         data={flatData}
         renderItem={renderItem}
         keyExtractor={(item) => item.key}
-        getItemType={(item) => item.kind}
         refreshing={refreshing}
         onRefresh={() => void onRefresh()}
         ListEmptyComponent={
