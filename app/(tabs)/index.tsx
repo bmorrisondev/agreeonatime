@@ -1,6 +1,13 @@
 import type { ReactElement } from 'react';
-import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { Fragment, useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { makeFunctionReference } from 'convex/server';
 import { useConvex, useQuery } from 'convex/react';
 import { router } from 'expo-router';
@@ -133,9 +140,17 @@ function HomeScreenContent(): ReactElement {
         className="flex-row items-center justify-between border-b border-neutral-200 bg-white px-4 pb-2 dark:border-neutral-800 dark:bg-black"
         style={{ paddingTop: insets.top + 4 }}
       >
-        <Text className="text-display font-bold text-neutral-900 dark:text-neutral-100">
-          Home
-        </Text>
+        <View>
+          <Text className="text-display font-bold text-neutral-900 dark:text-neutral-100">
+            Home
+          </Text>
+          {process.env.EXPO_PUBLIC_BUILD_LABEL != null &&
+          process.env.EXPO_PUBLIC_BUILD_LABEL.length > 0 ? (
+            <Text className="text-xs text-neutral-500 dark:text-neutral-500">
+              Build {process.env.EXPO_PUBLIC_BUILD_LABEL}
+            </Text>
+          ) : null}
+        </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('settings_gear_a11y')}
@@ -145,26 +160,28 @@ function HomeScreenContent(): ReactElement {
           <IconSymbol name="gearshape.fill" size={24} color="#A3A3A3" />
         </Pressable>
       </View>
-      <FlatList
+      <ScrollView
         className="flex-1"
-        data={flatData}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.key}
-        refreshing={refreshing}
-        onRefresh={() => void onRefresh()}
-        ListEmptyComponent={
-          isEmpty ? (
-            <View className="flex-1 items-center justify-center px-8 py-24">
-              <Text className="text-center text-lg text-neutral-700 dark:text-neutral-300">
-                No events yet. Tap + to plan something.
-              </Text>
-            </View>
-          ) : null
-        }
         contentContainerStyle={{
+          flexGrow: 1,
           paddingBottom: insets.bottom + 88,
         }}
-      />
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} />
+        }
+      >
+        {isEmpty ? (
+          <View className="flex-1 items-center justify-center px-8 py-24">
+            <Text className="text-center text-lg text-neutral-700 dark:text-neutral-300">
+              No events yet. Tap + to plan something.
+            </Text>
+          </View>
+        ) : (
+          flatData.map((item) => (
+            <Fragment key={item.key}>{renderItem({ item })}</Fragment>
+          ))
+        )}
+      </ScrollView>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Create new event"

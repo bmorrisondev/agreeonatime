@@ -1,28 +1,40 @@
 import { Platform } from 'react-native';
 import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 
+import { getRevenueCatIosApiKey } from '@/lib/purchases/revenuecat-ios-key';
+
 const isNativeIOS = Platform.OS === 'ios';
 
+let configured = false;
+
 /**
- * Initialise the RevenueCat SDK (iOS-only for v1.0).
- * Safe to call on any platform — non-iOS is a no-op.
+ * Initialise the RevenueCat SDK once (iOS-only for v1.0).
  */
 export function configurePurchases(): void {
-  if (!isNativeIOS) return;
+  if (!isNativeIOS || configured) {
+    return;
+  }
 
-  const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS;
-  if (apiKey == null || apiKey.length === 0) {
+  const apiKey = getRevenueCatIosApiKey();
+  if (apiKey == null) {
     if (__DEV__) {
-      console.warn('[RevenueCat] EXPO_PUBLIC_REVENUECAT_API_KEY_IOS is not set — skipping SDK init');
+      console.warn('[RevenueCat] No public iOS API key in env — skipping SDK init');
     }
     return;
   }
 
   if (__DEV__) {
     Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+  } else {
+    void Purchases.setLogLevel(LOG_LEVEL.WARN);
   }
 
   Purchases.configure({ apiKey });
+  configured = true;
+}
+
+export function isPurchasesConfigured(): boolean {
+  return configured;
 }
 
 /**
@@ -30,7 +42,7 @@ export function configurePurchases(): void {
  * Uses the Better Auth user id (opaque string, no PII).
  */
 export async function identifyUser(appUserID: string): Promise<void> {
-  if (!isNativeIOS) return;
+  if (!isNativeIOS || !configured) return;
   try {
     await Purchases.logIn(appUserID);
   } catch (err) {
@@ -42,7 +54,7 @@ export async function identifyUser(appUserID: string): Promise<void> {
  * Reset RevenueCat to an anonymous user (call on sign-out).
  */
 export async function resetUser(): Promise<void> {
-  if (!isNativeIOS) return;
+  if (!isNativeIOS || !configured) return;
   try {
     await Purchases.logOut();
   } catch (err) {

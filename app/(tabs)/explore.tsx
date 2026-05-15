@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
-import { FlatList, Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { Collapsible } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/external-link';
@@ -96,20 +96,19 @@ export default function TabTwoScreen() {
       <Collapsible title="List demo">
         <View className="mb-2">
           <ThemedText>
-            Home uses <ThemedText type="defaultSemiBold">FlatList</ThemedText> for the event feed
-            (preview builds crash with FlashList v2).
+            Home uses <ThemedText type="defaultSemiBold">ScrollView</ThemedText> for the event feed
+            (preview builds: VirtualizedList + NativeWind interop crashes).
           </ThemedText>
         </View>
         <View className="h-44 overflow-hidden rounded-lg border border-neutral-300 dark:border-neutral-600">
-          <FlatList
-            data={FLASH_LIST_DEMO}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View className="border-b border-neutral-200 px-3 py-3 dark:border-neutral-700">
-                <ThemedText>{item.title}</ThemedText>
-              </View>
-            )}
-          />
+          {FLASH_LIST_DEMO.map((item) => (
+            <View
+              key={item.id}
+              className="border-b border-neutral-200 px-3 py-3 dark:border-neutral-700"
+            >
+              <ThemedText>{item.title}</ThemedText>
+            </View>
+          ))}
         </View>
       </Collapsible>
       <Collapsible title="Animations">
