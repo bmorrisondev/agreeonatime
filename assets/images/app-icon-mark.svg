@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Foreground mark only (transparent). Keep in sync with the non-background layers in app-icon.svg. -->
+  <g transform="translate(512 512)">
+    <circle r="278" fill="none" stroke="#FF6B5C" stroke-width="20" />
+    <g
+      stroke="rgba(255, 107, 92, 0.55)"
+      stroke-width="12"
+      stroke-linecap="round"
+    >
+      <line x1="0" y1="-250" x2="0" y2="-284" />
+      <line x1="250" y1="0" x2="284" y2="0" />
+      <line x1="0" y1="250" x2="0" y2="284" />
+      <line x1="-250" y1="0" x2="-284" y2="0" />
+    </g>
+  </g>
+  <circle cx="708.575" cy="708.575" r="57.2" fill="#FF6B5C" />
+  <g transform="translate(708.575 708.575)">
+    <path
+      d="M -22 1.1 L -7.7 15.4 L 22 -17.6"
+      fill="none"
+      stroke="#1C1A2E"
+      stroke-width="12.1"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+  <g transform="translate(512 512)">
+    <line
+      x1="0"
+      y1="0"
+      x2="97.5797"
+      y2="97.5797"
+      stroke="#FF6B5C"
+      stroke-width="22"
+      stroke-linecap="round"
+    />
+    <line
+      x1="0"
+      y1="0"
+      x2="0"
+      y2="-207.1"
+      stroke="#FFFFFF"
+      stroke-width="20"
+      stroke-linecap="round"
+    />
+    <circle r="14" fill="#FFFFFF" />
+  </g>
+</svg>

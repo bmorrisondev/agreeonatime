@@ -13,6 +13,7 @@
     "lint": "expo lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "generate:splash": "node ./scripts/generate-splash.mjs",
     "test:e2e": "playwright test",
     "prebuild:device": "pnpm install --prefer-offline",
     "build:device": "eas build --profile development-device --platform ios --local --output ./builds/agreeonatime.ipa && ./scripts/install-on-device.sh",
@@ -76,6 +77,7 @@
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
+    "sharp": "^0.34.5",
     "typescript": "~6.0.3"
   },
   "private": true,
