@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-naviga
 import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
 import { ConvexReactClient, ConvexProvider } from 'convex/react';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
@@ -13,9 +14,15 @@ import { ModalHeaderClose } from '@/components/navigation/modal-header-close';
 import { RegisterExpoPush } from '@/components/register-expo-push';
 import { RevenueCatIdentify } from '@/components/purchases/revenuecat-identify';
 import { RevenueCatInit } from '@/components/revenue-cat-init';
+import { NativeSplashConvexAuthGate, NativeSplashFontsOnlyGate } from '@/components/splash/native-splash-gate';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { authClient } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
+
+void SplashScreen.preventAutoHideAsync().catch((error: unknown) => {
+  console.error('[RootLayout] SplashScreen.preventAutoHideAsync failed', error);
+});
+
 function NavigationTree(): ReactElement {
   const colorScheme = useColorScheme();
 
@@ -48,7 +55,12 @@ export default function RootLayout(): ReactElement {
   const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 
   if (!isConvexConfigured() || convexUrl == null || convexUrl.length === 0) {
-    return <NavigationTree />;
+    return (
+      <>
+        <NativeSplashFontsOnlyGate />
+        <NavigationTree />
+      </>
+    );
   }
 
   const convex = new ConvexReactClient(convexUrl, {
@@ -59,6 +71,7 @@ export default function RootLayout(): ReactElement {
   return (
     <ConvexProvider client={convex}>
       <ConvexBetterAuthProvider authClient={authClient} client={convex}>
+        <NativeSplashConvexAuthGate />
         <RevenueCatInit />
         <RegisterExpoPush />
         <EnsureConvexUser />

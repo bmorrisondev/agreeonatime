@@ -13,6 +13,7 @@
     "lint": "expo lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "generate:splash": "node ./scripts/generate-splash.mjs",
     "test:e2e": "playwright test",
     "prebuild:device": "pnpm install --prefer-offline",
     "build:device": "eas build --profile development-device --platform ios --local --output ./builds/agreeonatime.ipa && ./scripts/install-on-device.sh",
