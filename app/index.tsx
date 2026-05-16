@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { useConvexAuth } from 'convex/react';
 
 import { isConvexConfigured } from '@/lib/convex/client';
+import { hasCompletedOnboarding } from '@/lib/onboarding/onboarding-storage';
 
 function IndexWithConvexAuth(): ReactElement {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -17,6 +18,9 @@ function IndexWithConvexAuth(): ReactElement {
   }
 
   if (!isAuthenticated) {
+    if (!hasCompletedOnboarding()) {
+      return <Redirect href="/onboarding" />;
+    }
     return <Redirect href="/sign-in" />;
   }
 
