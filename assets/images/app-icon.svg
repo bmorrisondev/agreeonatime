@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- DEV-405: background gradient in SVG; coarse + fine noise in scripts/export-app-icon.mjs -->
+  <defs>
+    <!-- Subtle diagonal depth (stays in #1C1A2E family) -->
+    <linearGradient
+      id="iconBgLin"
+      x1="0"
+      y1="0"
+      x2="1024"
+      y2="1024"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0%" stop-color="#2a2548" />
+      <stop offset="50%" stop-color="#1C1A2E" />
+      <stop offset="100%" stop-color="#12101a" />
+    </linearGradient>
+    <!-- Soft radial lift + slight vignette (opaque stops only) -->
+    <radialGradient
+      id="iconBgRad"
+      cx="380"
+      cy="280"
+      r="780"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0%" stop-color="#32304a" />
+      <stop offset="42%" stop-color="#1C1A2E" />
+      <stop offset="100%" stop-color="#151322" />
+    </radialGradient>
+  </defs>
+
+  <!-- Gradients only (no SVG filters: Sharp/librsvg often skips feTurbulence) -->
+  <g>
+    <rect width="1024" height="1024" fill="url(#iconBgLin)" />
+    <rect width="1024" height="1024" fill="url(#iconBgRad)" />
+  </g>
+
+  <!-- sqrt(2)/2 for 4:30 from 12 o'clock -->
+  <!-- Ring mid-stroke radius 278; badge center on that circle so the disk crosses the stroke -->
+  <!-- 512 + 278 * 0.7071067811865476 = 708.574686... -->
+
+  <g transform="translate(512 512)">
+    <circle r="278" fill="none" stroke="#FF6B5C" stroke-width="20" />
+
+    <!-- Quarter ticks: coral 55% opacity (DEV-405) -->
+    <g
+      stroke="rgba(255, 107, 92, 0.55)"
+      stroke-width="12"
+      stroke-linecap="round"
+    >
+      <line x1="0" y1="-250" x2="0" y2="-284" />
+      <line x1="250" y1="0" x2="284" y2="0" />
+      <line x1="0" y1="250" x2="0" y2="284" />
+      <line x1="-250" y1="0" x2="-284" y2="0" />
+    </g>
+  </g>
+
+  <!-- Badge centered on ring at 4:30 so coral fills both sides of the stroke -->
+  <circle cx="708.575" cy="708.575" r="57.2" fill="#FF6B5C" />
+  <g transform="translate(708.575 708.575)">
+    <path
+      d="M -22 1.1 L -7.7 15.4 L 22 -17.6"
+      fill="none"
+      stroke="#1C1A2E"
+      stroke-width="12.1"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+
+  <g transform="translate(512 512)">
+    <!-- Coral hour (short): toward badge center at 4:30, unit vector (1/√2, 1/√2), length 138 -->
+    <line
+      x1="0"
+      y1="0"
+      x2="97.5797"
+      y2="97.5797"
+      stroke="#FF6B5C"
+      stroke-width="22"
+      stroke-linecap="round"
+    />
+
+    <!-- White minute (long): 12 o'clock, length 207.1 (5% shorter than 218) -->
+    <line
+      x1="0"
+      y1="0"
+      x2="0"
+      y2="-207.1"
+      stroke="#FFFFFF"
+      stroke-width="20"
+      stroke-linecap="round"
+    />
+
+    <circle r="14" fill="#FFFFFF" />
+  </g>
+</svg>

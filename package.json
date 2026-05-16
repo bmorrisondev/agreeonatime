@@ -21,7 +21,8 @@
     "build:preview:sim": "bash ./scripts/build-preview-simulator.sh",
     "ios:release": "expo run:ios --configuration Release",
     "prebuild:sim": "pnpm install --prefer-offline",
-    "build:sim": "eas build --profile development --platform ios --local --output ./builds/agreeonatime.tar.gz"
+    "build:sim": "eas build --profile development --platform ios --local --output ./builds/agreeonatime.tar.gz",
+    "export:app-icon": "node ./scripts/export-app-icon.mjs"
   },
   "dependencies": {
     "@better-auth/expo": "~1.6.11",
@@ -78,6 +79,7 @@
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
+    "sharp": "^0.34.5",
     "typescript": "~6.0.3"
   },
   "private": true,
