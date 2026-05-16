@@ -58,14 +58,13 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#E6F4FE"
+          "color": "#FF6B5C"
         }
       ],
       "expo-secure-store"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     },
     "extra": {
       "router": {},

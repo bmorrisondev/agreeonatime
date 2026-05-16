@@ -138,7 +138,7 @@ export default function PickTimeScreen(): ReactElement {
   return (
     <ScrollView
       className="flex-1 bg-white dark:bg-black"
-      contentContainerStyle={{ padding: 16, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }}
+      contentContainerStyle={{ padding: 16, paddingTop: 12, paddingBottom: insets.bottom + 24 }}
     >
       <Text className="text-xl font-bold text-neutral-900 dark:text-neutral-100">Pick the time</Text>
       <Text className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
