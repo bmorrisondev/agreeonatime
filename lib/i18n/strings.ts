@@ -37,6 +37,9 @@ export const strings = {
   ds_preview_listRow2Subtitle: 'Decided',
 
   // Settings (DEV-394)
+  home_title: 'Home',
+  home_build_subtitle: 'Build {{label}}',
+  home_empty_cta: 'No events yet. Tap + in the header to plan something.',
   settings_title: 'Settings',
   settings_account_header: 'Account',
   settings_signOut: 'Sign out',
@@ -48,8 +51,11 @@ export const strings = {
   settings_terms: 'Terms of Service',
   settings_privacy: 'Privacy Policy',
   settings_support_header: 'Support',
-  settings_support_email: 'Contact support',
-  settings_support_email_subtitle: 'support@agreeonatime.com',
+  settings_support_feedback: 'Feedback & help',
+  settings_support_feedback_subtitle: 'agreeonatime.featurebase.app',
+  settings_developer_header: 'Developer',
+  settings_design_system: 'Design system preview',
+  settings_design_system_subtitle: 'Internal UI gallery (DEV-383)',
   settings_version: 'Version {{version}} ({{build}})',
   settings_delete_modal_title: 'Delete account?',
   settings_delete_modal_body:
@@ -59,5 +65,4 @@ export const strings = {
   settings_delete_error: 'Something went wrong. Please try again.',
   settings_signOut_a11y: 'Sign out of your account',
   settings_deleteAccount_a11y: 'Permanently delete your account and all data',
-  settings_gear_a11y: 'Open settings',
 } as const;

@@ -1,12 +1,20 @@
 import type { ReactElement } from 'react';
-import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { Fragment, useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { makeFunctionReference } from 'convex/server';
 import { useConvex, useQuery } from 'convex/react';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { TabMainHeader } from '@/components/navigation/tab-main-header';
+import { HomeHeaderCreateButton } from '@/components/navigation/home-header-create-button';
 import { isConvexConfigured } from '@/lib/convex/client';
 import {
   formatDeadlineLine,
@@ -127,55 +135,46 @@ function HomeScreenContent(): ReactElement {
     );
   }
 
+  const buildLabel = process.env.EXPO_PUBLIC_BUILD_LABEL;
+  const homeSubtitle =
+    buildLabel != null && buildLabel.length > 0 ? t('home_build_subtitle', { label: buildLabel }) : undefined;
+
   return (
     <View className="flex-1 bg-white dark:bg-black">
-      <View
-        className="flex-row items-center justify-between border-b border-neutral-200 bg-white px-4 pb-2 dark:border-neutral-800 dark:bg-black"
-        style={{ paddingTop: insets.top + 4 }}
-      >
-        <Text className="text-display font-bold text-neutral-900 dark:text-neutral-100">
-          Home
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('settings_gear_a11y')}
-          hitSlop={8}
-          onPress={() => router.push('/settings')}
-        >
-          <IconSymbol name="gearshape.fill" size={24} color="#A3A3A3" />
-        </Pressable>
-      </View>
-      <FlatList
-        className="flex-1"
-        data={flatData}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.key}
-        refreshing={refreshing}
-        onRefresh={() => void onRefresh()}
-        ListEmptyComponent={
-          isEmpty ? (
-            <View className="flex-1 items-center justify-center px-8 py-24">
-              <Text className="text-center text-lg text-neutral-700 dark:text-neutral-300">
-                No events yet. Tap + to plan something.
-              </Text>
-            </View>
-          ) : null
+      <TabMainHeader
+        subtitle={homeSubtitle}
+        title={t('home_title')}
+        rightAccessory={
+          <HomeHeaderCreateButton
+            accessibilityLabel="Create new event"
+            onPress={() => {
+              router.push('/create-event');
+            }}
+          />
         }
-        contentContainerStyle={{
-          paddingBottom: insets.bottom + 88,
-        }}
       />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Create new event"
-        className="absolute right-5 h-14 w-14 items-center justify-center rounded-full bg-[#FF6B5C] shadow-md active:opacity-90"
-        style={{ bottom: insets.bottom + 72 }}
-        onPress={() => {
-          router.push('/create-event');
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: insets.bottom + 24,
         }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} />
+        }
       >
-        <Text className="text-3xl font-light text-white">+</Text>
-      </Pressable>
+        {isEmpty ? (
+          <View className="flex-1 items-center justify-center px-8 py-24">
+            <Text className="text-center text-lg text-neutral-700 dark:text-neutral-300">
+              {t('home_empty_cta')}
+            </Text>
+          </View>
+        ) : (
+          flatData.map((item) => (
+            <Fragment key={item.key}>{renderItem({ item })}</Fragment>
+          ))
+        )}
+      </ScrollView>
     </View>
   );
 }

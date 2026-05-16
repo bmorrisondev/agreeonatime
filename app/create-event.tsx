@@ -23,6 +23,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const createEventMutation = makeFunctionReference<'mutation'>('events:create');
 
+/** Modal stack header ~height for iOS keyboard avoidance (avoid @react-navigation/* on Expo SDK 56 web export). */
+const IOS_MODAL_KEYBOARD_HEADER_OFFSET = 56;
+
 const MAX_SLOTS = 20;
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -226,12 +229,13 @@ export default function CreateEventScreen(): ReactElement {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       className="flex-1 bg-white dark:bg-black"
-      style={{ paddingTop: insets.top }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? IOS_MODAL_KEYBOARD_HEADER_OFFSET : 0}
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingHorizontal: 16,
+          paddingTop: 14,
           paddingBottom: insets.bottom + 32,
         }}
       >

@@ -1,0 +1,12 @@
+---
+description: Run production web export after rounds of changes; must pass before finishing
+alwaysApply: true
+---
+
+# Verify web build after changes
+
+- After each **coherent round of edits** (before you consider the task done or pause for the user), run **`pnpm run build:web`** from the **repository root**.
+- The command must **complete successfully** (exit code 0). If it **fails**, **fix the cause** and re-run **`pnpm run build:web`** until it passes. Do not leave the worktree in a state where the export is known broken.
+- **What this checks:** `expo export --platform web` (static output in **`dist/`**). This catches bundler errors, SDK import restrictions, and other issues that unit checks may miss.
+- **Environment:** Expo may load **`.env.local`** during the build. Do not commit secrets. If **`pnpm install`** is needed after manifest changes, follow **`package-json-install`**.
+- **Only skip** when the user explicitly opts out or when the environment truly cannot run the command—in that case, state that clearly in your reply.
