@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#1C1A2E"
     },
     "scheme": "agreeonatime",
@@ -46,8 +46,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#1C1A2E"
+          "resizeMode": "cover",
+          "backgroundColor": "#1C1A2E",
+          "enableFullScreenImage_legacy": true
         }
       ],
       "expo-apple-authentication",
