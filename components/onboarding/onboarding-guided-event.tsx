@@ -175,7 +175,7 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
     >
       <View className="flex-row items-center justify-between px-4 pb-2">
         <Pressable
-          accessibilityLabel="Close guided setup and go to sign in"
+          accessibilityLabel="Close guided setup and go back"
           accessibilityRole="button"
           hitSlop={12}
           onPress={props.onBack}

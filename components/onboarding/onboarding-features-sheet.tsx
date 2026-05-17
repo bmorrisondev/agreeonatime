@@ -56,7 +56,7 @@ function HeroAppMark(): ReactElement {
 function FeatureListRow({ feature }: { readonly feature: FeatureRow }): ReactElement {
   return (
     <View
-      className="mb-3 flex-row items-start gap-3 rounded-2xl border p-4"
+      className="mb-3 flex-row items-center gap-3 rounded-2xl border p-4"
       style={{
         backgroundColor: FEATURE_ROW_BG,
         borderColor: FEATURE_ROW_BORDER,
@@ -66,7 +66,12 @@ function FeatureListRow({ feature }: { readonly feature: FeatureRow }): ReactEle
         className="h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
         style={{ backgroundColor: ICON_TILE_BG }}
       >
-        <MaterialIcons color={ONBOARDING_ACCENT} name={feature.icon} size={26} />
+        <MaterialIcons
+          color={ONBOARDING_ACCENT}
+          name={feature.icon}
+          size={26}
+          style={{ lineHeight: 26, textAlign: 'center' }}
+        />
       </View>
       <View className="min-w-0 flex-1">
         <View className="mb-0.5 flex-row flex-wrap items-center gap-2">

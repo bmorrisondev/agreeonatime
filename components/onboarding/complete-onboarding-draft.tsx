@@ -14,7 +14,7 @@ import {
 const createEventMutation = makeFunctionReference<'mutation'>('events:create');
 
 /**
- * After sign-in, persists a guest-built onboarding draft via `events:create`.
+ * After sign-up or sign-in, persists a guest-built onboarding draft via `events:create`.
  */
 export function CompleteOnboardingDraft(): ReactElement {
   const createEvent = useMutation(createEventMutation);

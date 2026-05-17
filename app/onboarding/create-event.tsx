@@ -17,14 +17,14 @@ export default function OnboardingCreateEventScreen(): ReactElement {
   const onSaveDraft = (draft: OnboardingEventDraft): void => {
     setOnboardingDraftEvent(draft);
     markOnboardingIntroSeen();
-    router.replace('/sign-in');
+    router.replace({ pathname: '/sign-in', params: { mode: 'sign-up' } });
   };
 
   return (
     <OnboardingGuidedEvent
       onBack={() => {
         markOnboardingIntroSeen();
-        router.replace('/sign-in');
+        router.replace('/');
       }}
       onSaveDraft={onSaveDraft}
     />
