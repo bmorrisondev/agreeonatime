@@ -26,6 +26,7 @@ export function webDatetimeLocalStyle(scheme: 'light' | 'dark' | null): CSSPrope
 export function WebDatetimeLocalInput(props: {
   readonly valueMs: number;
   readonly onChangeMs: (ms: number) => void;
+  readonly minMs?: number;
   readonly disabled?: boolean;
   readonly accessibilityLabel: string;
   readonly colorScheme: 'light' | 'dark' | null;
@@ -35,6 +36,7 @@ export function WebDatetimeLocalInput(props: {
     step: 60,
     'aria-label': props.accessibilityLabel,
     disabled: props.disabled,
+    min: props.minMs != null ? formatMsForDatetimeLocal(props.minMs) : undefined,
     value: formatMsForDatetimeLocal(props.valueMs),
     onChange: (e: ChangeEvent<HTMLInputElement>) => {
       const ms = new Date(e.target.value).getTime();

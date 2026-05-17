@@ -17,7 +17,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VoteBar } from '@/components/events/vote-bar';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isConvexConfigured } from '@/lib/convex/client';
+import { formatMutationError } from '@/lib/convex/format-mutation-error';
 import {
   formatDeadlineLine,
   formatTimeslotWithTimezone,
@@ -27,6 +29,7 @@ import {
   getStoredGuestName,
   setStoredGuestName,
 } from '@/lib/guest/voter-session';
+import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
 
 const APP_STORE_URL = 'https://apps.apple.com/app/agree-on-a-time/id6743097026';
 
@@ -48,8 +51,12 @@ type GuestEvent = {
   pendingCount: number;
 };
 
+const DEFAULT_PROPOSE_OFFSET_MS = 60 * 60 * 1000;
+
 export default function VoteByTokenScreen(): ReactElement {
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const webScheme = colorScheme === 'dark' ? 'dark' : 'light';
   const raw = useLocalSearchParams<{ token: string }>().token;
   const token = Array.isArray(raw) ? raw[0] : raw;
   const configured = isConvexConfigured();
@@ -58,8 +65,7 @@ export default function VoteByTokenScreen(): ReactElement {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [proposeOpen, setProposeOpen] = useState(false);
-  const [proposeAt, setProposeAt] = useState(() => new Date(Date.now() + 60 * 60 * 1000));
-  const [proposeIso, setProposeIso] = useState('');
+  const [proposeAt, setProposeAt] = useState(() => new Date(Date.now() + DEFAULT_PROPOSE_OFFSET_MS));
   const [voted, setVoted] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -109,8 +115,7 @@ export default function VoteByTokenScreen(): ReactElement {
         });
         setVoted(true);
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : 'Could not save vote';
-        setError(msg);
+        setError(formatMutationError(e, 'Could not save vote'));
       } finally {
         setBusy(null);
       }
@@ -131,9 +136,8 @@ export default function VoteByTokenScreen(): ReactElement {
     setBusy('propose');
     setError(null);
     try {
-      const startMs =
-        Platform.OS === 'web' ? Date.parse(proposeIso.trim()) : proposeAt.getTime();
-      if (!Number.isFinite(startMs) || Number.isNaN(startMs)) {
+      const startMs = proposeAt.getTime();
+      if (!Number.isFinite(startMs)) {
         setError('Enter a valid date and time.');
         setBusy(null);
         return;
@@ -146,12 +150,11 @@ export default function VoteByTokenScreen(): ReactElement {
       });
       setProposeOpen(false);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Could not submit proposal';
-      setError(msg);
+      setError(formatMutationError(e, 'Could not submit proposal'));
     } finally {
       setBusy(null);
     }
-  }, [configured, name, propose, proposeAt, proposeIso, sessionId, token]);
+  }, [configured, name, propose, proposeAt, sessionId, token]);
 
   if (!configured) {
     return (
@@ -324,7 +327,12 @@ export default function VoteByTokenScreen(): ReactElement {
             accessibilityLabel={proposeOpen ? 'Hide propose time form' : 'Propose another time'}
             className="rounded-lg border border-dashed border-neutral-400 py-3 dark:border-neutral-600"
             onPress={() => {
-              setProposeOpen((o) => !o);
+              setProposeOpen((open) => {
+                if (!open) {
+                  setProposeAt(new Date(Date.now() + DEFAULT_PROPOSE_OFFSET_MS));
+                }
+                return !open;
+              });
             }}
           >
             <Text className="text-center text-sm font-semibold text-neutral-800 dark:text-neutral-200">
@@ -334,19 +342,13 @@ export default function VoteByTokenScreen(): ReactElement {
           {proposeOpen ? (
             <View className="mt-4">
               {Platform.OS === 'web' ? (
-                <input
-                  type="datetime-local"
-                  aria-label="Proposed date and time"
-                  value={proposeIso}
-                  onChange={(e) => setProposeIso(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: 10,
-                    borderRadius: 8,
-                    border: '1px solid #d4d4d4',
-                    fontSize: 16,
-                    backgroundColor: 'transparent',
-                    color: 'inherit',
+                <WebDatetimeLocalInput
+                  accessibilityLabel="Proposed date and time"
+                  colorScheme={webScheme}
+                  minMs={nowMs + 60_000}
+                  valueMs={proposeAt.getTime()}
+                  onChangeMs={(ms) => {
+                    setProposeAt(new Date(ms));
                   }}
                 />
               ) : (

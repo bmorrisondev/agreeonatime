@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -109,6 +109,7 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
           className="flex-1"
           contentContainerStyle={{
             flexGrow: 1,
+            alignItems: Platform.OS === 'web' ? 'center' : undefined,
             paddingHorizontal: 24,
             paddingTop: insets.top + 16,
             paddingBottom: Math.max(insets.bottom, 20) + 12,
@@ -116,21 +117,21 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View entering={FadeInDown.duration(400)} className="items-center pt-4">
-            <View className="mb-5">
+          <Animated.View entering={FadeInDown.duration(400)} className="w-full max-w-md items-center pt-4">
+            <View className="mb-5 items-center self-center">
               <AppIconMark size={HERO_ICON_SIZE} theme={theme} />
             </View>
             <Text
               accessibilityRole="header"
-              className="mb-2 text-center text-3xl font-bold leading-tight"
-              style={{ color: theme.text }}
+              className="mb-2 w-full text-center text-3xl font-bold leading-tight"
+              style={{ color: theme.text, textAlign: 'center' }}
             >
               Stop the scheduling{' '}
               <Text style={{ color: theme.accent }}>back-and-forth</Text>
             </Text>
             <Text
-              className="mb-10 max-w-sm text-center text-base leading-6"
-              style={{ color: theme.muted }}
+              className="mb-10 w-full max-w-sm self-center text-center text-base leading-6"
+              style={{ color: theme.muted, textAlign: 'center' }}
             >
               Pick times. Share a link. Done in seconds.
             </Text>
