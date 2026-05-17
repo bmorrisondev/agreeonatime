@@ -23,6 +23,7 @@
     "ios:release": "expo run:ios --configuration Release",
     "prebuild:sim": "pnpm install --prefer-offline",
     "build:sim": "eas build --profile development --platform ios --local --output ./builds/agreeonatime.tar.gz",
+    "testflight": "bash ./scripts/testflight.sh",
     "export:app-icon": "node ./scripts/export-app-icon.mjs"
   },
   "dependencies": {

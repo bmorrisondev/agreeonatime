@@ -29,11 +29,24 @@ pnpm dlx eas-cli@latest build --profile development --platform ios
 # TestFlight-ready binary
 pnpm dlx eas-cli@latest build --profile production --platform ios
 
-# After a successful production build
+# TestFlight (build + submit) — requires app-specific password in env
+# Add EXPO_APPLE_APP_SPECIFIC_PASSWORD to .env.local, then:
+pnpm testflight
+
+# Or build and submit separately
+pnpm dlx eas-cli@latest build --profile production --platform ios
 pnpm dlx eas-cli@latest submit --profile production --platform ios
 ```
 
-Set `APPLE_ID`, `ASC_APP_ID`, and `APPLE_TEAM_ID` in your shell or EAS secrets for `eas submit` (see `submit.production.ios` in `eas.json`).
+### TestFlight submit (App Store Connect API key not required)
+
+`submit.production.ios` in `eas.json` sets `ascAppId`, `appleId`, and `appleTeamId`. Submit uses an [app-specific password](https://expo.fyi/apple-app-specific-password) instead of an ASC API key:
+
+1. Create a password at [appleid.apple.com](https://appleid.apple.com/account/manage) → Sign-In and Security → App-Specific Passwords.
+2. Export `EXPO_APPLE_APP_SPECIFIC_PASSWORD` in your shell, or add it to `.env.local` (never commit).
+3. Run `pnpx testflight` or `eas build --platform ios --profile production --submit`.
+
+If ASC API key setup in `eas credentials` returns Apple 403, this path still works.
 
 ## CI (optional)
 
