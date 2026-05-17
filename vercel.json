@@ -2,5 +2,21 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install",
   "buildCommand": "pnpm run build:web",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "cleanUrls": true,
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/vote/:token",
+      "destination": "/vote/[token]"
+    },
+    {
+      "source": "/event/:id",
+      "destination": "/event/[id]"
+    },
+    {
+      "source": "/event/:id/pick-time",
+      "destination": "/event/[id]/pick-time"
+    }
+  ]
 }
