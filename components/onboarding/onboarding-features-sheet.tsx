@@ -6,16 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppIconMark } from '@/components/onboarding/app-icon-mark';
 import {
-  ONBOARDING_ACCENT,
-  ONBOARDING_BG,
-  ONBOARDING_MUTED,
+  type OnboardingThemeColors,
+  useOnboardingTheme,
 } from '@/components/onboarding/onboarding-theme';
 
-const ICON_TILE_BG = 'rgba(255, 107, 92, 0.2)';
-const FEATURE_ROW_BG = 'rgba(255, 255, 255, 0.04)';
-const FEATURE_ROW_BORDER = 'rgba(255, 255, 255, 0.08)';
 const HERO_ICON_SIZE = 112;
-const ACCENT_PILL_BG = 'rgba(255, 107, 92, 0.15)';
 
 type FeatureIconName = 'event' | 'link' | 'how-to-vote';
 
@@ -45,29 +40,27 @@ const FEATURES: readonly FeatureRow[] = [
   },
 ];
 
-function HeroAppMark(): ReactElement {
-  return (
-    <View className="mb-5">
-      <AppIconMark size={HERO_ICON_SIZE} />
-    </View>
-  );
-}
-
-function FeatureListRow({ feature }: { readonly feature: FeatureRow }): ReactElement {
+function FeatureListRow({
+  feature,
+  theme,
+}: {
+  readonly feature: FeatureRow;
+  readonly theme: OnboardingThemeColors;
+}): ReactElement {
   return (
     <View
       className="mb-3 flex-row items-center gap-3 rounded-2xl border p-4"
       style={{
-        backgroundColor: FEATURE_ROW_BG,
-        borderColor: FEATURE_ROW_BORDER,
+        backgroundColor: theme.featureRowBackground,
+        borderColor: theme.featureRowBorder,
       }}
     >
       <View
         className="h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-        style={{ backgroundColor: ICON_TILE_BG }}
+        style={{ backgroundColor: theme.iconTileBackground }}
       >
         <MaterialIcons
-          color={ONBOARDING_ACCENT}
+          color={theme.accent}
           name={feature.icon}
           size={26}
           style={{ lineHeight: 26, textAlign: 'center' }}
@@ -75,16 +68,18 @@ function FeatureListRow({ feature }: { readonly feature: FeatureRow }): ReactEle
       </View>
       <View className="min-w-0 flex-1">
         <View className="mb-0.5 flex-row flex-wrap items-center gap-2">
-          <Text className="text-lg font-semibold text-white">{feature.title}</Text>
+          <Text className="text-lg font-semibold" style={{ color: theme.text }}>
+            {feature.title}
+          </Text>
           {feature.badge != null ? (
-            <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: ACCENT_PILL_BG }}>
-              <Text className="text-xs font-semibold" style={{ color: ONBOARDING_ACCENT }}>
+            <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: theme.accentPillBackground }}>
+              <Text className="text-xs font-semibold" style={{ color: theme.accent }}>
                 {feature.badge}
               </Text>
             </View>
           ) : null}
         </View>
-        <Text className="text-sm leading-5" style={{ color: ONBOARDING_MUTED }}>
+        <Text className="text-sm leading-5" style={{ color: theme.muted }}>
           {feature.body}
         </Text>
       </View>
@@ -100,6 +95,7 @@ export interface OnboardingFeaturesSheetProps {
 
 export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): ReactElement {
   const insets = useSafeAreaInsets();
+  const theme = useOnboardingTheme();
 
   return (
     <Modal
@@ -108,7 +104,7 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
       visible={props.visible}
       onRequestClose={props.onLogIn}
     >
-      <View className="flex-1" style={{ backgroundColor: ONBOARDING_BG }}>
+      <View className="flex-1" style={{ backgroundColor: theme.background }}>
         <ScrollView
           className="flex-1"
           contentContainerStyle={{
@@ -121,17 +117,20 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
           showsVerticalScrollIndicator={false}
         >
           <Animated.View entering={FadeInDown.duration(400)} className="items-center pt-4">
-            <HeroAppMark />
+            <View className="mb-5">
+              <AppIconMark size={HERO_ICON_SIZE} theme={theme} />
+            </View>
             <Text
               accessibilityRole="header"
-              className="mb-2 text-center text-3xl font-bold leading-tight text-white"
+              className="mb-2 text-center text-3xl font-bold leading-tight"
+              style={{ color: theme.text }}
             >
               Stop the scheduling{' '}
-              <Text style={{ color: ONBOARDING_ACCENT }}>back-and-forth</Text>
+              <Text style={{ color: theme.accent }}>back-and-forth</Text>
             </Text>
             <Text
               className="mb-10 max-w-sm text-center text-base leading-6"
-              style={{ color: ONBOARDING_MUTED }}
+              style={{ color: theme.muted }}
             >
               Pick times. Share a link. Done in seconds.
             </Text>
@@ -143,7 +142,7 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
                 key={feature.title}
                 entering={FadeIn.delay(120 + 80 * index).duration(300)}
               >
-                <FeatureListRow feature={feature} />
+                <FeatureListRow feature={feature} theme={theme} />
               </Animated.View>
             ))}
           </View>
@@ -152,10 +151,12 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
             accessibilityLabel="Create my first event"
             accessibilityRole="button"
             className="mt-4 items-center rounded-2xl py-4"
-            style={{ backgroundColor: ONBOARDING_ACCENT }}
+            style={{ backgroundColor: theme.accent }}
             onPress={props.onCreateEvent}
           >
-            <Text className="text-lg font-semibold text-white">Create my first event →</Text>
+            <Text className="text-lg font-semibold" style={{ color: theme.textOnAccent }}>
+              Create my first event →
+            </Text>
           </Pressable>
 
           <Pressable
@@ -164,7 +165,7 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
             className="mt-3 items-center py-3"
             onPress={props.onLogIn}
           >
-            <Text className="text-base font-medium" style={{ color: ONBOARDING_MUTED }}>
+            <Text className="text-base font-medium" style={{ color: theme.muted }}>
               Log in
             </Text>
           </Pressable>

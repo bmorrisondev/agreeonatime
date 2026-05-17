@@ -1,18 +1,26 @@
 import type { ReactElement } from 'react';
 import Svg, { Circle, G, Line, Path } from 'react-native-svg';
 
-import { ONBOARDING_ACCENT, ONBOARDING_BG } from '@/components/onboarding/onboarding-theme';
+import {
+  ONBOARDING_ACCENT,
+  type OnboardingThemeColors,
+  useOnboardingTheme,
+} from '@/components/onboarding/onboarding-theme';
 
 const MARK_STROKE_SOFT = 'rgba(255, 107, 92, 0.55)';
 
 export interface AppIconMarkProps {
   readonly size?: number;
+  readonly theme?: OnboardingThemeColors;
 }
 
 /**
  * Foreground mark from {@link assets/images/app-icon-mark.svg} (clock + check).
  */
-export function AppIconMark({ size = 72 }: AppIconMarkProps): ReactElement {
+export function AppIconMark({ size = 72, theme: themeProp }: AppIconMarkProps): ReactElement {
+  const themeFromHook = useOnboardingTheme();
+  const theme = themeProp ?? themeFromHook;
+
   return (
     <Svg
       accessibilityLabel="Agree on a Time mark"
@@ -34,7 +42,7 @@ export function AppIconMark({ size = 72 }: AppIconMarkProps): ReactElement {
         <Path
           d="M -22 1.1 L -7.7 15.4 L 22 -17.6"
           fill="none"
-          stroke={ONBOARDING_BG}
+          stroke={theme.markCheckStroke}
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={12.1}
@@ -51,7 +59,7 @@ export function AppIconMark({ size = 72 }: AppIconMarkProps): ReactElement {
           y2={97.5797}
         />
         <Line
-          stroke="#FFFFFF"
+          stroke={theme.markClockHand}
           strokeLinecap="round"
           strokeWidth={20}
           x1={0}
@@ -59,7 +67,7 @@ export function AppIconMark({ size = 72 }: AppIconMarkProps): ReactElement {
           y1={0}
           y2={-207.1}
         />
-        <Circle cx={0} cy={0} fill="#FFFFFF" r={14} />
+        <Circle cx={0} cy={0} fill={theme.markCenterDot} r={14} />
       </G>
     </Svg>
   );

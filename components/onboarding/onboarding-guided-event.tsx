@@ -13,7 +13,7 @@ import {
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ONBOARDING_ACCENT, ONBOARDING_BG, ONBOARDING_DOT_INACTIVE, ONBOARDING_MUTED } from '@/components/onboarding/onboarding-theme';
+import { useOnboardingTheme } from '@/components/onboarding/onboarding-theme';
 import { formatDateTimeMs } from '@/lib/events/format-event-home';
 import {
   buildDefaultEventSlots,
@@ -37,7 +37,9 @@ export interface OnboardingGuidedEventProps {
 export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactElement {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
+  const theme = useOnboardingTheme();
   const webScheme = colorScheme === 'dark' ? 'dark' : 'light';
+  const pickerThemeVariant = colorScheme === 'dark' ? 'dark' : 'light';
   const defaults = useMemo(() => buildDefaultEventSlots(), []);
   const [title, setTitle] = useState('');
   const [slotStarts, setSlotStarts] = useState<number[]>(defaults.slotStarts);
@@ -171,7 +173,7 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       className="flex-1"
-      style={{ backgroundColor: ONBOARDING_BG, paddingTop: insets.top }}
+      style={{ backgroundColor: theme.background, paddingTop: insets.top }}
     >
       <View className="flex-row items-center justify-between px-4 pb-2">
         <Pressable
@@ -180,11 +182,13 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
           hitSlop={12}
           onPress={props.onBack}
         >
-          <Text className="text-base font-semibold" style={{ color: ONBOARDING_MUTED }}>
+          <Text className="text-base font-semibold" style={{ color: theme.muted }}>
             Back
           </Text>
         </Pressable>
-        <Text className="text-center text-base font-semibold text-white">Create your first event</Text>
+        <Text className="text-center text-base font-semibold" style={{ color: theme.text }}>
+          Create your first event
+        </Text>
         <View className="w-12" />
       </View>
 
@@ -196,20 +200,22 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
             paddingBottom: insets.bottom + 28,
           }}
         >
-          <View className="mb-4 self-stretch rounded-xl px-4 py-3" style={{ backgroundColor: ONBOARDING_ACCENT }}>
-            <Text className="text-center text-base font-medium text-white">{tooltipCopy.message}</Text>
+          <View className="mb-4 self-stretch rounded-xl px-4 py-3" style={{ backgroundColor: theme.accent }}>
+            <Text className="text-center text-base font-medium" style={{ color: theme.textOnAccent }}>
+              {tooltipCopy.message}
+            </Text>
             <View
               className="absolute -bottom-2 left-10 h-3 w-3 rotate-45"
-              style={{ backgroundColor: ONBOARDING_ACCENT }}
+              style={{ backgroundColor: theme.accent }}
             />
           </View>
 
-          <Text className="mb-1 text-sm font-medium" style={{ color: ONBOARDING_MUTED }}>
+          <Text className="mb-1 text-sm font-medium" style={{ color: theme.muted }}>
             Event name
           </Text>
           <TextInput
             accessibilityLabel="Event title"
-            className="mb-4 rounded-xl px-4 py-3 text-base text-white"
+            className="mb-4 rounded-xl px-4 py-3 text-base"
             onBlur={syncGuideFocus}
             onChangeText={(t) => {
               setTitle(t);
@@ -221,19 +227,20 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
               setGuideFocus('title');
             }}
             placeholder="Weekend hike"
-            placeholderTextColor={ONBOARDING_MUTED}
+            placeholderTextColor={theme.muted}
             style={{
               borderWidth: guideFocus === 'title' ? 2 : 1,
-              borderColor: guideFocus === 'title' ? ONBOARDING_ACCENT : ONBOARDING_DOT_INACTIVE,
-              backgroundColor: '#252344',
+              borderColor: guideFocus === 'title' ? theme.accent : theme.borderInactive,
+              backgroundColor: theme.inputBackground,
+              color: theme.text,
             }}
             value={title}
           />
 
-          <Text className="mb-1 text-sm font-medium" style={{ color: ONBOARDING_MUTED }}>
+          <Text className="mb-1 text-sm font-medium" style={{ color: theme.muted }}>
             Proposed times
           </Text>
-          <Text className="mb-2 text-xs" style={{ color: ONBOARDING_MUTED }}>
+          <Text className="mb-2 text-xs" style={{ color: theme.muted }}>
             At least two options. Tap a time to edit on your phone.
           </Text>
 
@@ -264,15 +271,17 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
                     className="flex-1 rounded-xl px-4 py-3"
                     style={{
                       borderWidth: borderOn ? 2 : 1,
-                      borderColor: borderOn ? ONBOARDING_ACCENT : ONBOARDING_DOT_INACTIVE,
-                      backgroundColor: '#252344',
+                      borderColor: borderOn ? theme.accent : theme.borderInactive,
+                      backgroundColor: theme.inputBackground,
                     }}
                     onPress={() => {
                       setGuideFocus('slots');
                       setPicker({ kind: 'slot', index });
                     }}
                   >
-                    <Text className="text-base text-white">{formatDateTimeMs(ms)}</Text>
+                    <Text className="text-base" style={{ color: theme.text }}>
+                      {formatDateTimeMs(ms)}
+                    </Text>
                   </Pressable>
                 )}
                 {slotStarts.length > 2 ? (
@@ -280,12 +289,12 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
                     accessibilityLabel={`Remove proposed time ${String(index + 1)}`}
                     accessibilityRole="button"
                     className="rounded-xl px-3 py-3"
-                    style={{ borderWidth: 1, borderColor: ONBOARDING_DOT_INACTIVE }}
+                    style={{ borderWidth: 1, borderColor: theme.borderInactive }}
                     onPress={() => {
                       removeSlot(index);
                     }}
                   >
-                    <Text style={{ color: ONBOARDING_MUTED }}>Remove</Text>
+                    <Text style={{ color: theme.muted }}>Remove</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -297,14 +306,14 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
               accessibilityLabel="Add another proposed time"
               accessibilityRole="button"
               className="mb-6 self-start rounded-xl px-3 py-2"
-              style={{ borderWidth: 1, borderColor: ONBOARDING_DOT_INACTIVE, borderStyle: 'dashed' }}
+              style={{ borderWidth: 1, borderColor: theme.borderInactive, borderStyle: 'dashed' }}
               onPress={addSlot}
             >
-              <Text style={{ color: ONBOARDING_MUTED }}>+ Add time</Text>
+              <Text style={{ color: theme.muted }}>+ Add time</Text>
             </Pressable>
           ) : null}
 
-          <Text className="mb-1 text-sm font-medium" style={{ color: ONBOARDING_MUTED }}>
+          <Text className="mb-1 text-sm font-medium" style={{ color: theme.muted }}>
             Voting deadline
           </Text>
           {Platform.OS === 'web' ? (
@@ -326,15 +335,17 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
               className="mb-6 rounded-xl px-4 py-3"
               style={{
                 borderWidth: guideFocus === 'deadline' ? 2 : 1,
-                borderColor: guideFocus === 'deadline' ? ONBOARDING_ACCENT : ONBOARDING_DOT_INACTIVE,
-                backgroundColor: '#252344',
+                borderColor: guideFocus === 'deadline' ? theme.accent : theme.borderInactive,
+                backgroundColor: theme.inputBackground,
               }}
               onPress={() => {
                 setGuideFocus('deadline');
                 setPicker({ kind: 'deadline' });
               }}
             >
-              <Text className="text-base text-white">{formatDateTimeMs(deadline)}</Text>
+              <Text className="text-base" style={{ color: theme.text }}>
+                {formatDateTimeMs(deadline)}
+              </Text>
             </Pressable>
           )}
 
@@ -349,7 +360,7 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
                     setPicker(null);
                   }}
                 >
-                  <Text className="text-base font-semibold" style={{ color: ONBOARDING_ACCENT }}>
+                  <Text className="text-base font-semibold" style={{ color: theme.accent }}>
                     Done
                   </Text>
                 </Pressable>
@@ -357,7 +368,7 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
               <DateTimePicker
                 display="spinner"
                 mode="datetime"
-                themeVariant="dark"
+                themeVariant={pickerThemeVariant}
                 value={pickerValue}
                 onChange={onPickerChange}
               />
@@ -365,11 +376,17 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
           ) : null}
 
           {picker != null && Platform.OS === 'android' ? (
-            <DateTimePicker display="default" mode="datetime" themeVariant="dark" value={pickerValue} onChange={onPickerChange} />
+            <DateTimePicker
+              display="default"
+              mode="datetime"
+              themeVariant={pickerThemeVariant}
+              value={pickerValue}
+              onChange={onPickerChange}
+            />
           ) : null}
 
           {validationMessage != null ? (
-            <Text accessibilityLiveRegion="polite" className="mb-3 text-base text-red-400">
+            <Text accessibilityLiveRegion="polite" className="mb-3 text-base text-red-600 dark:text-red-400">
               {validationMessage}
             </Text>
           ) : null}
@@ -380,10 +397,12 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
             accessibilityState={{ disabled: !isValid }}
             className="items-center rounded-2xl py-4"
             disabled={!isValid}
-            style={{ backgroundColor: ONBOARDING_ACCENT, opacity: isValid ? 1 : 0.45 }}
+            style={{ backgroundColor: theme.accent, opacity: isValid ? 1 : 0.45 }}
             onPress={onSave}
           >
-            <Text className="text-lg font-semibold text-white">Save event</Text>
+            <Text className="text-lg font-semibold" style={{ color: theme.textOnAccent }}>
+              Save event
+            </Text>
           </Pressable>
         </ScrollView>
       </Animated.View>

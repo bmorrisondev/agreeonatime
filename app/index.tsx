@@ -5,6 +5,7 @@ import { Redirect, router } from 'expo-router';
 import { useConvexAuth } from 'convex/react';
 
 import { OnboardingFeaturesSheet } from '@/components/onboarding/onboarding-features-sheet';
+import { useOnboardingTheme } from '@/components/onboarding/onboarding-theme';
 import { isConvexConfigured } from '@/lib/convex/client';
 import {
   hasSeenOnboardingIntro,
@@ -12,6 +13,7 @@ import {
 } from '@/lib/onboarding/onboarding-storage';
 
 function IndexWithConvexAuth(): ReactElement {
+  const theme = useOnboardingTheme();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const [showIntro, setShowIntro] = useState(() => !hasSeenOnboardingIntro());
 
@@ -23,8 +25,8 @@ function IndexWithConvexAuth(): ReactElement {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#1C1A2E]">
-        <ActivityIndicator size="large" color="#FFFFFF" />
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.background }}>
+        <ActivityIndicator color={theme.spinner} size="large" />
       </View>
     );
   }
@@ -35,7 +37,7 @@ function IndexWithConvexAuth(): ReactElement {
 
   if (showIntro) {
     return (
-      <View className="flex-1 bg-[#1C1A2E]">
+      <View className="flex-1" style={{ backgroundColor: theme.background }}>
         <OnboardingFeaturesSheet
           visible
           onCreateEvent={() => {

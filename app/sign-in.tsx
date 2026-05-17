@@ -46,8 +46,8 @@ export default function SignInScreen(): ReactElement {
 
   if (isPending) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#1C1A2E]">
-        <ActivityIndicator size="large" color="#FFFFFF" />
+      <View className="flex-1 items-center justify-center bg-white dark:bg-black">
+        <ActivityIndicator color="#FF6B5C" size="large" />
       </View>
     );
   }
