@@ -1,0 +1,36 @@
+---
+description: Check MCP and CLI tools before asking the user to do something manually
+alwaysApply: true
+---
+
+# Try tools before manual steps
+
+Before telling the user they must do something manually (dashboard clicks, copy-paste env vars, redeploy, update issue status, etc.), **check whether you can do it** with available tools.
+
+## What to check
+
+1. **MCP servers** — Browse tool descriptors under the project's MCP folder (`mcps/<server>/tools/`) and read schemas before calling. Common servers here: Vercel, Convex, Linear, GitHub (`gh`), PostHog, Notion, browser, etc.
+2. **CLI** — Prefer project CLIs when installed and linked: `vercel`, `gh`, `pnpm exec convex`, `eas`, `git`, etc. Use non-interactive patterns (e.g. `printf '%s' 'value' | vercel env add NAME production --force`).
+3. **Skills** — If a task matches an installed skill, read and follow it first.
+
+## Workflow
+
+1. Identify the outcome (e.g. set env var, redeploy, update Linear status, configure Convex `SITE_URL`).
+2. Search MCP tools and CLI help for that outcome.
+3. **Attempt automation** — run the tool; if it fails, try an alternative (different MCP, different flag, link project first with `vercel link`, etc.).
+4. Only then tell the user what is left — and **say what you already tried** and why it blocked (permissions, prod read-only, login required, missing token).
+
+## When manual steps are OK
+
+- Tool requires interactive login you cannot complete (`vercel login`, OAuth in browser).
+- MCP/CLI explicitly rejects the target (e.g. Convex production writes without production access enabled).
+- Action needs secrets or decisions only the user has (new API key, billing, domain DNS).
+- You would be guessing values that are not in repo, env examples, or tool output.
+
+## Examples
+
+- **Do:** Set Vercel env vars via `vercel env add` after `vercel link`, instead of "add these in the dashboard."
+- **Do:** Update Linear issue via Linear MCP when a DEV ticket exists.
+- **Do:** List Convex deployments via Convex MCP, then set dev env with `envSet`.
+- **Don't:** Stop at "set SITE_URL in Convex dashboard" without trying Convex MCP `envSet` or `npx convex env set` first.
+- **Don't:** Ask user to open a PR if `gh pr create` is available and credentials work.
