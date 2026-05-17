@@ -18,7 +18,7 @@
 |----------------|-----|
 | `development` | Dev client / iOS simulator builds. |
 | `preview`       | Internal device builds (Ad Hoc / internal distribution). |
-| `production`    | App Store / TestFlight; `autoIncrement` build number. |
+| `production`    | App Store / TestFlight; `autoIncrement` build number; **Convex production** (`hearty-grasshopper-692`). |
 
 ## Commands
 
@@ -51,6 +51,19 @@ SKIP_TESTFLIGHT_SUBMIT=1 pnpm deploy:testflight:local
 3. Run `pnpx testflight` or `eas build --platform ios --profile production --submit`.
 
 If ASC API key setup in `eas credentials` returns Apple 403, this path still works.
+
+## App Store review account (production Convex)
+
+v1.0 hides Sign in with Apple; reviewers use **email + password**. Create the account on **production**:
+
+```bash
+REVIEW_EMAIL='review@example.com' \
+REVIEW_PASSWORD='your-secure-password' \
+REVIEW_NAME='App Review' \
+pnpm create:apple-review-user
+```
+
+Script: `scripts/create-apple-review-user.sh` (defaults to `https://hearty-grasshopper-692.convex.site`).
 
 ## CI / automation: local build → TestFlight
 

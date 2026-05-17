@@ -8,6 +8,7 @@ import { Redirect, useLocalSearchParams } from 'expo-router';
 import { CompleteOnboardingDraft } from '@/components/onboarding/complete-onboarding-draft';
 import { authClient, isAuthClientConfigured } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
+import { isAppleSignInEnabled } from '@/lib/env/is-apple-sign-in-enabled';
 import { getOnboardingDraftEvent } from '@/lib/onboarding/onboarding-storage';
 
 type AuthMode = 'forgot-password' | 'magic-link' | 'sign-in' | 'sign-up';
@@ -416,7 +417,7 @@ export default function SignInScreen(): ReactElement {
         )}
       </View>
 
-      {Platform.OS === 'ios' ? (
+      {isAppleSignInEnabled() && Platform.OS === 'ios' ? (
         <AppleAuthentication.AppleAuthenticationButton
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
           cornerRadius={12}
