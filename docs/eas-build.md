@@ -29,12 +29,47 @@ pnpm dlx eas-cli@latest build --profile development --platform ios
 # TestFlight-ready binary
 pnpm dlx eas-cli@latest build --profile production --platform ios
 
-# After a successful production build
-pnpm dlx eas-cli@latest submit --profile production --platform ios
+# TestFlight via EAS cloud build + submit
+# Add EXPO_APPLE_APP_SPECIFIC_PASSWORD to .env.local, then:
+pnpm testflight
+
+# Local build on your Mac + submit (no EAS cloud compile)
+export EXPO_TOKEN=…
+export EXPO_APPLE_APP_SPECIFIC_PASSWORD=…
+pnpm deploy:testflight:local
+
+# Build only (skip submit)
+SKIP_TESTFLIGHT_SUBMIT=1 pnpm deploy:testflight:local
 ```
 
-Set `APPLE_ID`, `ASC_APP_ID`, and `APPLE_TEAM_ID` in your shell or EAS secrets for `eas submit` (see `submit.production.ios` in `eas.json`).
+### TestFlight submit (App Store Connect API key not required)
 
-## CI (optional)
+`submit.production.ios` in `eas.json` sets `ascAppId`, `appleId`, and `appleTeamId`. Submit uses an [app-specific password](https://expo.fyi/apple-app-specific-password) instead of an ASC API key:
 
-Add `EXPO_TOKEN` as a protected CI variable and invoke `eas build` from GitHub Actions or GitLab only if this repo adopts that workflow; do not commit tokens.
+1. Create a password at [appleid.apple.com](https://appleid.apple.com/account/manage) → Sign-In and Security → App-Specific Passwords.
+2. Export `EXPO_APPLE_APP_SPECIFIC_PASSWORD` in your shell, or add it to `.env.local` (never commit).
+3. Run `pnpx testflight` or `eas build --platform ios --profile production --submit`.
+
+If ASC API key setup in `eas credentials` returns Apple 403, this path still works.
+
+## CI / automation: local build → TestFlight
+
+Run `pnpm deploy:testflight:local` on a **macOS** host with Xcode (your CI or a Mac). Script: `scripts/deploy-testflight-local.sh`.
+
+**Secrets / env (required):**
+
+| Variable | Purpose |
+|----------|---------|
+| `EXPO_TOKEN` | [Expo access token](https://expo.dev/settings/access-tokens) for non-interactive EAS |
+| `EXPO_APPLE_APP_SPECIFIC_PASSWORD` | [App-specific password](https://expo.fyi/apple-app-specific-password) for submit |
+
+**One-time:** iOS distribution credentials in EAS for `me.brianmm.agreeonatime` (`eas credentials` on a Mac). Local builds pull signing from EAS; they do not use Expo’s cloud builders.
+
+Optional env for the script:
+
+| Variable | Default | Notes |
+|----------|---------|--------|
+| `EAS_BUILD_PROFILE` | `production` | `eas.json` build profile |
+| `EAS_SUBMIT_PROFILE` | `production` | `eas.json` submit profile |
+| `SKIP_TESTFLIGHT_SUBMIT` | — | Set to `1` to produce `./builds/agreeonatime.ipa` only |
+| `EAS_CMD` | `pnpm dlx eas-cli@latest` | Override EAS CLI invocation |
