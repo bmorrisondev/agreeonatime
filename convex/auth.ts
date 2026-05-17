@@ -9,6 +9,7 @@ import { importPKCS8, SignJWT } from 'jose';
 import authConfig from './auth.config';
 import { components } from './_generated/api';
 import { type DataModel } from './_generated/dataModel';
+import { EXPO_WEB_DEV_ORIGINS, siteUrlOrigins, webAuthOrigins } from './site_origins';
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
@@ -104,23 +105,6 @@ function appleConfigured(): boolean {
   );
 }
 
-/** Expo `pnpm web` defaults — must match `trustedOrigins` or magic-link `callbackURL` is rejected. */
-const EXPO_WEB_DEV_ORIGINS = ['http://localhost:8081', 'http://127.0.0.1:8081'] as const;
-
-function splitOrigins(raw: string | undefined): string[] {
-  if (raw == null || raw.trim().length === 0) {
-    return [];
-  }
-  return raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-}
-
-function siteUrlOrigins(): string[] {
-  return splitOrigins(process.env.SITE_URL);
-}
-
 export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof betterAuth> => {
   const convexSite = process.env.EXPO_PUBLIC_CONVEX_SITE_URL ?? '';
   /** Production / preview web origins from `SITE_URL` (comma-separated supported). */
@@ -133,8 +117,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof better
     ...new Set(
       [
         convexSite,
-        ...siteUrls,
-        ...EXPO_WEB_DEV_ORIGINS,
+        ...webAuthOrigins(),
         'agreeonatime://',
         'exp://',
         'https://appleid.apple.com',
