@@ -22,6 +22,7 @@ import { OnboardingFeaturesSheet } from '@/components/onboarding/onboarding-feat
 import { TabMainHeader } from '@/components/navigation/tab-main-header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { authClient } from '@/lib/auth-client';
+import { isDevToolsEnabled } from '@/lib/env/is-dev-tools-enabled';
 import { t } from '@/lib/i18n/t';
 import { resetOnboardingForManualPreview } from '@/lib/onboarding/onboarding-storage';
 
@@ -54,6 +55,8 @@ export default function SettingsTabScreen(): ReactElement {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [onboardingSheetVisible, setOnboardingSheetVisible] = useState(false);
+
+  const showDevTools = isDevToolsEnabled();
 
   const version = Constants.expoConfig?.version ?? '0.0.0';
   const build =
@@ -140,17 +143,20 @@ export default function SettingsTabScreen(): ReactElement {
         />
       </View>
 
-      {/* Notifications */}
-      <SectionHeader text={t('settings_notifications_header')} />
-      <View className="px-ds-lg">
-        <DsListItem
-          title={t('settings_notifications_manage')}
-          subtitle={t('settings_notifications_manage_subtitle')}
-          rightAccessory={chevron}
-          accessibilityLabel={t('settings_notifications_manage')}
-          onPress={handleOpenNotificationSettings}
-        />
-      </View>
+      {showDevTools ? (
+        <>
+          <SectionHeader text={t('settings_notifications_header')} />
+          <View className="px-ds-lg">
+            <DsListItem
+              title={t('settings_notifications_manage')}
+              subtitle={t('settings_notifications_manage_subtitle')}
+              rightAccessory={chevron}
+              accessibilityLabel={t('settings_notifications_manage')}
+              onPress={handleOpenNotificationSettings}
+            />
+          </View>
+        </>
+      ) : null}
 
       {/* Legal */}
       <SectionHeader text={t('settings_legal_header')} />
@@ -181,32 +187,41 @@ export default function SettingsTabScreen(): ReactElement {
         />
       </View>
 
-      {/* Developer */}
-      <SectionHeader text={t('settings_developer_header')} />
-      <View className="px-ds-lg">
-        <DsListItem
-          title={t('settings_design_system')}
-          subtitle={t('settings_design_system_subtitle')}
-          rightAccessory={chevron}
-          accessibilityLabel={t('settings_design_system')}
-          onPress={() => router.push('/design-system')}
-        />
-        <DsListItem
-          title={t('settings_onboarding_sheet')}
-          subtitle={t('settings_onboarding_sheet_subtitle')}
-          rightAccessory={chevron}
-          accessibilityLabel={t('settings_onboarding_sheet_a11y')}
-          onPress={handlePreviewOnboardingSheet}
-        />
-        <DsListItem
-          title={t('settings_reset_onboarding')}
-          subtitle={t('settings_reset_onboarding_subtitle')}
-          accessibilityLabel={t('settings_reset_onboarding_a11y')}
-          onPress={() => {
-            resetOnboardingForManualPreview();
-          }}
-        />
-      </View>
+      {showDevTools ? (
+        <>
+          <SectionHeader text={t('settings_developer_header')} />
+          <View className="px-ds-lg">
+            <DsListItem
+              title={t('settings_design_system')}
+              subtitle={t('settings_design_system_subtitle')}
+              rightAccessory={chevron}
+              accessibilityLabel={t('settings_design_system')}
+              onPress={() => router.push('/design-system')}
+            />
+            <DsListItem
+              title={t('settings_onboarding_sheet')}
+              subtitle={t('settings_onboarding_sheet_subtitle')}
+              rightAccessory={chevron}
+              accessibilityLabel={t('settings_onboarding_sheet_a11y')}
+              onPress={handlePreviewOnboardingSheet}
+            />
+            <DsListItem
+              title={t('settings_reset_onboarding')}
+              subtitle={t('settings_reset_onboarding_subtitle')}
+              accessibilityLabel={t('settings_reset_onboarding_a11y')}
+              onPress={() => {
+                resetOnboardingForManualPreview();
+              }}
+            />
+          </View>
+
+          <OnboardingFeaturesSheet
+            visible={onboardingSheetVisible}
+            onCreateEvent={handleSheetCreateEvent}
+            onLogIn={handleSheetLogIn}
+          />
+        </>
+      ) : null}
 
       {/* Version */}
       <View className="mt-ds-2xl items-center px-ds-lg">
@@ -219,12 +234,6 @@ export default function SettingsTabScreen(): ReactElement {
           {t('settings_version', { version, build })}
         </Text>
       </View>
-
-      <OnboardingFeaturesSheet
-        visible={onboardingSheetVisible}
-        onCreateEvent={handleSheetCreateEvent}
-        onLogIn={handleSheetLogIn}
-      />
 
       <DsModal
         visible={deleteModalVisible}
