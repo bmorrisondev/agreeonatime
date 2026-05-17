@@ -18,10 +18,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DsButton } from '@/components/design-system/button';
 import { DsListItem } from '@/components/design-system/list-item';
 import { DsModal } from '@/components/design-system/modal-sheet';
+import { OnboardingFeaturesSheet } from '@/components/onboarding/onboarding-features-sheet';
 import { TabMainHeader } from '@/components/navigation/tab-main-header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { authClient } from '@/lib/auth-client';
 import { t } from '@/lib/i18n/t';
+import { resetOnboardingForManualPreview } from '@/lib/onboarding/onboarding-storage';
 
 const getCurrentUserQuery = makeFunctionReference<'query'>('users:getCurrentUser');
 const deleteAccountMutation = makeFunctionReference<'mutation'>('users:deleteAccount');
@@ -51,6 +53,7 @@ export default function SettingsTabScreen(): ReactElement {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [onboardingSheetVisible, setOnboardingSheetVisible] = useState(false);
 
   const version = Constants.expoConfig?.version ?? '0.0.0';
   const build =
@@ -84,6 +87,20 @@ export default function SettingsTabScreen(): ReactElement {
     } else if (Platform.OS === 'android') {
       void Linking.openSettings();
     }
+  }, []);
+
+  const handlePreviewOnboardingSheet = useCallback(() => {
+    setOnboardingSheetVisible(true);
+  }, []);
+
+  const handleSheetCreateEvent = useCallback(() => {
+    setOnboardingSheetVisible(false);
+    router.push('/onboarding/create-event');
+  }, []);
+
+  const handleSheetLogIn = useCallback(() => {
+    setOnboardingSheetVisible(false);
+    router.push('/sign-in');
   }, []);
 
   return (
@@ -174,6 +191,21 @@ export default function SettingsTabScreen(): ReactElement {
           accessibilityLabel={t('settings_design_system')}
           onPress={() => router.push('/design-system')}
         />
+        <DsListItem
+          title={t('settings_onboarding_sheet')}
+          subtitle={t('settings_onboarding_sheet_subtitle')}
+          rightAccessory={chevron}
+          accessibilityLabel={t('settings_onboarding_sheet_a11y')}
+          onPress={handlePreviewOnboardingSheet}
+        />
+        <DsListItem
+          title={t('settings_reset_onboarding')}
+          subtitle={t('settings_reset_onboarding_subtitle')}
+          accessibilityLabel={t('settings_reset_onboarding_a11y')}
+          onPress={() => {
+            resetOnboardingForManualPreview();
+          }}
+        />
       </View>
 
       {/* Version */}
@@ -187,6 +219,12 @@ export default function SettingsTabScreen(): ReactElement {
           {t('settings_version', { version, build })}
         </Text>
       </View>
+
+      <OnboardingFeaturesSheet
+        visible={onboardingSheetVisible}
+        onCreateEvent={handleSheetCreateEvent}
+        onLogIn={handleSheetLogIn}
+      />
 
       <DsModal
         visible={deleteModalVisible}

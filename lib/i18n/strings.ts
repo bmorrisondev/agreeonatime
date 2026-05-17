@@ -56,6 +56,12 @@ export const strings = {
   settings_developer_header: 'Developer',
   settings_design_system: 'Design system preview',
   settings_design_system_subtitle: 'Internal UI gallery (DEV-383)',
+  settings_onboarding_sheet: 'Preview onboarding intro',
+  settings_onboarding_sheet_subtitle: 'First-launch feature highlights modal',
+  settings_onboarding_sheet_a11y: 'Open onboarding intro modal',
+  settings_reset_onboarding: 'Reset onboarding intro',
+  settings_reset_onboarding_subtitle: 'Show first-launch modal again on next app open',
+  settings_reset_onboarding_a11y: 'Clear onboarding intro seen flag',
   settings_version: 'Version {{version}} ({{build}})',
   settings_delete_modal_title: 'Delete account?',
   settings_delete_modal_body:

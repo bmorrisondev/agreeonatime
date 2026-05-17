@@ -3,19 +3,27 @@ import { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Linking from 'expo-linking';
-import { Redirect } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
+import { CompleteOnboardingDraft } from '@/components/onboarding/complete-onboarding-draft';
 import { authClient, isAuthClientConfigured } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
+import { getOnboardingDraftEvent } from '@/lib/onboarding/onboarding-storage';
 
 type AuthMode = 'forgot-password' | 'magic-link' | 'sign-in' | 'sign-up';
 
+function initialAuthModeFromParams(modeParam: string | string[] | undefined): AuthMode {
+  const raw = Array.isArray(modeParam) ? modeParam[0] : modeParam;
+  return raw === 'sign-up' ? 'sign-up' : 'sign-in';
+}
+
 export default function SignInScreen(): ReactElement {
+  const { mode: modeParam } = useLocalSearchParams<{ mode?: string | string[] }>();
   const { data: session, isPending } = authClient.useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [mode, setMode] = useState<AuthMode>('sign-in');
+  const [mode, setMode] = useState<AuthMode>(() => initialAuthModeFromParams(modeParam));
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [resetCodeSent, setResetCodeSent] = useState(false);
@@ -38,13 +46,16 @@ export default function SignInScreen(): ReactElement {
 
   if (isPending) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#1C1A2E]">
-        <ActivityIndicator size="large" color="#FFFFFF" />
+      <View className="flex-1 items-center justify-center bg-white dark:bg-black">
+        <ActivityIndicator color="#FF6B5C" size="large" />
       </View>
     );
   }
 
   if (session?.user) {
+    if (getOnboardingDraftEvent() != null) {
+      return <CompleteOnboardingDraft />;
+    }
     return <Redirect href="/(tabs)" />;
   }
 
@@ -185,6 +196,7 @@ export default function SignInScreen(): ReactElement {
   const isPasswordMode = mode === 'sign-in' || mode === 'sign-up';
   const canSubmitPassword =
     isPasswordMode && email.trim().length > 0 && password.length >= 8;
+  const hasOnboardingDraft = getOnboardingDraftEvent() != null;
 
   return (
     <View className="flex-1 justify-center bg-white px-6 dark:bg-black">
@@ -193,10 +205,14 @@ export default function SignInScreen(): ReactElement {
       </Text>
       <Text className="mb-8 text-base text-neutral-600 dark:text-neutral-400">
         {mode === 'sign-up'
-          ? 'Create an account to get started.'
+          ? hasOnboardingDraft
+            ? 'Create an account to save your event.'
+            : 'Create an account to get started.'
           : mode === 'forgot-password'
             ? 'Reset your password via a code sent to your email.'
-            : 'Sign in to create and manage scheduling polls.'}
+            : hasOnboardingDraft
+              ? 'Sign in to save your event.'
+              : 'Sign in to create and manage scheduling polls.'}
       </Text>
 
       {mode === 'sign-up' && (
@@ -356,7 +372,7 @@ export default function SignInScreen(): ReactElement {
       ) : null}
 
       {/* Mode switchers */}
-      <View className="mb-6 flex-row justify-center gap-4">
+      <View className="mb-6 flex-row flex-wrap justify-center gap-4">
         {mode !== 'sign-in' && (
           <Pressable
             accessibilityRole="button"
@@ -369,7 +385,9 @@ export default function SignInScreen(): ReactElement {
               setNotice(null);
             }}
           >
-            <Text className="text-sm font-medium text-[#FF6B5C]">Sign in with password</Text>
+            <Text className="text-sm font-medium text-[#FF6B5C]">
+              {hasOnboardingDraft ? 'Already have an account? Sign in' : 'Sign in with password'}
+            </Text>
           </Pressable>
         )}
         {mode !== 'sign-up' && mode !== 'forgot-password' && (
