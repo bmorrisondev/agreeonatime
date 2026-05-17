@@ -14,6 +14,7 @@ import type * as events from "../events.js";
 import type * as guestEvents from "../guestEvents.js";
 import type * as http from "../http.js";
 import type * as notifications from "../notifications.js";
+import type * as site_origins from "../site_origins.js";
 import type * as users from "../users.js";
 
 import type {
@@ -29,6 +30,7 @@ declare const fullApi: ApiFromModules<{
   guestEvents: typeof guestEvents;
   http: typeof http;
   notifications: typeof notifications;
+  site_origins: typeof site_origins;
   users: typeof users;
 }>;
 
