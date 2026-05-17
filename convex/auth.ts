@@ -3,7 +3,7 @@ import { expo } from '@better-auth/expo';
 import { createClient, type GenericCtx } from '@convex-dev/better-auth';
 import { convex, crossDomain } from '@convex-dev/better-auth/plugins';
 import { betterAuth, type BetterAuthOptions } from 'better-auth/minimal';
-import { emailOTP, magicLink } from 'better-auth/plugins';
+import { emailOTP } from 'better-auth/plugins';
 import { importPKCS8, SignJWT } from 'jose';
 
 import authConfig from './auth.config';
@@ -12,33 +12,6 @@ import { type DataModel } from './_generated/dataModel';
 import { EXPO_WEB_DEV_ORIGINS, siteUrlOrigins, webAuthOrigins } from './site_origins';
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
-
-async function sendMagicLinkEmail(email: string, url: string): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.warn(`[auth] Magic link for ${email}: ${url}`);
-    return;
-  }
-  const from = 'no-reply@agreeonatime.com';
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from,
-      to: [email],
-      subject: 'Your Agree on a Time sign-in link',
-      html: `<p>Click to sign in:</p><p><a href="${url}">${url}</a></p>`,
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    console.error('[auth] Resend failed:', res.status, text);
-    throw new Error('Failed to send magic link email');
-  }
-}
 
 async function sendVerificationOTPEmail(
   email: string,
@@ -128,11 +101,6 @@ export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof better
   const plugins: BetterAuthOptions['plugins'] = [
     expo(),
     convex({ authConfig }),
-    magicLink({
-      sendMagicLink: async ({ email, url }) => {
-        await sendMagicLinkEmail(email, url);
-      },
-    }),
     crossDomain({ siteUrl: crossDomainSiteUrl }),
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {

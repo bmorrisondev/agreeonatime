@@ -2,7 +2,6 @@ import type { ReactElement } from 'react';
 import { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Linking from 'expo-linking';
 import { Redirect, useLocalSearchParams } from 'expo-router';
 
 import { CompleteOnboardingDraft } from '@/components/onboarding/complete-onboarding-draft';
@@ -11,7 +10,7 @@ import { isConvexConfigured } from '@/lib/convex/client';
 import { isAppleSignInEnabled } from '@/lib/env/is-apple-sign-in-enabled';
 import { getOnboardingDraftEvent } from '@/lib/onboarding/onboarding-storage';
 
-type AuthMode = 'forgot-password' | 'magic-link' | 'sign-in' | 'sign-up';
+type AuthMode = 'forgot-password' | 'sign-in' | 'sign-up';
 
 function initialAuthModeFromParams(modeParam: string | string[] | undefined): AuthMode {
   const raw = Array.isArray(modeParam) ? modeParam[0] : modeParam;
@@ -60,8 +59,6 @@ export default function SignInScreen(): ReactElement {
     return <Redirect href="/(tabs)" />;
   }
 
-  const callbackURL = Linking.createURL('/');
-
   const onPasswordSubmit = async (): Promise<void> => {
     setBusy(true);
     setNotice(null);
@@ -83,24 +80,6 @@ export default function SignInScreen(): ReactElement {
         if (result.error) {
           setNotice(result.error.message ?? 'Sign-in failed.');
         }
-      }
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const onMagicLink = async (): Promise<void> => {
-    setBusy(true);
-    setNotice(null);
-    try {
-      const result = await authClient.signIn.magicLink({
-        email: email.trim(),
-        callbackURL,
-      });
-      if (result.error) {
-        setNotice(result.error.message ?? 'Could not send magic link.');
-      } else {
-        setNotice('Check your email for the sign-in link.');
       }
     } finally {
       setBusy(false);
@@ -349,7 +328,7 @@ export default function SignInScreen(): ReactElement {
       {isPasswordMode ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={mode === 'sign-up' ? 'Create account' : 'Sign in with password'}
+          accessibilityLabel={mode === 'sign-up' ? 'Create account' : 'Sign in'}
           className="mb-3 items-center rounded-xl bg-[#FF6B5C] py-4 opacity-100 active:opacity-90 disabled:opacity-50"
           disabled={busy || !canSubmitPassword}
           onPress={() => void onPasswordSubmit()}
@@ -358,26 +337,14 @@ export default function SignInScreen(): ReactElement {
             {busy ? 'Please wait…' : mode === 'sign-up' ? 'Create account' : 'Sign in'}
           </Text>
         </Pressable>
-      ) : mode === 'magic-link' ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Email magic link sign-in"
-          className="mb-3 items-center rounded-xl bg-[#FF6B5C] py-4 opacity-100 active:opacity-90 disabled:opacity-50"
-          disabled={busy || email.trim().length === 0}
-          onPress={() => void onMagicLink()}
-        >
-          <Text className="text-base font-semibold text-white">
-            {busy ? 'Sending…' : 'Email me a magic link'}
-          </Text>
-        </Pressable>
       ) : null}
 
       {/* Mode switchers */}
       <View className="mb-6 flex-row flex-wrap justify-center gap-4">
-        {mode !== 'sign-in' && (
+        {mode !== 'sign-in' && mode !== 'forgot-password' && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Switch to sign in with password"
+            accessibilityLabel="Switch to sign in"
             onPress={() => {
               setMode('sign-in');
               setResetCodeSent(false);
@@ -387,7 +354,7 @@ export default function SignInScreen(): ReactElement {
             }}
           >
             <Text className="text-sm font-medium text-[#FF6B5C]">
-              {hasOnboardingDraft ? 'Already have an account? Sign in' : 'Sign in with password'}
+              {hasOnboardingDraft ? 'Already have an account? Sign in' : 'Sign in'}
             </Text>
           </Pressable>
         )}
@@ -401,18 +368,6 @@ export default function SignInScreen(): ReactElement {
             }}
           >
             <Text className="text-sm font-medium text-[#FF6B5C]">Create account</Text>
-          </Pressable>
-        )}
-        {mode !== 'magic-link' && mode !== 'forgot-password' && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Switch to magic link"
-            onPress={() => {
-              setMode('magic-link');
-              setNotice(null);
-            }}
-          >
-            <Text className="text-sm font-medium text-[#FF6B5C]">Use magic link</Text>
           </Pressable>
         )}
       </View>

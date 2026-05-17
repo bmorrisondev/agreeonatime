@@ -1,73 +1,78 @@
 #!/usr/bin/env bash
-# Local production iOS build + TestFlight submit (no EAS cloud compile).
-# For CI: macOS runner with Xcode, EXPO_TOKEN, EXPO_APPLE_APP_SPECIFIC_PASSWORD.
+# Local production iOS build + TestFlight submit (non-interactive).
 # See docs/eas-build.md.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PROFILE="${EAS_BUILD_PROFILE:-production}"
-SUBMIT_PROFILE="${EAS_SUBMIT_PROFILE:-production}"
-IPA="${ROOT}/builds/agreeonatime.ipa"
-EAS="${EAS_CMD:-pnpm dlx eas-cli@latest}"
+IPA="./builds/agreeonatime.ipa"
+SKIP_SUBMIT="${SKIP_TESTFLIGHT_SUBMIT:-}"
 
-is_ci() {
-  [[ "${CI:-}" == "true" || "${CI:-}" == "1" || "${GITHUB_ACTIONS:-}" == "true" ]]
-}
+if [[ -f .env.local ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source .env.local
+  set +a
+fi
 
-if is_ci; then
-  export EXPO_NO_KEYCHAIN="${EXPO_NO_KEYCHAIN:-1}"
-else
-  if [[ -f .env.local ]]; then
-    set -a
-    # shellcheck source=/dev/null
-    source .env.local
-    set +a
+require_env() {
+  local name="$1"
+  local hint="$2"
+  if [[ -z "${!name:-}" ]]; then
+    echo "Missing ${name}." >&2
+    echo "${hint}" >&2
+    exit 1
   fi
-fi
-
-if [[ -z "${EXPO_TOKEN:-}" ]]; then
-  echo "Missing EXPO_TOKEN (EAS auth). Create at https://expo.dev/settings/access-tokens" >&2
-  exit 1
-fi
-
-if [[ -z "${EXPO_APPLE_APP_SPECIFIC_PASSWORD:-}" ]]; then
-  echo "Missing EXPO_APPLE_APP_SPECIFIC_PASSWORD." >&2
-  echo "https://appleid.apple.com/account/manage → App-Specific Passwords" >&2
-  exit 1
-fi
+}
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "Local iOS builds require macOS with Xcode." >&2
   exit 1
 fi
 
-mkdir -p "${ROOT}/builds"
-
-echo "==> EAS local build (profile: ${PROFILE})"
-$EAS build \
-  --profile "${PROFILE}" \
-  --platform ios \
-  --local \
-  --non-interactive \
-  --output "${IPA}"
-
-if [[ ! -f "${IPA}" ]]; then
-  echo "Build finished but IPA not found: ${IPA}" >&2
+if ! command -v eas >/dev/null 2>&1; then
+  echo "Missing eas CLI on PATH. Install: pnpm dlx eas-cli@latest login" >&2
   exit 1
 fi
 
-if [[ "${SKIP_TESTFLIGHT_SUBMIT:-}" == "1" ]]; then
-  echo "SKIP_TESTFLIGHT_SUBMIT=1 — IPA at ${IPA}"
+require_env EXPO_TOKEN \
+  "Create at https://expo.dev/settings/access-tokens and export it or add to .env.local."
+
+if [[ "${SKIP_SUBMIT}" != "1" ]]; then
+  require_env EXPO_APPLE_APP_SPECIFIC_PASSWORD \
+    "Create at https://appleid.apple.com/account/manage → App-Specific Passwords, then add to .env.local."
+fi
+
+if [[ "${CI:-}" == "true" || "${CI:-}" == "1" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  export EXPO_NO_KEYCHAIN="${EXPO_NO_KEYCHAIN:-1}"
+fi
+
+mkdir -p builds
+
+echo "==> eas build (production, local, non-interactive)"
+eas build \
+  --profile production \
+  --platform ios \
+  --local \
+  --non-interactive \
+  --output "$IPA"
+
+if [[ ! -f "$IPA" ]]; then
+  echo "Build finished but IPA not found: $IPA" >&2
+  exit 1
+fi
+
+if [[ "${SKIP_SUBMIT}" == "1" ]]; then
+  echo "SKIP_TESTFLIGHT_SUBMIT=1 — IPA at $IPA"
   exit 0
 fi
 
-echo "==> Submit to TestFlight (profile: ${SUBMIT_PROFILE})"
-$EAS submit \
-  --profile "${SUBMIT_PROFILE}" \
+echo "==> eas submit (production, non-interactive)"
+eas submit \
   --platform ios \
-  --path "${IPA}" \
+  --profile production \
+  --path "$IPA" \
   --non-interactive
 
-echo "==> Done. Processing on App Store Connect may take 10–20 minutes."
+echo "==> Done. App Store Connect processing may take 10–20 minutes."

@@ -16,7 +16,7 @@ test.describe('sign-in', () => {
 
     await expect(page.getByLabel('Email address')).toBeVisible();
     await expect(page.getByLabel('Password')).toBeVisible();
-    await expect(page.getByLabel('Sign in with password')).toBeVisible();
+    await expect(page.getByLabel('Sign in')).toBeVisible();
   });
 
   test('can switch to sign-up mode and see name field', async ({ page }) => {
@@ -30,23 +30,13 @@ test.describe('sign-in', () => {
     await expect(page.getByText('Create an account to get started.')).toBeVisible();
   });
 
-  test('can switch to magic link mode', async ({ page }) => {
-    await page.goto('/sign-in');
-    const heading = page.getByText('Agree on a Time');
-    const hasHeading = await heading.isVisible().catch(() => false);
-    test.skip(!hasHeading, 'Convex URL not configured — screen shows setup placeholder');
-
-    await page.getByLabel('Switch to magic link').click();
-    await expect(page.getByText('Email me a magic link')).toBeVisible();
-  });
-
   test('sign-in button is disabled without valid input', async ({ page }) => {
     await page.goto('/sign-in');
     const heading = page.getByText('Agree on a Time');
     const hasHeading = await heading.isVisible().catch(() => false);
     test.skip(!hasHeading, 'Convex URL not configured — screen shows setup placeholder');
 
-    const signInButton = page.getByLabel('Sign in with password');
+    const signInButton = page.getByLabel('Sign in');
     await expect(signInButton).toBeDisabled();
   });
 });
