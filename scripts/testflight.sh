@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Build production iOS + submit to TestFlight (see docs/eas-build.md).
+# Build production iOS on EAS cloud + submit to TestFlight (see docs/eas-build.md).
+# For a local compile on your Mac / CI, use: pnpm deploy:testflight:local
 # Requires EXPO_APPLE_APP_SPECIFIC_PASSWORD in the environment or .env.local.
 set -euo pipefail
 

@@ -29,13 +29,17 @@ pnpm dlx eas-cli@latest build --profile development --platform ios
 # TestFlight-ready binary
 pnpm dlx eas-cli@latest build --profile production --platform ios
 
-# TestFlight (build + submit) — requires app-specific password in env
+# TestFlight via EAS cloud build + submit
 # Add EXPO_APPLE_APP_SPECIFIC_PASSWORD to .env.local, then:
 pnpm testflight
 
-# Or build and submit separately
-pnpm dlx eas-cli@latest build --profile production --platform ios
-pnpm dlx eas-cli@latest submit --profile production --platform ios
+# Local build on your Mac + submit (no EAS cloud compile)
+export EXPO_TOKEN=…
+export EXPO_APPLE_APP_SPECIFIC_PASSWORD=…
+pnpm deploy:testflight:local
+
+# Build only (skip submit)
+SKIP_TESTFLIGHT_SUBMIT=1 pnpm deploy:testflight:local
 ```
 
 ### TestFlight submit (App Store Connect API key not required)
@@ -48,6 +52,24 @@ pnpm dlx eas-cli@latest submit --profile production --platform ios
 
 If ASC API key setup in `eas credentials` returns Apple 403, this path still works.
 
-## CI (optional)
+## CI / automation: local build → TestFlight
 
-Add `EXPO_TOKEN` as a protected CI variable and invoke `eas build` from GitHub Actions or GitLab only if this repo adopts that workflow; do not commit tokens.
+Run `pnpm deploy:testflight:local` on a **macOS** host with Xcode (your CI or a Mac). Script: `scripts/deploy-testflight-local.sh`.
+
+**Secrets / env (required):**
+
+| Variable | Purpose |
+|----------|---------|
+| `EXPO_TOKEN` | [Expo access token](https://expo.dev/settings/access-tokens) for non-interactive EAS |
+| `EXPO_APPLE_APP_SPECIFIC_PASSWORD` | [App-specific password](https://expo.fyi/apple-app-specific-password) for submit |
+
+**One-time:** iOS distribution credentials in EAS for `me.brianmm.agreeonatime` (`eas credentials` on a Mac). Local builds pull signing from EAS; they do not use Expo’s cloud builders.
+
+Optional env for the script:
+
+| Variable | Default | Notes |
+|----------|---------|--------|
+| `EAS_BUILD_PROFILE` | `production` | `eas.json` build profile |
+| `EAS_SUBMIT_PROFILE` | `production` | `eas.json` submit profile |
+| `SKIP_TESTFLIGHT_SUBMIT` | — | Set to `1` to produce `./builds/agreeonatime.ipa` only |
+| `EAS_CMD` | `pnpm dlx eas-cli@latest` | Override EAS CLI invocation |
