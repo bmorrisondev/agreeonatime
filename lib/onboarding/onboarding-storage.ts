@@ -1,9 +1,9 @@
 import { zustandStorage } from '@/lib/storage/zustand-storage';
 
-const COMPLETED_KEY = 'onboarding.v1.completed';
+const INTRO_SEEN_KEY = 'onboarding.v1.completed';
 const DRAFT_KEY = 'onboarding.v1.draft';
 
-/** Serializable draft for `events:create` after the user authenticates from onboarding. */
+/** Serializable draft for `events:create` after the user authenticates. */
 export interface OnboardingEventDraft {
   readonly title: string;
   readonly description: string;
@@ -12,13 +12,23 @@ export interface OnboardingEventDraft {
   readonly allowInviteeProposals: boolean;
 }
 
-export function hasCompletedOnboarding(): boolean {
-  const v = zustandStorage.getItem(COMPLETED_KEY);
+export function hasSeenOnboardingIntro(): boolean {
+  const v = zustandStorage.getItem(INTRO_SEEN_KEY);
   return typeof v === 'string' && v === '1';
 }
 
+/** @deprecated Use {@link hasSeenOnboardingIntro} */
+export function hasCompletedOnboarding(): boolean {
+  return hasSeenOnboardingIntro();
+}
+
+export function markOnboardingIntroSeen(): void {
+  zustandStorage.setItem(INTRO_SEEN_KEY, '1');
+}
+
+/** @deprecated Use {@link markOnboardingIntroSeen} */
 export function setCompletedOnboarding(): void {
-  zustandStorage.setItem(COMPLETED_KEY, '1');
+  markOnboardingIntroSeen();
 }
 
 export function getOnboardingDraftEvent(): OnboardingEventDraft | null {
@@ -45,8 +55,9 @@ export function clearOnboardingDraft(): void {
   zustandStorage.removeItem(DRAFT_KEY);
 }
 
-/** Clears any in-progress draft before a manual onboarding walkthrough from Settings. */
+/** Clears intro + draft so the launch modal can be shown again (Settings). */
 export function resetOnboardingForManualPreview(): void {
+  zustandStorage.removeItem(INTRO_SEEN_KEY);
   zustandStorage.removeItem(DRAFT_KEY);
 }
 

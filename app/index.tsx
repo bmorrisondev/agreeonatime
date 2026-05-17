@@ -1,13 +1,25 @@
 import type { ReactElement } from 'react';
-import { Redirect } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { Redirect, router } from 'expo-router';
 import { useConvexAuth } from 'convex/react';
 
+import { OnboardingFeaturesSheet } from '@/components/onboarding/onboarding-features-sheet';
 import { isConvexConfigured } from '@/lib/convex/client';
-import { hasCompletedOnboarding } from '@/lib/onboarding/onboarding-storage';
+import {
+  hasSeenOnboardingIntro,
+  markOnboardingIntroSeen,
+} from '@/lib/onboarding/onboarding-storage';
 
 function IndexWithConvexAuth(): ReactElement {
   const { isAuthenticated, isLoading } = useConvexAuth();
+  const [showIntro, setShowIntro] = useState(() => !hasSeenOnboardingIntro());
+
+  useEffect(() => {
+    if (showIntro && !hasSeenOnboardingIntro()) {
+      markOnboardingIntroSeen();
+    }
+  }, [showIntro]);
 
   if (isLoading) {
     return (
@@ -17,14 +29,29 @@ function IndexWithConvexAuth(): ReactElement {
     );
   }
 
-  if (!isAuthenticated) {
-    if (!hasCompletedOnboarding()) {
-      return <Redirect href="/onboarding" />;
-    }
-    return <Redirect href="/sign-in" />;
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
   }
 
-  return <Redirect href="/(tabs)" />;
+  if (showIntro) {
+    return (
+      <View className="flex-1 bg-[#1C1A2E]">
+        <OnboardingFeaturesSheet
+          visible
+          onCreateEvent={() => {
+            setShowIntro(false);
+            router.push('/onboarding/create-event');
+          }}
+          onLogIn={() => {
+            setShowIntro(false);
+            router.replace('/sign-in');
+          }}
+        />
+      </View>
+    );
+  }
+
+  return <Redirect href="/sign-in" />;
 }
 
 export default function Index(): ReactElement {

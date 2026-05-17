@@ -89,19 +89,18 @@ export default function SettingsTabScreen(): ReactElement {
     }
   }, []);
 
-  const handlePreviewOnboarding = useCallback(() => {
-    resetOnboardingForManualPreview();
-    router.push('/onboarding?preview=1');
-  }, []);
-
   const handlePreviewOnboardingSheet = useCallback(() => {
     setOnboardingSheetVisible(true);
   }, []);
 
-  const handleSheetTryItOut = useCallback(() => {
+  const handleSheetCreateEvent = useCallback(() => {
     setOnboardingSheetVisible(false);
-    resetOnboardingForManualPreview();
-    router.push('/onboarding?preview=1');
+    router.push('/onboarding/create-event');
+  }, []);
+
+  const handleSheetLogIn = useCallback(() => {
+    setOnboardingSheetVisible(false);
+    router.push('/sign-in');
   }, []);
 
   return (
@@ -193,18 +192,19 @@ export default function SettingsTabScreen(): ReactElement {
           onPress={() => router.push('/design-system')}
         />
         <DsListItem
-          title={t('settings_onboarding_preview')}
-          subtitle={t('settings_onboarding_preview_subtitle')}
-          rightAccessory={chevron}
-          accessibilityLabel={t('settings_onboarding_preview_a11y')}
-          onPress={handlePreviewOnboarding}
-        />
-        <DsListItem
           title={t('settings_onboarding_sheet')}
           subtitle={t('settings_onboarding_sheet_subtitle')}
           rightAccessory={chevron}
           accessibilityLabel={t('settings_onboarding_sheet_a11y')}
           onPress={handlePreviewOnboardingSheet}
+        />
+        <DsListItem
+          title={t('settings_reset_onboarding')}
+          subtitle={t('settings_reset_onboarding_subtitle')}
+          accessibilityLabel={t('settings_reset_onboarding_a11y')}
+          onPress={() => {
+            resetOnboardingForManualPreview();
+          }}
         />
       </View>
 
@@ -222,10 +222,8 @@ export default function SettingsTabScreen(): ReactElement {
 
       <OnboardingFeaturesSheet
         visible={onboardingSheetVisible}
-        onClose={() => {
-          setOnboardingSheetVisible(false);
-        }}
-        onTryItOut={handleSheetTryItOut}
+        onCreateEvent={handleSheetCreateEvent}
+        onLogIn={handleSheetLogIn}
       />
 
       <DsModal

@@ -89,8 +89,8 @@ function FeatureListRow({ feature }: { readonly feature: FeatureRow }): ReactEle
 
 export interface OnboardingFeaturesSheetProps {
   readonly visible: boolean;
-  readonly onClose: () => void;
-  readonly onTryItOut?: () => void;
+  readonly onCreateEvent: () => void;
+  readonly onLogIn: () => void;
 }
 
 export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): ReactElement {
@@ -101,7 +101,7 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
       animationType="slide"
       presentationStyle="fullScreen"
       visible={props.visible}
-      onRequestClose={props.onClose}
+      onRequestClose={props.onLogIn}
     >
       <View className="flex-1" style={{ backgroundColor: ONBOARDING_BG }}>
         <ScrollView
@@ -148,21 +148,19 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
             accessibilityRole="button"
             className="mt-4 items-center rounded-2xl py-4"
             style={{ backgroundColor: ONBOARDING_ACCENT }}
-            onPress={() => {
-              props.onTryItOut?.();
-            }}
+            onPress={props.onCreateEvent}
           >
             <Text className="text-lg font-semibold text-white">Create my first event →</Text>
           </Pressable>
 
           <Pressable
-            accessibilityLabel="Not now"
+            accessibilityLabel="Log in"
             accessibilityRole="button"
             className="mt-3 items-center py-3"
-            onPress={props.onClose}
+            onPress={props.onLogIn}
           >
             <Text className="text-base font-medium" style={{ color: ONBOARDING_MUTED }}>
-              Not now
+              Log in
             </Text>
           </Pressable>
         </ScrollView>

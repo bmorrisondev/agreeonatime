@@ -12,22 +12,18 @@ test.describe('onboarding', () => {
     });
   });
 
-  test('onboarding route loads value prop or setup placeholder', async ({ page }) => {
-    await page.goto('/onboarding');
-    const skip = page.getByLabel('Skip onboarding');
+  test('first launch shows intro modal or Convex setup', async ({ page }) => {
+    await page.goto('/');
+    const createEvent = page.getByLabel('Create my first event');
     const setup = page.getByText(/EXPO_PUBLIC_CONVEX_URL/);
-    await expect(skip.or(setup).first()).toBeVisible({ timeout: 30_000 });
+    await expect(createEvent.or(setup).first()).toBeVisible({ timeout: 30_000 });
   });
 
-  test('skip is visible when Convex is configured', async ({ page }) => {
-    await page.goto('/onboarding');
-    const skip = page.getByLabel('Skip onboarding');
-    const hasSkip = await skip.isVisible().catch(() => false);
-    const setup = page.getByText(/EXPO_PUBLIC_CONVEX_URL/);
-    const hasSetup = await setup.isVisible().catch(() => false);
-    test.skip(!hasSkip && !hasSetup, 'No onboarding UI visible');
-    if (hasSkip) {
-      await expect(skip).toBeVisible();
-    }
+  test('intro modal offers log in', async ({ page }) => {
+    await page.goto('/');
+    const logIn = page.getByLabel('Log in');
+    const hasLogIn = await logIn.isVisible().catch(() => false);
+    test.skip(!hasLogIn, 'Convex URL not configured');
+    await expect(logIn).toBeVisible();
   });
 });

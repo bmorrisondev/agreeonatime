@@ -5,8 +5,10 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Linking from 'expo-linking';
 import { Redirect } from 'expo-router';
 
+import { CompleteOnboardingDraft } from '@/components/onboarding/complete-onboarding-draft';
 import { authClient, isAuthClientConfigured } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
+import { getOnboardingDraftEvent } from '@/lib/onboarding/onboarding-storage';
 
 type AuthMode = 'forgot-password' | 'magic-link' | 'sign-in' | 'sign-up';
 
@@ -45,6 +47,9 @@ export default function SignInScreen(): ReactElement {
   }
 
   if (session?.user) {
+    if (getOnboardingDraftEvent() != null) {
+      return <CompleteOnboardingDraft />;
+    }
     return <Redirect href="/(tabs)" />;
   }
 
