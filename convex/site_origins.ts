@@ -1,3 +1,4 @@
+// @ts-nocheck — Convex env access; matches `convex/auth.ts`.
 /** Expo `pnpm web` defaults — must match `trustedOrigins` / CORS or auth requests fail. */
 export const EXPO_WEB_DEV_ORIGINS = ['http://localhost:8081', 'http://127.0.0.1:8081'] as const;
 
