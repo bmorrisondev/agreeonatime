@@ -1,4 +1,8 @@
 // @ts-nocheck — Convex env access; matches `convex/auth.ts`.
+import { PRODUCTION_WEB_APP_ORIGIN } from '../lib/constants/app-web-origin';
+
+export { PRODUCTION_WEB_APP_ORIGIN };
+
 /** Expo `pnpm web` defaults — must match `trustedOrigins` / CORS or auth requests fail. */
 export const EXPO_WEB_DEV_ORIGINS = ['http://localhost:8081', 'http://127.0.0.1:8081'] as const;
 
@@ -27,9 +31,34 @@ export function siteUrlOrigins(): string[] {
 export function webAuthOrigins(): string[] {
   return [
     ...new Set([
+      PRODUCTION_WEB_APP_ORIGIN,
       ...siteUrlOrigins(),
       ...EXPO_WEB_DEV_ORIGINS,
       VERCEL_APP_PREVIEW_ORIGIN_PREFIX,
     ]),
   ];
+}
+
+/** All Better Auth `trustedOrigins` (web, native, Convex site). */
+export function betterAuthTrustedOrigins(): string[] {
+  const convexSite = process.env.EXPO_PUBLIC_CONVEX_SITE_URL ?? '';
+  return [
+    ...new Set(
+      [
+        convexSite,
+        ...webAuthOrigins(),
+        'agreeonatime://',
+        'exp://',
+        'https://appleid.apple.com',
+      ].filter((o) => o.length > 0),
+    ),
+  ];
+}
+
+/** Primary web origin for `crossDomain` plugin (cookies / callbacks). */
+export function primaryWebAuthOrigin(): string {
+  const fromEnv = siteUrlOrigins().find(
+    (u) => u === PRODUCTION_WEB_APP_ORIGIN || u.includes('agreeonatime.com'),
+  );
+  return fromEnv ?? PRODUCTION_WEB_APP_ORIGIN;
 }

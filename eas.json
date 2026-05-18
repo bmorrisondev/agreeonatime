@@ -60,6 +60,7 @@
     "production": {
       "autoIncrement": true,
       "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_CONVEX_URL": "https://hearty-grasshopper-692.convex.cloud",
         "EXPO_PUBLIC_CONVEX_SITE_URL": "https://hearty-grasshopper-692.convex.site",
         "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_cjcVUrUIUtyrwWtWkQXmNmgTUbI"

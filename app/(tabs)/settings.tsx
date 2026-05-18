@@ -84,14 +84,6 @@ export default function SettingsTabScreen(): ReactElement {
     }
   }, [deleteAccount]);
 
-  const handleOpenNotificationSettings = useCallback(() => {
-    if (Platform.OS === 'ios') {
-      void Linking.openURL('app-settings:');
-    } else if (Platform.OS === 'android') {
-      void Linking.openSettings();
-    }
-  }, []);
-
   const handlePreviewOnboardingSheet = useCallback(() => {
     setOnboardingSheetVisible(true);
   }, []);
@@ -142,21 +134,6 @@ export default function SettingsTabScreen(): ReactElement {
           onPress={() => setDeleteModalVisible(true)}
         />
       </View>
-
-      {showDevTools ? (
-        <>
-          <SectionHeader text={t('settings_notifications_header')} />
-          <View className="px-ds-lg">
-            <DsListItem
-              title={t('settings_notifications_manage')}
-              subtitle={t('settings_notifications_manage_subtitle')}
-              rightAccessory={chevron}
-              accessibilityLabel={t('settings_notifications_manage')}
-              onPress={handleOpenNotificationSettings}
-            />
-          </View>
-        </>
-      ) : null}
 
       {/* Legal */}
       <SectionHeader text={t('settings_legal_header')} />

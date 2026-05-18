@@ -9,7 +9,10 @@ import { importPKCS8, SignJWT } from 'jose';
 import authConfig from './auth.config';
 import { components } from './_generated/api';
 import { type DataModel } from './_generated/dataModel';
-import { EXPO_WEB_DEV_ORIGINS, siteUrlOrigins, webAuthOrigins } from './site_origins';
+import {
+  betterAuthTrustedOrigins,
+  primaryWebAuthOrigin,
+} from './site_origins';
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
@@ -79,29 +82,10 @@ function appleConfigured(): boolean {
 }
 
 export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof betterAuth> => {
-  const convexSite = process.env.EXPO_PUBLIC_CONVEX_SITE_URL ?? '';
-  /** Production / preview web origins from `SITE_URL` (comma-separated supported). */
-  const siteUrls = siteUrlOrigins();
-  const primarySiteUrl = siteUrls[0] ?? '';
-  const crossDomainSiteUrl =
-    primarySiteUrl.length > 0 ? primarySiteUrl : EXPO_WEB_DEV_ORIGINS[0];
-
-  const origins = [
-    ...new Set(
-      [
-        convexSite,
-        ...webAuthOrigins(),
-        'agreeonatime://',
-        'exp://',
-        'https://appleid.apple.com',
-      ].filter((o) => o.length > 0),
-    ),
-  ];
-
   const plugins: BetterAuthOptions['plugins'] = [
     expo(),
     convex({ authConfig }),
-    crossDomain({ siteUrl: crossDomainSiteUrl }),
+    crossDomain({ siteUrl: primaryWebAuthOrigin() }),
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
         await sendVerificationOTPEmail(email, otp, type);
@@ -110,8 +94,8 @@ export const createAuth = (ctx: GenericCtx<DataModel>): ReturnType<typeof better
   ];
 
   const base: BetterAuthOptions = {
-    baseURL: convexSite,
-    trustedOrigins: origins,
+    baseURL: process.env.EXPO_PUBLIC_CONVEX_SITE_URL ?? '',
+    trustedOrigins: betterAuthTrustedOrigins(),
     database: authComponent.adapter(ctx),
     emailAndPassword: { enabled: true, minPasswordLength: 8 },
     user: { deleteUser: { enabled: true } },

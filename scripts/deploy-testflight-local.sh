@@ -48,6 +48,10 @@ if [[ "${CI:-}" == "true" || "${CI:-}" == "1" || "${GITHUB_ACTIONS:-}" == "true"
   export EXPO_NO_KEYCHAIN="${EXPO_NO_KEYCHAIN:-1}"
 fi
 
+# Do not bake preview/dev flags from .env.local into App Store binaries.
+export EXPO_PUBLIC_APP_ENV=production
+export EXPO_PUBLIC_DEV_TOOLS=false
+
 mkdir -p builds
 
 echo "==> eas build (production, local, non-interactive)"
