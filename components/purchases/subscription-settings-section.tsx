@@ -143,9 +143,7 @@ export function SubscriptionSettingsSection(): ReactElement {
     });
   })();
 
-  const planSubtitle = subscription.isPro
-    ? [t('settings_subscription_pro_subtitle'), renewalHint, usageSubtitle].filter(Boolean).join('\n')
-    : [t('settings_subscription_free_subtitle'), usageSubtitle].join('\n');
+  const freePlanSubtitle = [t('settings_subscription_free_subtitle'), usageSubtitle].join('\n');
 
   return (
     <>
@@ -167,20 +165,56 @@ export function SubscriptionSettingsSection(): ReactElement {
       ) : (
         <View className="px-ds-lg">
           <View className="border-b border-neutral-200 py-ds-md dark:border-neutral-700">
-            <Text
-              allowFontScaling
-              className="text-body font-medium text-neutral-900 dark:text-neutral-100"
-              maxFontSizeMultiplier={2}
-            >
-              {subscription.isPro ? t('settings_subscription_pro') : t('settings_subscription_free')}
-            </Text>
-            <Text
-              allowFontScaling
-              className="mt-ds-xs text-caption text-neutral-600 dark:text-neutral-400"
-              maxFontSizeMultiplier={2}
-            >
-              {planSubtitle}
-            </Text>
+            {subscription.isPro ? (
+              <>
+                <View
+                  accessibilityRole="text"
+                  accessibilityLabel={t('settings_subscription_agree_plus_active_a11y')}
+                  className="self-start rounded-ds-pill bg-brand/15 px-ds-md py-ds-xs"
+                >
+                  <Text
+                    allowFontScaling
+                    className="text-caption font-semibold text-brand"
+                    maxFontSizeMultiplier={2}
+                  >
+                    {t('settings_subscription_agree_plus_active')}
+                  </Text>
+                </View>
+                {renewalHint != null ? (
+                  <Text
+                    allowFontScaling
+                    className="mt-ds-sm text-caption text-neutral-600 dark:text-neutral-400"
+                    maxFontSizeMultiplier={2}
+                  >
+                    {renewalHint}
+                  </Text>
+                ) : null}
+                <Text
+                  allowFontScaling
+                  className="mt-ds-xs text-caption text-neutral-600 dark:text-neutral-400"
+                  maxFontSizeMultiplier={2}
+                >
+                  {[t('settings_subscription_pro_subtitle'), usageSubtitle].join('\n')}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text
+                  allowFontScaling
+                  className="text-body font-medium text-neutral-900 dark:text-neutral-100"
+                  maxFontSizeMultiplier={2}
+                >
+                  {t('settings_subscription_free')}
+                </Text>
+                <Text
+                  allowFontScaling
+                  className="mt-ds-xs text-caption text-neutral-600 dark:text-neutral-400"
+                  maxFontSizeMultiplier={2}
+                >
+                  {freePlanSubtitle}
+                </Text>
+              </>
+            )}
           </View>
 
           {!subscription.isPro ? (

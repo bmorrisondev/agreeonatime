@@ -4,6 +4,9 @@ import Purchases, { type CustomerInfo, type PurchasesEntitlementInfo } from 'rea
 import { isPurchasesConfigured } from '@/lib/purchases/configured-state';
 import { supportsPurchasesPlatform } from '@/lib/purchases/platform';
 
+/** App Store subscription management (required for cancel disclosure). */
+export const IOS_SUBSCRIPTION_MANAGEMENT_URL = 'itms-apps://apps.apple.com/account/subscriptions';
+
 async function loadCustomerInfo(): Promise<CustomerInfo | null> {
   if (!supportsPurchasesPlatform() || !isPurchasesConfigured()) {
     return null;
@@ -63,6 +66,11 @@ export async function openSubscriptionManagement(): Promise<boolean> {
   }
 
   if (Platform.OS === 'ios') {
+    const canOpen = await Linking.canOpenURL(IOS_SUBSCRIPTION_MANAGEMENT_URL);
+    if (canOpen) {
+      await Linking.openURL(IOS_SUBSCRIPTION_MANAGEMENT_URL);
+      return true;
+    }
     await Purchases.showManageSubscriptions();
     return true;
   }
