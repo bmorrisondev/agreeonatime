@@ -110,12 +110,13 @@ export const strings = {
   paywall_no_plan:
     'No subscription plan is available for this platform yet. On web, add a Web Billing product in RevenueCat and attach it to offering default / package $rc_monthly.',
   paywall_purchase_no_entitlement:
-    'Checkout finished but Pro did not activate. Confirm the product grants the "pro" entitlement in RevenueCat.',
+    'Checkout finished but Agree+ did not activate. Confirm the product grants the "pro" entitlement in RevenueCat.',
   paywall_restore_error: 'Could not restore purchases. Try again.',
   paywall_restore_none: 'No active subscription found for this account.',
 
   settings_subscription_header: 'Subscription',
-  settings_subscription_pro: 'Agree on a Time Pro',
+  settings_subscription_agree_plus_active: 'Agree+ Active',
+  settings_subscription_agree_plus_active_a11y: 'Agree+ subscription is active',
   settings_subscription_pro_subtitle: 'Unlimited active events',
   settings_subscription_free: 'Free plan',
   settings_subscription_free_subtitle: 'Up to three active events at a time',
@@ -126,9 +127,9 @@ export const strings = {
   settings_subscription_usage_free: '{{count}} of {{max}} active events',
   settings_subscription_renews: 'Renews {{date}}',
   settings_subscription_expires: 'Expires {{date}}',
-  settings_subscription_upgrade: 'Upgrade to Pro',
+  settings_subscription_upgrade: 'Upgrade to Agree+',
   settings_subscription_upgrade_subtitle: 'Unlimited active events',
-  settings_subscription_upgrade_a11y: 'View Pro subscription options',
+  settings_subscription_upgrade_a11y: 'View Agree+ subscription options',
   settings_subscription_manage_billing: 'Manage subscription',
   settings_subscription_manage_billing_a11y: 'Open subscription billing settings',
   settings_subscription_manage_error: 'Could not open subscription settings. Try again.',
