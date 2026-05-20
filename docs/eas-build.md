@@ -88,3 +88,6 @@ Runs on **macOS** with Xcode and the [EAS CLI](https://docs.expo.dev/build/setup
 |----------|--------|
 | `SKIP_TESTFLIGHT_SUBMIT=1` | Build only (no submit); still needs `EXPO_TOKEN` |
 | `EXPO_NO_KEYCHAIN=1` | Set automatically when `CI=true` |
+| `MIN_DISK_GB` | Default `30` — fail fast if Data volume has less free space |
+
+**Local build disk space:** Xcode archives need substantial free space on **Macintosh HD** (Data volume). If the log shows `No space left on device` / `errno=28`, clear **Xcode DerivedData** and EAS temp dirs under `/var/folders/.../T/eas-build-local-nodejs`, then retry.

@@ -14,6 +14,8 @@ export default defineSchema({
     name: v.string(),
     createdAt: v.number(),
     pushTokens: v.array(v.string()),
+    /** Pro entitlement expiry (ms). Set via RevenueCat sync / webhook. */
+    proExpiresAt: v.optional(v.number()),
   })
     .index('by_auth_user', ['authUserId'])
     .index('by_email', ['email']),

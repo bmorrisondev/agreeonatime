@@ -26,7 +26,9 @@
     "testflight": "bash ./scripts/testflight.sh",
     "deploy:testflight:local": "bash ./scripts/deploy-testflight-local.sh",
     "create:apple-review-user": "bash ./scripts/create-apple-review-user.sh",
-    "export:app-icon": "node ./scripts/export-app-icon.mjs"
+    "export:app-icon": "node ./scripts/export-app-icon.mjs",
+    "setup:revenuecat-web": "node ./scripts/setup-revenuecat-web-billing.mjs",
+    "setup:revenuecat-archive-legacy-test": "node ./scripts/archive-revenuecat-legacy-test-product.mjs"
   },
   "dependencies": {
     "@better-auth/expo": "~1.6.11",

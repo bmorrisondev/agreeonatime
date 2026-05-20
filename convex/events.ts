@@ -6,6 +6,7 @@ import { internal } from './_generated/api';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 
 import { authComponent } from './auth';
+import { assertCanCreateActiveEvent } from './subscriptionLimits';
 import { ensureAppUserIdForAuthUser, betterAuthUserIdString } from './users';
 
 function randomShareTokenHex(): string {
@@ -154,6 +155,7 @@ export const create = mutation({
       throw new ConvexError('Sign in to create an event');
     }
     const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
+    await assertCanCreateActiveEvent(ctx, userId);
 
     const title = args.title.trim();
     if (title.length === 0) {

@@ -68,4 +68,34 @@ export const strings = {
   settings_delete_error: 'Something went wrong. Please try again.',
   settings_signOut_a11y: 'Sign out of your account',
   settings_deleteAccount_a11y: 'Permanently delete your account and all data',
+
+  paywall_title: 'Unlimited events',
+  paywall_body:
+    'Free accounts can have one active event at a time. Subscribe to run as many open events as you need.',
+  paywall_not_configured:
+    'Subscriptions are not available in this build. Set EXPO_PUBLIC_REVENUECAT_API_KEY_WEB (or iOS key).',
+  paywall_subscribe: 'Subscribe',
+  paywall_subscribe_with_price: 'Subscribe · {{price}}/mo',
+  paywall_subscribe_a11y: 'Subscribe for unlimited active events',
+  paywall_restore: 'Restore purchases',
+  paywall_restore_a11y: 'Restore previous App Store purchases',
+  paywall_close: 'Not now',
+  paywall_close_a11y: 'Close subscription offer',
+  paywall_working: 'Working…',
+  paywall_purchase_error: 'Purchase could not be completed. Try again.',
+  paywall_purchase_unavailable: 'Subscription is not available right now.',
+  paywall_no_plan:
+    'No subscription plan is available for this platform yet. On web, add a Web Billing product in RevenueCat and attach it to offering default / package $rc_monthly.',
+  paywall_purchase_no_entitlement:
+    'Checkout finished but Pro did not activate. Confirm the product grants the "pro" entitlement in RevenueCat.',
+  paywall_restore_error: 'Could not restore purchases. Try again.',
+  paywall_restore_none: 'No active subscription found for this account.',
+
+  settings_subscription_header: 'Subscription',
+  settings_subscription_pro: 'Agree on a Time Pro',
+  settings_subscription_pro_subtitle: 'Unlimited active events',
+  settings_subscription_free: 'Free plan',
+  settings_subscription_free_subtitle: 'One active event at a time',
+  settings_subscription_manage: 'Subscribe or restore',
+  settings_subscription_manage_a11y: 'Open subscription options',
 } as const;

@@ -13,8 +13,10 @@ import { useConvex, useQuery } from 'convex/react';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { TabMainHeader } from '@/components/navigation/tab-main-header';
 import { HomeHeaderCreateButton } from '@/components/navigation/home-header-create-button';
+import { useCreateEventGate } from '@/hooks/use-create-event-gate';
 import { isConvexConfigured } from '@/lib/convex/client';
 import {
   formatDeadlineLine,
@@ -46,6 +48,7 @@ function HomeScreenContent(): ReactElement {
   const [refreshing, setRefreshing] = useState(false);
   const convex = useConvex();
   const insets = useSafeAreaInsets();
+  const { paywallVisible, closePaywall, requestCreate } = useCreateEventGate();
 
   const raw = useQuery(listForHomeQuery, { refreshNonce });
 
@@ -148,7 +151,9 @@ function HomeScreenContent(): ReactElement {
           <HomeHeaderCreateButton
             accessibilityLabel="Create new event"
             onPress={() => {
-              router.push('/create-event');
+              requestCreate(() => {
+                router.push('/create-event');
+              });
             }}
           />
         }
@@ -175,6 +180,7 @@ function HomeScreenContent(): ReactElement {
           ))
         )}
       </ScrollView>
+      <PaywallModal visible={paywallVisible} onClose={closePaywall} />
     </View>
   );
 }
