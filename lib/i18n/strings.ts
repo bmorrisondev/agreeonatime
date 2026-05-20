@@ -97,6 +97,17 @@ export const strings = {
     'Free accounts can have up to three active events at a time. Subscribe to run as many open events as you need.',
   paywall_not_configured:
     'Subscriptions are not available in this build. Set EXPO_PUBLIC_REVENUECAT_API_KEY_WEB (or iOS key).',
+  paywall_plan_monthly: 'Monthly',
+  paywall_plan_monthly_subtitle: '{{price}}/month',
+  paywall_plan_yearly: 'Yearly',
+  paywall_plan_yearly_subtitle: '{{price}}/year',
+  paywall_plan_yearly_badge: 'Best value',
+  paywall_plan_price_loading: 'Loading price…',
+  paywall_plan_select_monthly_a11y: 'Select monthly plan',
+  paywall_plan_select_yearly_a11y: 'Select yearly plan',
+  paywall_continue: 'Continue',
+  paywall_continue_with_price: 'Continue · {{price}}',
+  paywall_continue_a11y: 'Continue with selected subscription plan',
   paywall_subscribe: 'Subscribe',
   paywall_subscribe_with_price: 'Subscribe · {{price}}/mo',
   paywall_subscribe_a11y: 'Subscribe for unlimited active events',
@@ -108,7 +119,7 @@ export const strings = {
   paywall_purchase_error: 'Purchase could not be completed. Try again.',
   paywall_purchase_unavailable: 'Subscription is not available right now.',
   paywall_no_plan:
-    'No subscription plan is available for this platform yet. On web, add a Web Billing product in RevenueCat and attach it to offering default / package $rc_monthly.',
+    'No subscription plan is available for this platform yet. In RevenueCat, attach monthly ($rc_monthly) and yearly ($rc_annual) products to offering default.',
   paywall_purchase_no_entitlement:
     'Checkout finished but Agree+ did not activate. Confirm the product grants the "pro" entitlement in RevenueCat.',
   paywall_restore_error: 'Could not restore purchases. Try again.',
