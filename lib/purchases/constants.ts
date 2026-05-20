@@ -18,3 +18,10 @@ export const LEGACY_TEST_STORE_PRODUCT_ID = 'agreeonatime_pro_monthly';
 
 /** App Store product id. */
 export const PRO_MONTHLY_IOS_PRODUCT_ID = 'me.brianmm.agreeonatime.pro.monthly';
+
+/** All product ids that grant the {@link PRO_ENTITLEMENT_ID} entitlement. */
+export const PRO_PRODUCT_IDS = [
+  PRO_MONTHLY_STORE_PRODUCT_ID,
+  LEGACY_TEST_STORE_PRODUCT_ID,
+  PRO_MONTHLY_IOS_PRODUCT_ID,
+] as const;

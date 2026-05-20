@@ -15,7 +15,14 @@ import { getPackagePriceLabel, pickMonthlyPackage } from '@/lib/purchases/packag
 import { supportsPurchasesPlatform } from '@/lib/purchases/platform';
 import { getRevenueCatApiKeyForPlatform } from '@/lib/purchases/revenuecat-keys';
 
-export { PRO_ENTITLEMENT_ID } from '@/lib/purchases/constants';
+export {
+  LEGACY_TEST_STORE_PRODUCT_ID,
+  PRO_ENTITLEMENT_ID,
+  PRO_MONTHLY_IOS_PRODUCT_ID,
+  PRO_MONTHLY_STORE_PRODUCT_ID,
+  PRO_MONTHLY_USD_DISPLAY,
+  PRO_PRODUCT_IDS,
+} from '@/lib/purchases/constants';
 export { getProEntitlement, isProFromCustomerInfo } from '@/lib/purchases/customer-info';
 export { getPackagePriceLabel, pickMonthlyPackage } from '@/lib/purchases/package-selection';
 export {
