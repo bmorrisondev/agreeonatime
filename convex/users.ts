@@ -4,6 +4,7 @@ import type { Id } from './_generated/dataModel';
 import { mutation, query, type MutationCtx } from './_generated/server';
 
 import { authComponent, createAuth } from './auth';
+import { deleteEventAndDependents } from './eventDeletion';
 
 /** Better Auth adapter returns Convex docs — use `_id` when `id` is absent. */
 export function betterAuthUserIdString(authUser: { id?: string; _id?: string } | null | undefined): string | null {
@@ -143,23 +144,7 @@ export const deleteAccount = mutation({
       .take(BATCH_SIZE);
 
     for (const event of ownedEvents) {
-      const votes = await ctx.db
-        .query('votes')
-        .withIndex('by_event', (q) => q.eq('eventId', event._id))
-        .take(BATCH_SIZE);
-      for (const vote of votes) {
-        await ctx.db.delete(vote._id);
-      }
-
-      const timeslots = await ctx.db
-        .query('timeslots')
-        .withIndex('by_event', (q) => q.eq('eventId', event._id))
-        .take(BATCH_SIZE);
-      for (const slot of timeslots) {
-        await ctx.db.delete(slot._id);
-      }
-
-      await ctx.db.delete(event._id);
+      await deleteEventAndDependents(ctx, event._id);
     }
 
     // Delete votes cast by this user on other people's events

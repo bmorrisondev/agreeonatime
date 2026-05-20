@@ -15,9 +15,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DsButton } from '@/components/design-system/button';
+import { DsModal } from '@/components/design-system/modal-sheet';
 import { DsToast } from '@/components/design-system';
 import { VoteBar } from '@/components/events/vote-bar';
 import { buildVoteUrl } from '@/lib/events/build-share-url';
+import { t } from '@/lib/i18n/t';
 import {
   formatDeadlineLine,
   formatDecidedTime,
@@ -29,6 +32,7 @@ const getForOwnerQuery = makeFunctionReference<'query'>('events:getForOwner');
 const resolvePendingTimeslotMutation = makeFunctionReference<'mutation'>(
   'events:resolvePendingTimeslot',
 );
+const deleteForOwnerMutation = makeFunctionReference<'mutation'>('events:deleteForOwner');
 
 interface ApprovedSlot {
   _id: string;
@@ -57,6 +61,9 @@ export default function EventDetailScreen(): ReactElement {
     visible: false,
     message: '',
   });
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -71,6 +78,7 @@ export default function EventDetailScreen(): ReactElement {
   );
 
   const resolvePending = useMutation(resolvePendingTimeslotMutation);
+  const deleteForOwner = useMutation(deleteForOwnerMutation);
 
   const toggleExpanded = useCallback((slotId: string) => {
     setExpanded((prev) => ({ ...prev, [slotId]: !prev[slotId] }));
@@ -113,6 +121,23 @@ export default function EventDetailScreen(): ReactElement {
     },
     [resolvePending],
   );
+
+  const onDeleteConfirm = useCallback(async () => {
+    if (id == null || id.length === 0) {
+      return;
+    }
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteForOwner({ eventId: id });
+      setDeleteModalVisible(false);
+      router.replace('/(tabs)');
+    } catch {
+      setDeleteError(t('event_delete_error'));
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteForOwner, id]);
 
   if (!configured) {
     return (
@@ -333,7 +358,69 @@ export default function EventDetailScreen(): ReactElement {
             Pick the time
           </Text>
         </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('event_delete_a11y')}
+          className="mt-4 items-center rounded-xl border border-red-200 bg-white py-3.5 active:bg-red-50 dark:border-red-900 dark:bg-black dark:active:bg-red-950/40"
+          onPress={() => setDeleteModalVisible(true)}
+        >
+          <Text className="text-base font-semibold text-red-600 dark:text-red-400">
+            {t('event_delete')}
+          </Text>
+        </Pressable>
       </ScrollView>
+      <DsModal
+        visible={deleteModalVisible}
+        title={t('event_delete_modal_title')}
+        onClose={() => {
+          if (!deleting) {
+            setDeleteModalVisible(false);
+            setDeleteError(null);
+          }
+        }}
+      >
+        <Text
+          allowFontScaling
+          className="mb-ds-lg text-body text-neutral-700 dark:text-neutral-300"
+          maxFontSizeMultiplier={2}
+        >
+          {t('event_delete_modal_body')}
+        </Text>
+
+        {deleteError != null ? (
+          <Text
+            allowFontScaling
+            className="mb-ds-md text-caption text-danger"
+            accessibilityRole="alert"
+            maxFontSizeMultiplier={2}
+          >
+            {deleteError}
+          </Text>
+        ) : null}
+
+        <DsButton
+          variant="destructive"
+          accessibilityLabel={t('event_delete_modal_confirm')}
+          disabled={deleting}
+          onPress={() => void onDeleteConfirm()}
+        >
+          {deleting ? 'Deleting…' : t('event_delete_modal_confirm')}
+        </DsButton>
+        <View className="mt-ds-sm">
+          <DsButton
+            variant="secondary"
+            accessibilityLabel={t('event_delete_modal_cancel')}
+            disabled={deleting}
+            onPress={() => {
+              setDeleteModalVisible(false);
+              setDeleteError(null);
+            }}
+          >
+            {t('event_delete_modal_cancel')}
+          </DsButton>
+        </View>
+      </DsModal>
       <DsToast
         message={shareToast.message}
         visible={shareToast.visible}
