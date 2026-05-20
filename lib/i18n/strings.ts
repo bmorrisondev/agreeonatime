@@ -40,6 +40,9 @@ export const strings = {
   home_title: 'Home',
   home_build_subtitle: 'Build {{label}}',
   home_empty_cta: 'No events yet. Tap + in the header to plan something.',
+  home_active_events_banner: '{{count}} of {{max}} active events',
+  home_active_events_upgrade: 'Upgrade to Pro for unlimited',
+  home_active_events_banner_a11y: '{{count}} of {{max}} active events. Upgrade to Pro for unlimited events.',
   settings_title: 'Settings',
   settings_account_header: 'Account',
   settings_signOut: 'Sign out',
@@ -71,7 +74,7 @@ export const strings = {
 
   paywall_title: 'Unlimited events',
   paywall_body:
-    'Free accounts can have one active event at a time. Subscribe to run as many open events as you need.',
+    'Free accounts can have up to three active events at a time. Subscribe to run as many open events as you need.',
   paywall_not_configured:
     'Subscriptions are not available in this build. Set EXPO_PUBLIC_REVENUECAT_API_KEY_WEB (or iOS key).',
   paywall_subscribe: 'Subscribe',
@@ -95,7 +98,20 @@ export const strings = {
   settings_subscription_pro: 'Agree on a Time Pro',
   settings_subscription_pro_subtitle: 'Unlimited active events',
   settings_subscription_free: 'Free plan',
-  settings_subscription_free_subtitle: 'One active event at a time',
+  settings_subscription_free_subtitle: 'Up to three active events at a time',
   settings_subscription_manage: 'Subscribe or restore',
   settings_subscription_manage_a11y: 'Open subscription options',
+  settings_subscription_loading_a11y: 'Loading subscription status',
+  settings_subscription_usage_pro: '{{count}} active events',
+  settings_subscription_usage_free: '{{count}} of {{max}} active events',
+  settings_subscription_renews: 'Renews {{date}}',
+  settings_subscription_expires: 'Expires {{date}}',
+  settings_subscription_upgrade: 'Upgrade to Pro',
+  settings_subscription_upgrade_subtitle: 'Unlimited active events',
+  settings_subscription_upgrade_a11y: 'View Pro subscription options',
+  settings_subscription_manage_billing: 'Manage subscription',
+  settings_subscription_manage_billing_a11y: 'Open subscription billing settings',
+  settings_subscription_manage_error: 'Could not open subscription settings. Try again.',
+  settings_subscription_manage_unavailable:
+    'Subscription management is not available on this platform yet.',
 } as const;

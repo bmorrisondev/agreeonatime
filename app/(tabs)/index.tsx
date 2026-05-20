@@ -48,7 +48,8 @@ function HomeScreenContent(): ReactElement {
   const [refreshing, setRefreshing] = useState(false);
   const convex = useConvex();
   const insets = useSafeAreaInsets();
-  const { paywallVisible, closePaywall, requestCreate } = useCreateEventGate();
+  const { paywallVisible, closePaywall, openPaywall, requestCreate, subscription } =
+    useCreateEventGate();
 
   const raw = useQuery(listForHomeQuery, { refreshNonce });
 
@@ -158,6 +159,40 @@ function HomeScreenContent(): ReactElement {
           />
         }
       />
+      {subscription.isLoaded && !subscription.isPro && subscription.maxActiveEvents != null ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('home_active_events_banner_a11y', {
+            count: subscription.activeOpenCount,
+            max: subscription.maxActiveEvents,
+          })}
+          className="mx-4 mt-3 flex-row items-center justify-between rounded-xl border border-brand/30 bg-brand/10 px-4 py-3 active:opacity-80 dark:border-brand/40 dark:bg-brand/15"
+          onPress={openPaywall}
+        >
+          <View className="min-w-0 flex-1 pr-3">
+            <Text
+              allowFontScaling
+              className="text-body font-semibold text-neutral-900 dark:text-neutral-100"
+              maxFontSizeMultiplier={2}
+            >
+              {t('home_active_events_banner', {
+                count: subscription.activeOpenCount,
+                max: subscription.maxActiveEvents,
+              })}
+            </Text>
+            <Text
+              allowFontScaling
+              className="mt-0.5 text-caption text-brand"
+              maxFontSizeMultiplier={2}
+            >
+              {t('home_active_events_upgrade')}
+            </Text>
+          </View>
+          <Text allowFontScaling className="text-lg text-brand" maxFontSizeMultiplier={2}>
+            ›
+          </Text>
+        </Pressable>
+      ) : null}
       <ScrollView
         className="flex-1"
         contentContainerStyle={{

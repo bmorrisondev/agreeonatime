@@ -18,9 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DsButton } from '@/components/design-system/button';
 import { DsListItem } from '@/components/design-system/list-item';
 import { DsModal } from '@/components/design-system/modal-sheet';
-import { PaywallModal } from '@/components/purchases/paywall-modal';
+import { SubscriptionSettingsSection } from '@/components/purchases/subscription-settings-section';
 import { OnboardingFeaturesSheet } from '@/components/onboarding/onboarding-features-sheet';
-import { useSubscription } from '@/hooks/use-subscription';
 import { TabMainHeader } from '@/components/navigation/tab-main-header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { authClient } from '@/lib/auth-client';
@@ -57,9 +56,6 @@ export default function SettingsTabScreen(): ReactElement {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [onboardingSheetVisible, setOnboardingSheetVisible] = useState(false);
-  const [paywallVisible, setPaywallVisible] = useState(false);
-  const subscription = useSubscription();
-
   const showDevTools = isDevToolsEnabled();
 
   const version = Constants.expoConfig?.version ?? '0.0.0';
@@ -139,29 +135,7 @@ export default function SettingsTabScreen(): ReactElement {
         />
       </View>
 
-      {/* Subscription */}
-      <SectionHeader text={t('settings_subscription_header')} />
-      <View className="px-ds-lg">
-        <DsListItem
-          title={subscription.isPro ? t('settings_subscription_pro') : t('settings_subscription_free')}
-          subtitle={
-            subscription.isPro
-              ? t('settings_subscription_pro_subtitle')
-              : t('settings_subscription_free_subtitle')
-          }
-          accessibilityLabel={
-            subscription.isPro ? t('settings_subscription_pro') : t('settings_subscription_free')
-          }
-        />
-        {!subscription.isPro ? (
-          <DsListItem
-            title={t('settings_subscription_manage')}
-            rightAccessory={chevron}
-            accessibilityLabel={t('settings_subscription_manage_a11y')}
-            onPress={() => setPaywallVisible(true)}
-          />
-        ) : null}
-      </View>
+      <SubscriptionSettingsSection />
 
       {/* Legal */}
       <SectionHeader text={t('settings_legal_header')} />
@@ -239,8 +213,6 @@ export default function SettingsTabScreen(): ReactElement {
           {t('settings_version', { version, build })}
         </Text>
       </View>
-
-      <PaywallModal visible={paywallVisible} onClose={() => setPaywallVisible(false)} />
 
       <DsModal
         visible={deleteModalVisible}

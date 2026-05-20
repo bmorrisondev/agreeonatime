@@ -59,7 +59,7 @@ export function CompleteOnboardingDraft(): ReactElement {
         console.error('CompleteOnboardingDraft: failed to create event', e);
         const message = formatMutationError(e, 'Could not save your event.');
         setError(message);
-        if (message.includes('one active event')) {
+        if (message.includes('Free accounts can have')) {
           setPaywallVisible(true);
         }
       }

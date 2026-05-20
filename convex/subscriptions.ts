@@ -12,7 +12,7 @@ import {
 
 import { authComponent } from './auth';
 import {
-  countOpenEventsForOwner,
+  countActiveEventsForOwner,
   FREE_MAX_ACTIVE_OPEN_EVENTS,
   isProProductId,
   PRO_ENTITLEMENT_ID,
@@ -293,7 +293,7 @@ export const getCreateEligibility = query({
     }
 
     const isPro = userHasPro(user);
-    const activeOpenCount = await countOpenEventsForOwner(ctx, user._id);
+    const activeOpenCount = await countActiveEventsForOwner(ctx, user._id);
     const canCreateMore =
       isPro || activeOpenCount < FREE_MAX_ACTIVE_OPEN_EVENTS;
 

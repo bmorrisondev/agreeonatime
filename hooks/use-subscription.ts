@@ -2,6 +2,7 @@ import { makeFunctionReference } from 'convex/server';
 import { useQuery } from 'convex/react';
 
 import { useEntitlement } from '@/hooks/use-entitlement';
+import { FREE_MAX_ACTIVE_OPEN_EVENTS } from '@/lib/subscription/free-tier';
 
 const getCreateEligibilityQuery = makeFunctionReference<'query'>('subscriptions:getCreateEligibility');
 
@@ -27,7 +28,7 @@ export function useSubscription(): SubscriptionState {
   const isPro = serverPro || rcPro;
   const canCreateMore = eligibility?.canCreateMore ?? isPro;
   const activeOpenCount = eligibility?.activeOpenCount ?? 0;
-  const maxActiveEvents = eligibility?.maxActiveEvents ?? (isPro ? null : 1);
+  const maxActiveEvents = eligibility?.maxActiveEvents ?? (isPro ? null : FREE_MAX_ACTIVE_OPEN_EVENTS);
 
   return {
     isPro,

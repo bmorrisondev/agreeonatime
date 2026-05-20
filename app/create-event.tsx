@@ -147,7 +147,7 @@ export default function CreateEventScreen(): ReactElement {
     } catch (e: unknown) {
       const message = formatMutationError(e, 'Could not create event');
       setError(message);
-      if (message.includes('one active event')) {
+      if (message.includes('Free accounts can have')) {
         openPaywall();
       }
     } finally {

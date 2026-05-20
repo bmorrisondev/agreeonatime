@@ -30,6 +30,11 @@ export {
   getRevenueCatIosApiKey,
   getRevenueCatWebApiKey,
 } from '@/lib/purchases/revenuecat-keys';
+export {
+  canOpenSubscriptionManagement,
+  getManagementUrlFromCustomerInfo,
+  openSubscriptionManagement,
+} from '@/lib/purchases/subscription-management';
 
 /**
  * Initialise the RevenueCat SDK once (iOS + web).

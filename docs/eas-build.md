@@ -91,3 +91,5 @@ Runs on **macOS** with Xcode and the [EAS CLI](https://docs.expo.dev/build/setup
 | `MIN_DISK_GB` | Default `30` — fail fast if Data volume has less free space |
 
 **Local build disk space:** Xcode archives need substantial free space on **Macintosh HD** (Data volume). If the log shows `No space left on device` / `errno=28`, clear **Xcode DerivedData** and EAS temp dirs under `/var/folders/.../T/eas-build-local-nodejs`, then retry.
+
+**RevenueCat keys on EAS profiles:** `eas.json` sets `EXPO_PUBLIC_REVENUECAT_API_KEY` (iOS) and `EXPO_PUBLIC_REVENUECAT_API_KEY_WEB` on build profiles. Server secrets (webhook, REST) live on **Convex** only — see [subscriptions-revenuecat.md](./subscriptions-revenuecat.md).

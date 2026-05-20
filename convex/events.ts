@@ -101,11 +101,19 @@ export const listForHome = query({
       });
     }
 
+    const nowMs = Date.now();
+    const isFutureDecided = (e: HomeEventDoc): boolean =>
+      e.status === 'decided' && e.decidedStartTime != null && e.decidedStartTime > nowMs;
+
     const active = enriched
-      .filter((e) => e.status === 'open')
-      .sort((a, b) => a.deadline - b.deadline);
+      .filter((e) => e.status === 'open' || isFutureDecided(e))
+      .sort((a, b) => {
+        const aSort = a.status === 'open' ? a.deadline : (a.decidedStartTime ?? a.deadline);
+        const bSort = b.status === 'open' ? b.deadline : (b.decidedStartTime ?? b.deadline);
+        return aSort - bSort;
+      });
     const decided = enriched
-      .filter((e) => e.status === 'decided')
+      .filter((e) => e.status === 'decided' && !isFutureDecided(e))
       .sort((a, b) => b.createdAt - a.createdAt);
     const archived = enriched
       .filter((e) => e.status === 'closed')
