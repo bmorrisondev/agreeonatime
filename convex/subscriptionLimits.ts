@@ -26,8 +26,54 @@ export function isProProductId(productId: string | undefined | null): boolean {
 /** Free tier: at most this many active events (open + future decided). */
 export const FREE_MAX_ACTIVE_OPEN_EVENTS = 3;
 
+/** Free tier: max unique voters per event. */
+export const FREE_MAX_VOTERS_PER_EVENT = 8;
+
+/** Free tier: full vote history visible for this many days after event creation. */
+export const FREE_HISTORY_VISIBLE_MS = 30 * 24 * 60 * 60 * 1000;
+
+export type SubscriptionLimitErrorCode = 'TooManyActiveEvents' | 'EventAtCapacity';
+
+interface SubscriptionLimitErrorPayload {
+  code: SubscriptionLimitErrorCode;
+  message: string;
+}
+
+export function subscriptionLimitError(
+  code: SubscriptionLimitErrorCode,
+  message: string,
+): ConvexError {
+  return new ConvexError({ code, message } satisfies SubscriptionLimitErrorPayload);
+}
+
 export function userHasPro(user: Pick<Doc<'users'>, 'proExpiresAt'>, nowMs: number = Date.now()): boolean {
   return user.proExpiresAt != null && user.proExpiresAt > nowMs;
+}
+
+export function voterKey(v: {
+  voterName: string;
+  voterUserId?: Id<'users'>;
+  voterSessionId?: string;
+}): string {
+  if (v.voterUserId != null) {
+    return `u:${v.voterUserId}`;
+  }
+  if (v.voterSessionId != null && v.voterSessionId.length > 0) {
+    return `s:${v.voterSessionId}`;
+  }
+  return `n:${v.voterName}`;
+}
+
+/** Whether vote results should be hidden for a free owner (30-day history cap). */
+export function isHistoryLocked(
+  user: Pick<Doc<'users'>, 'proExpiresAt'>,
+  eventCreatedAt: number,
+  nowMs: number = Date.now(),
+): boolean {
+  if (userHasPro(user)) {
+    return false;
+  }
+  return nowMs - eventCreatedAt > FREE_HISTORY_VISIBLE_MS;
 }
 
 /** Open events and decided events whose start time is still in the future. */
@@ -60,6 +106,21 @@ export async function countActiveEventsForOwner(
 /** @deprecated Use {@link countActiveEventsForOwner}. */
 export const countOpenEventsForOwner = countActiveEventsForOwner;
 
+export async function countDistinctVotersForEvent(
+  ctx: QueryCtx | MutationCtx,
+  eventId: Id<'events'>,
+): Promise<number> {
+  const votes = await ctx.db
+    .query('votes')
+    .withIndex('by_event', (q) => q.eq('eventId', eventId))
+    .collect();
+  const keys = new Set<string>();
+  for (const row of votes) {
+    keys.add(voterKey(row));
+  }
+  return keys.size;
+}
+
 /**
  * Throws when a non‑Pro user already has the maximum number of active events.
  */
@@ -76,8 +137,45 @@ export async function assertCanCreateActiveEvent(
   }
   const activeCount = await countActiveEventsForOwner(ctx, ownerId);
   if (activeCount >= FREE_MAX_ACTIVE_OPEN_EVENTS) {
-    throw new ConvexError(
+    throw subscriptionLimitError(
+      'TooManyActiveEvents',
       'Free accounts can have up to three active events at a time. Subscribe for unlimited events.',
+    );
+  }
+}
+
+/**
+ * Throws when a free event already has the maximum number of unique voters and this is a new voter.
+ */
+export async function assertCanAcceptNewVoter(
+  ctx: MutationCtx,
+  event: Pick<Doc<'events'>, '_id' | 'ownerId'>,
+  newVoterKey: string,
+): Promise<void> {
+  const owner = await ctx.db.get(event.ownerId);
+  if (owner == null) {
+    throw new ConvexError('Event not found');
+  }
+  if (userHasPro(owner)) {
+    return;
+  }
+
+  const votes = await ctx.db
+    .query('votes')
+    .withIndex('by_event', (q) => q.eq('eventId', event._id))
+    .collect();
+
+  const keys = new Set<string>();
+  for (const row of votes) {
+    keys.add(voterKey(row));
+  }
+  if (keys.has(newVoterKey)) {
+    return;
+  }
+  if (keys.size >= FREE_MAX_VOTERS_PER_EVENT) {
+    throw subscriptionLimitError(
+      'EventAtCapacity',
+      'This event has reached its voting limit. The organizer can upgrade to allow more responses.',
     );
   }
 }

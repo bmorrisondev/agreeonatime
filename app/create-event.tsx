@@ -27,6 +27,7 @@ import {
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
+import { isTooManyActiveEventsError } from '@/lib/convex/subscription-errors';
 import { isConvexConfigured } from '@/lib/convex/client';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCreateEventGate } from '@/hooks/use-create-event-gate';
@@ -147,7 +148,7 @@ export default function CreateEventScreen(): ReactElement {
     } catch (e: unknown) {
       const message = formatMutationError(e, 'Could not create event');
       setError(message);
-      if (message.includes('Free accounts can have')) {
+      if (isTooManyActiveEventsError(e)) {
         openPaywall();
       }
     } finally {

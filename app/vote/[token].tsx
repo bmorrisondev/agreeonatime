@@ -20,6 +20,8 @@ import { VoteBar } from '@/components/events/vote-bar';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isConvexConfigured } from '@/lib/convex/client';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
+import { isEventAtCapacityError } from '@/lib/convex/subscription-errors';
+import { t } from '@/lib/i18n/t';
 import {
   formatDeadlineLine,
   formatTimeslotWithTimezone,
@@ -115,7 +117,11 @@ export default function VoteByTokenScreen(): ReactElement {
         });
         setVoted(true);
       } catch (e: unknown) {
-        setError(formatMutationError(e, 'Could not save vote'));
+        if (isEventAtCapacityError(e)) {
+          setError(t('vote_event_at_capacity'));
+        } else {
+          setError(formatMutationError(e, 'Could not save vote'));
+        }
       } finally {
         setBusy(null);
       }

@@ -9,6 +9,7 @@ import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { useOnboardingTheme } from '@/components/onboarding/onboarding-theme';
 import { useSubscription } from '@/hooks/use-subscription';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
+import { isTooManyActiveEventsError } from '@/lib/convex/subscription-errors';
 import {
   clearOnboardingDraft,
   getOnboardingDraftEvent,
@@ -59,7 +60,7 @@ export function CompleteOnboardingDraft(): ReactElement {
         console.error('CompleteOnboardingDraft: failed to create event', e);
         const message = formatMutationError(e, 'Could not save your event.');
         setError(message);
-        if (message.includes('Free accounts can have')) {
+        if (isTooManyActiveEventsError(e)) {
           setPaywallVisible(true);
         }
       }
