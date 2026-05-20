@@ -83,6 +83,15 @@ export const strings = {
   settings_signOut_a11y: 'Sign out of your account',
   settings_deleteAccount_a11y: 'Permanently delete your account and all data',
 
+  event_delete: 'Delete event',
+  event_delete_a11y: 'Permanently delete this event',
+  event_delete_modal_title: 'Delete event?',
+  event_delete_modal_body:
+    'This will permanently delete this event, its proposed times, and all votes. Invitees will no longer be able to open the voting link. This cannot be undone.',
+  event_delete_modal_confirm: 'Delete event',
+  event_delete_modal_cancel: 'Cancel',
+  event_delete_error: 'Something went wrong. Please try again.',
+
   paywall_title: 'Unlimited events',
   paywall_body:
     'Free accounts can have up to three active events at a time. Subscribe to run as many open events as you need.',

@@ -6,6 +6,7 @@ import { internal } from './_generated/api';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 
 import { authComponent } from './auth';
+import { deleteEventAndDependents } from './eventDeletion';
 import {
   assertCanAcceptNewVoter,
   assertCanCreateActiveEvent,
@@ -335,6 +336,25 @@ export const getForOwner = query({
       approvedTimeslots,
       pendingTimeslots,
     };
+  },
+});
+
+/** Owner permanently deletes an event and all votes/timeslots (DEV-445). */
+export const deleteForOwner = mutation({
+  args: { eventId: v.id('events') },
+  handler: async (ctx, { eventId }): Promise<void> => {
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (!authUser) {
+      throw new ConvexError('Sign in to delete an event');
+    }
+    const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
+
+    const event = await ctx.db.get(eventId);
+    if (!event || event.ownerId !== userId) {
+      throw new ConvexError('Event not found or you are not the owner');
+    }
+
+    await deleteEventAndDependents(ctx, eventId);
   },
 });
 
