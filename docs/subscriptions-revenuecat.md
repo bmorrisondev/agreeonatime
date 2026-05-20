@@ -7,7 +7,7 @@ Agree on a Time uses **RevenueCat** for in-app purchases on **iOS** and **Expo w
 | Plan | Active events | Voters per event | Vote history | Price |
 |------|----------------|------------------|--------------|-------|
 | **Free** | Up to **3** active events | **8** unique voters | Full results for **30 days** after creation | — |
-| **Pro** | Unlimited | Unlimited | Unlimited | **$3.99/mo** (target; App Store + Web Billing) |
+| **Pro** | Unlimited | Unlimited | Unlimited | **$3.99/mo** or **$39.99/yr** (App Store + Web Billing) |
 
 **Entitlement id (RevenueCat + code):** `pro`
 
@@ -57,15 +57,17 @@ Home list grouping (`events:listForHome`): the **Active** section includes open 
 | `RevenueCatInit` | `Purchases.configure()` once per session (iOS + web) |
 | `RevenueCatIdentify` | `Purchases.logIn(Better Auth user id)` after sign-in |
 | `SubscriptionSync` | Calls `subscriptions:syncFromRevenueCat` on session start and when SDK Pro state changes |
-| `PaywallModal` | Subscribe + restore; identifies user before purchase |
+| `PaywallModal` | Monthly/yearly plan picker, subscribe + restore; identifies user before purchase |
 | `SubscriptionSettingsSection` | Settings: plan, usage, upgrade, restore, manage billing |
 | `useEntitlement` | SDK `CustomerInfo` → active `pro` entitlement |
 | `useSubscription` | Convex `getCreateEligibility` + SDK (combined `isPro`) |
 | `useCreateEventGate` | Blocks navigation to create when at cap; opens paywall |
 
-**Purchase path (web):** always `Purchases.purchasePackage($rc_monthly)` — `purchaseStoreProduct` is not supported in browser/Test Store mode.
+**Purchase path (web):** `Purchases.purchasePackage($rc_monthly | $rc_annual)` — `purchaseStoreProduct` is not supported in browser/Test Store mode.
 
-**Purchase path (iOS):** prefers `$3.99` sku via `purchaseStoreProduct` when the offering package still points at the legacy Test Store id; otherwise `purchasePackage`.
+**Purchase path (iOS monthly):** prefers `$3.99` sku via `purchaseStoreProduct` when the offering package still points at the legacy Test Store id; otherwise `purchasePackage`.
+
+**Purchase path (iOS annual):** `purchasePackage($rc_annual)`.
 
 ### Convex (`convex/`)
 
@@ -113,15 +115,20 @@ Home list grouping (`events:listForHome`): the **Active** section includes open 
 | Product id | Store | Notes |
 |------------|-------|--------|
 | `agreeonatime_pro_monthly_399` | Test Store / Web Billing | **Current** $3.99/mo — attach to entitlement `pro` and package `$rc_monthly` |
-| `me.brianmm.agreeonatime.pro.monthly` | App Store | iOS production |
+| `me.brianmm.agreeonatime.pro.monthly` | App Store | iOS monthly |
+| `agreeonatime_pro_annual_3999` | Test Store / Web Billing | **Current** $39.99/yr — attach to entitlement `pro` and package `$rc_annual` |
+| `me.brianmm.agreeonatime.pro.annual` | App Store | iOS annual |
 | `agreeonatime_pro_monthly` | Test Store | **Legacy** $9.99 — **archive** (`pnpm run setup:revenuecat-archive-legacy-test`) |
 
 ### Offering
 
 - **Offering:** `default`
 - **Package:** `$rc_monthly` → must reference **`agreeonatime_pro_monthly_399`** (not legacy sku)
+- **Package:** `$rc_annual` → must reference **`agreeonatime_pro_annual_3999`**
 
 If `$rc_monthly` still maps to `agreeonatime_pro_monthly`, web checkout charges $9.99 and may not grant `pro` in webhooks.
+
+If `$rc_annual` is missing, the paywall shows monthly only until the annual product is configured in RevenueCat.
 
 ### Entitlement
 
@@ -139,7 +146,7 @@ If `$rc_monthly` still maps to `agreeonatime_pro_monthly`, web checkout charges 
 
 ### Web Billing (production web)
 
-RevenueCat’s API often returns **403** when creating Web Billing products via API; create the $3.99/mo product in the dashboard and attach it to `pro` / `$rc_monthly`.
+RevenueCat’s API often returns **403** when creating Web Billing products via API; create the $3.99/mo and $39.99/yr products in the dashboard and attach them to `pro` / `$rc_monthly` and `$rc_annual`.
 
 Helper script (creates app, prints public key — does not replace dashboard product attach):
 

@@ -29,6 +29,7 @@
     "export:app-icon": "node ./scripts/export-app-icon.mjs",
     "setup:revenuecat-verify": "node ./scripts/verify-revenuecat-entitlements.mjs",
     "setup:revenuecat-web": "node ./scripts/setup-revenuecat-web-billing.mjs",
+    "setup:revenuecat-annual": "node ./scripts/setup-revenuecat-annual-skus.mjs",
     "setup:revenuecat-archive-legacy-test": "node ./scripts/archive-revenuecat-legacy-test-product.mjs"
   },
   "dependencies": {
