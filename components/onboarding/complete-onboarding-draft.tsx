@@ -5,7 +5,10 @@ import { makeFunctionReference } from 'convex/server';
 import { useMutation } from 'convex/react';
 import { router } from 'expo-router';
 
+import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { useOnboardingTheme } from '@/components/onboarding/onboarding-theme';
+import { useSubscription } from '@/hooks/use-subscription';
+import { formatMutationError } from '@/lib/convex/format-mutation-error';
 import {
   clearOnboardingDraft,
   getOnboardingDraftEvent,
@@ -19,16 +22,23 @@ const createEventMutation = makeFunctionReference<'mutation'>('events:create');
 export function CompleteOnboardingDraft(): ReactElement {
   const theme = useOnboardingTheme();
   const createEvent = useMutation(createEventMutation);
+  const subscription = useSubscription();
   const saveStarted = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [paywallVisible, setPaywallVisible] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
-    if (saveStarted.current) {
+    if (saveStarted.current || !subscription.isLoaded) {
       return;
     }
     const draft = getOnboardingDraftEvent();
     if (draft == null) {
       router.replace('/(tabs)');
+      return;
+    }
+    if (!subscription.canCreateMore) {
+      setPaywallVisible(true);
       return;
     }
     saveStarted.current = true;
@@ -47,10 +57,14 @@ export function CompleteOnboardingDraft(): ReactElement {
       } catch (e: unknown) {
         saveStarted.current = false;
         console.error('CompleteOnboardingDraft: failed to create event', e);
-        setError('Could not save your event. Please try again from the home screen.');
+        const message = formatMutationError(e, 'Could not save your event.');
+        setError(message);
+        if (message.includes('Free accounts can have')) {
+          setPaywallVisible(true);
+        }
       }
     })();
-  }, [createEvent]);
+  }, [createEvent, retryToken, subscription.canCreateMore, subscription.isLoaded]);
 
   return (
     <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: theme.background }}>
@@ -61,6 +75,17 @@ export function CompleteOnboardingDraft(): ReactElement {
       {error != null ? (
         <Text className="mt-3 text-center text-sm text-red-600 dark:text-red-400">{error}</Text>
       ) : null}
+      <PaywallModal
+        visible={paywallVisible}
+        onClose={() => {
+          setPaywallVisible(false);
+          router.replace('/(tabs)');
+        }}
+        onSubscribed={() => {
+          saveStarted.current = false;
+          setRetryToken((n) => n + 1);
+        }}
+      />
     </View>
   );
 }

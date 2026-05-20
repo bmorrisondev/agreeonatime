@@ -1,22 +1,22 @@
 import type { ReactElement } from 'react';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
 import { authClient } from '@/lib/auth-client';
 import {
   configurePurchases,
   identifyUser,
   isPurchasesConfigured,
   resetUser,
+  supportsPurchasesPlatform,
 } from '@/lib/purchases';
 
 /**
- * Configures RevenueCat on native iOS when a public SDK key is present (DEV-393).
+ * Configures RevenueCat on iOS and web when a public SDK key is present.
  */
 export function RevenueCatInit(): ReactElement | null {
   const { data: session } = authClient.useSession();
 
   useEffect(() => {
-    if (Platform.OS !== 'ios') {
+    if (!supportsPurchasesPlatform()) {
       return;
     }
     configurePurchases();

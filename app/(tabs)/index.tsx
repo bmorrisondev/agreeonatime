@@ -13,8 +13,10 @@ import { useConvex, useQuery } from 'convex/react';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { TabMainHeader } from '@/components/navigation/tab-main-header';
 import { HomeHeaderCreateButton } from '@/components/navigation/home-header-create-button';
+import { useCreateEventGate } from '@/hooks/use-create-event-gate';
 import { isConvexConfigured } from '@/lib/convex/client';
 import {
   formatDeadlineLine,
@@ -46,6 +48,8 @@ function HomeScreenContent(): ReactElement {
   const [refreshing, setRefreshing] = useState(false);
   const convex = useConvex();
   const insets = useSafeAreaInsets();
+  const { paywallVisible, closePaywall, openPaywall, requestCreate, subscription } =
+    useCreateEventGate();
 
   const raw = useQuery(listForHomeQuery, { refreshNonce });
 
@@ -148,11 +152,47 @@ function HomeScreenContent(): ReactElement {
           <HomeHeaderCreateButton
             accessibilityLabel="Create new event"
             onPress={() => {
-              router.push('/create-event');
+              requestCreate(() => {
+                router.push('/create-event');
+              });
             }}
           />
         }
       />
+      {subscription.isLoaded && !subscription.isPro && subscription.maxActiveEvents != null ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('home_active_events_banner_a11y', {
+            count: subscription.activeOpenCount,
+            max: subscription.maxActiveEvents,
+          })}
+          className="mx-4 mt-3 flex-row items-center justify-between rounded-xl border border-brand/30 bg-brand/10 px-4 py-3 active:opacity-80 dark:border-brand/40 dark:bg-brand/15"
+          onPress={openPaywall}
+        >
+          <View className="min-w-0 flex-1 pr-3">
+            <Text
+              allowFontScaling
+              className="text-body font-semibold text-neutral-900 dark:text-neutral-100"
+              maxFontSizeMultiplier={2}
+            >
+              {t('home_active_events_banner', {
+                count: subscription.activeOpenCount,
+                max: subscription.maxActiveEvents,
+              })}
+            </Text>
+            <Text
+              allowFontScaling
+              className="mt-0.5 text-caption text-brand"
+              maxFontSizeMultiplier={2}
+            >
+              {t('home_active_events_upgrade')}
+            </Text>
+          </View>
+          <Text allowFontScaling className="text-lg text-brand" maxFontSizeMultiplier={2}>
+            ›
+          </Text>
+        </Pressable>
+      ) : null}
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
@@ -175,6 +215,7 @@ function HomeScreenContent(): ReactElement {
           ))
         )}
       </ScrollView>
+      <PaywallModal visible={paywallVisible} onClose={closePaywall} />
     </View>
   );
 }

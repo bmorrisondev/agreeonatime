@@ -13,6 +13,7 @@ import { EnsureConvexUser } from '@/components/auth/ensure-convex-user';
 import { ModalHeaderClose } from '@/components/navigation/modal-header-close';
 import { RegisterExpoPush } from '@/components/register-expo-push';
 import { RevenueCatIdentify } from '@/components/purchases/revenuecat-identify';
+import { SubscriptionSync } from '@/components/purchases/subscription-sync';
 import { RevenueCatInit } from '@/components/revenue-cat-init';
 import { NativeSplashConvexAuthGate, NativeSplashFontsOnlyGate } from '@/components/splash/native-splash-gate';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -77,6 +78,7 @@ export default function RootLayout(): ReactElement {
         <RegisterExpoPush />
         <EnsureConvexUser />
         <RevenueCatIdentify />
+        <SubscriptionSync />
         <NavigationTree />
       </ConvexBetterAuthProvider>
     </ConvexProvider>

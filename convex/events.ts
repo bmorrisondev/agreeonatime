@@ -6,6 +6,7 @@ import { internal } from './_generated/api';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 
 import { authComponent } from './auth';
+import { assertCanCreateActiveEvent } from './subscriptionLimits';
 import { ensureAppUserIdForAuthUser, betterAuthUserIdString } from './users';
 
 function randomShareTokenHex(): string {
@@ -100,11 +101,19 @@ export const listForHome = query({
       });
     }
 
+    const nowMs = Date.now();
+    const isFutureDecided = (e: HomeEventDoc): boolean =>
+      e.status === 'decided' && e.decidedStartTime != null && e.decidedStartTime > nowMs;
+
     const active = enriched
-      .filter((e) => e.status === 'open')
-      .sort((a, b) => a.deadline - b.deadline);
+      .filter((e) => e.status === 'open' || isFutureDecided(e))
+      .sort((a, b) => {
+        const aSort = a.status === 'open' ? a.deadline : (a.decidedStartTime ?? a.deadline);
+        const bSort = b.status === 'open' ? b.deadline : (b.decidedStartTime ?? b.deadline);
+        return aSort - bSort;
+      });
     const decided = enriched
-      .filter((e) => e.status === 'decided')
+      .filter((e) => e.status === 'decided' && !isFutureDecided(e))
       .sort((a, b) => b.createdAt - a.createdAt);
     const archived = enriched
       .filter((e) => e.status === 'closed')
@@ -154,6 +163,7 @@ export const create = mutation({
       throw new ConvexError('Sign in to create an event');
     }
     const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
+    await assertCanCreateActiveEvent(ctx, userId);
 
     const title = args.title.trim();
     if (title.length === 0) {

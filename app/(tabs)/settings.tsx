@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DsButton } from '@/components/design-system/button';
 import { DsListItem } from '@/components/design-system/list-item';
 import { DsModal } from '@/components/design-system/modal-sheet';
+import { SubscriptionSettingsSection } from '@/components/purchases/subscription-settings-section';
 import { OnboardingFeaturesSheet } from '@/components/onboarding/onboarding-features-sheet';
 import { TabMainHeader } from '@/components/navigation/tab-main-header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -55,7 +56,6 @@ export default function SettingsTabScreen(): ReactElement {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [onboardingSheetVisible, setOnboardingSheetVisible] = useState(false);
-
   const showDevTools = isDevToolsEnabled();
 
   const version = Constants.expoConfig?.version ?? '0.0.0';
@@ -134,6 +134,8 @@ export default function SettingsTabScreen(): ReactElement {
           onPress={() => setDeleteModalVisible(true)}
         />
       </View>
+
+      <SubscriptionSettingsSection />
 
       {/* Legal */}
       <SectionHeader text={t('settings_legal_header')} />

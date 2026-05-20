@@ -1,17 +1,55 @@
-/**
- * v1.0 stub — everyone is Pro while the paywall is off.
- *
- * When the paywall is enabled, swap this to check RevenueCat
- * `CustomerInfo.entitlements.active` for the "pro" entitlement.
- */
+import { useCallback, useEffect, useState } from 'react';
 
-interface Entitlement {
+import {
+  addCustomerInfoUpdateListener,
+  getCustomerInfo,
+  isProFromCustomerInfo,
+  isPurchasesConfigured,
+  supportsPurchasesPlatform,
+} from '@/lib/purchases';
+
+export interface EntitlementState {
   readonly isPro: boolean;
   readonly isLoaded: boolean;
+  readonly refresh: () => Promise<void>;
 }
 
-const PRO_ENTITLEMENT: Entitlement = { isPro: true, isLoaded: true } as const;
+export function useEntitlement(): EntitlementState {
+  const purchasesPlatform = supportsPurchasesPlatform();
+  const [isPro, setIsPro] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(!purchasesPlatform);
 
-export function useEntitlement(): Entitlement {
-  return PRO_ENTITLEMENT;
+  const refresh = useCallback(async () => {
+    if (!purchasesPlatform || !isPurchasesConfigured()) {
+      setIsPro(false);
+      setIsLoaded(true);
+      return;
+    }
+    const info = await getCustomerInfo();
+    setIsPro(info != null && isProFromCustomerInfo(info));
+    setIsLoaded(true);
+  }, [purchasesPlatform]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!purchasesPlatform || !isPurchasesConfigured()) {
+      return;
+    }
+    let active = true;
+    addCustomerInfoUpdateListener((info) => {
+      if (!active) {
+        return;
+      }
+      setIsPro(isProFromCustomerInfo(info));
+      setIsLoaded(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [purchasesPlatform]);
+
+  return { isPro, isLoaded, refresh };
 }
