@@ -26,6 +26,26 @@ require_env() {
   fi
 }
 
+# Local iOS archives need tens of GB free on the Data volume (see errno=28 in Xcode logs).
+check_disk_space() {
+  local min_gb="${MIN_DISK_GB:-30}"
+  local data_mount="/System/Volumes/Data"
+  local avail_kb avail_gb
+  avail_kb="$(df -k "$data_mount" 2>/dev/null | awk 'NR==2 {print $4}')"
+  if [[ -z "$avail_kb" ]]; then
+    return 0
+  fi
+  avail_gb=$((avail_kb / 1024 / 1024))
+  if [[ "$avail_gb" -lt "$min_gb" ]]; then
+    echo "Need ~${min_gb}GB free on ${data_mount}; only ${avail_gb}GB available." >&2
+    echo "Free space, then retry. Common cleanup:" >&2
+    echo "  rm -rf ~/Library/Developer/Xcode/DerivedData/*" >&2
+    echo "  rm -rf /var/folders/*/*/T/eas-build-local-nodejs" >&2
+    exit 1
+  fi
+  echo "==> Disk: ${avail_gb}GB free on ${data_mount}"
+}
+
 if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "Local iOS builds require macOS with Xcode." >&2
   exit 1
@@ -35,6 +55,8 @@ if ! command -v eas >/dev/null 2>&1; then
   echo "Missing eas CLI on PATH. Install: pnpm dlx eas-cli@latest login" >&2
   exit 1
 fi
+
+check_disk_space
 
 require_env EXPO_TOKEN \
   "Create at https://expo.dev/settings/access-tokens and export it or add to .env.local."

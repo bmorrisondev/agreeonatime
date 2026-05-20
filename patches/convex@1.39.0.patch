@@ -1,0 +1,13 @@
+diff --git a/package.json b/package.json
+index 28d75f4c06646146aaa014fe1e102cd31c790266..b0a5bea92842ace978e38fad3a4d9db286c8368e 100644
+--- a/package.json
++++ b/package.json
+@@ -180,7 +180,7 @@
+     }
+   },
+   "bin": {
+-    "convex": "bin/main-dev",
++    "convex": "bin/main.js",
+     "convex-bundled": "bin/main.js"
+   },
+   "files": [

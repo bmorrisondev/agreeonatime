@@ -23,6 +23,7 @@ export function getRevenueCatWebApiKey(): string | undefined {
   return firstNonEmpty([
     process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_WEB,
     process.env.EXPO_PUBLIC_REVENUECAT_WEB_API_KEY,
+    // Legacy: Test Store key works in browser mode before Web Billing products exist
     process.env.EXPO_PUBLIC_REVENUECAT_API_KEY?.startsWith('test_')
       ? process.env.EXPO_PUBLIC_REVENUECAT_API_KEY
       : undefined,

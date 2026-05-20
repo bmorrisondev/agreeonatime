@@ -25,8 +25,12 @@ import {
   validateEventForm,
 } from '@/lib/events/event-form';
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
+import { PaywallModal } from '@/components/purchases/paywall-modal';
+import { formatMutationError } from '@/lib/convex/format-mutation-error';
+import { isTooManyActiveEventsError } from '@/lib/convex/subscription-errors';
 import { isConvexConfigured } from '@/lib/convex/client';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useCreateEventGate } from '@/hooks/use-create-event-gate';
 
 const createEventMutation = makeFunctionReference<'mutation'>('events:create');
 
@@ -56,6 +60,7 @@ export default function CreateEventScreen(): ReactElement {
   }, [picker]);
 
   const createEvent = useMutation(createEventMutation);
+  const { paywallVisible, closePaywall, openPaywall, subscription } = useCreateEventGate();
 
   const pickerValue = useMemo(() => {
     if (picker == null) {
@@ -125,6 +130,10 @@ export default function CreateEventScreen(): ReactElement {
       setError(msg);
       return;
     }
+    if (subscription.isLoaded && !subscription.canCreateMore) {
+      openPaywall();
+      return;
+    }
     setSubmitting(true);
     try {
       const desc = description.trim();
@@ -137,12 +146,25 @@ export default function CreateEventScreen(): ReactElement {
       });
       router.replace(`/event/${id}`);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Could not create event';
+      const message = formatMutationError(e, 'Could not create event');
       setError(message);
+      if (isTooManyActiveEventsError(e)) {
+        openPaywall();
+      }
     } finally {
       setSubmitting(false);
     }
-  }, [allowInviteeProposals, createEvent, deadline, description, slotStarts, title]);
+  }, [
+    allowInviteeProposals,
+    createEvent,
+    deadline,
+    description,
+    openPaywall,
+    slotStarts,
+    subscription.canCreateMore,
+    subscription.isLoaded,
+    title,
+  ]);
 
   if (!configured) {
     return (
@@ -361,6 +383,7 @@ export default function CreateEventScreen(): ReactElement {
           </Text>
         </Pressable>
       </ScrollView>
+      <PaywallModal visible={paywallVisible} onClose={closePaywall} />
     </KeyboardAvoidingView>
   );
 }

@@ -6,6 +6,13 @@ import { internal } from './_generated/api';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 
 import { authComponent } from './auth';
+import { deleteEventAndDependents } from './eventDeletion';
+import {
+  assertCanAcceptNewVoter,
+  assertCanCreateActiveEvent,
+  isHistoryLocked,
+  voterKey,
+} from './subscriptionLimits';
 import { ensureAppUserIdForAuthUser, betterAuthUserIdString } from './users';
 
 function randomShareTokenHex(): string {
@@ -87,6 +94,7 @@ export const listForHome = query({
         const slot = await ctx.db.get(event.decidedTimeslotId);
         decidedStartTime = slot?.startTime;
       }
+      const historyLocked = isHistoryLocked(user, event.createdAt);
       enriched.push({
         _id: event._id,
         title: event.title,
@@ -94,17 +102,26 @@ export const listForHome = query({
         deadline: event.deadline,
         createdAt: event.createdAt,
         timeslotCount: timeslots.length,
-        yesVotes: yes,
-        noVotes: no,
+        yesVotes: historyLocked ? 0 : yes,
+        noVotes: historyLocked ? 0 : no,
         decidedStartTime,
+        isHistoryLocked: historyLocked,
       });
     }
 
+    const nowMs = Date.now();
+    const isFutureDecided = (e: HomeEventDoc): boolean =>
+      e.status === 'decided' && e.decidedStartTime != null && e.decidedStartTime > nowMs;
+
     const active = enriched
-      .filter((e) => e.status === 'open')
-      .sort((a, b) => a.deadline - b.deadline);
+      .filter((e) => e.status === 'open' || isFutureDecided(e))
+      .sort((a, b) => {
+        const aSort = a.status === 'open' ? a.deadline : (a.decidedStartTime ?? a.deadline);
+        const bSort = b.status === 'open' ? b.deadline : (b.decidedStartTime ?? b.deadline);
+        return aSort - bSort;
+      });
     const decided = enriched
-      .filter((e) => e.status === 'decided')
+      .filter((e) => e.status === 'decided' && !isFutureDecided(e))
       .sort((a, b) => b.createdAt - a.createdAt);
     const archived = enriched
       .filter((e) => e.status === 'closed')
@@ -136,6 +153,7 @@ type HomeEventDoc = {
   yesVotes: number;
   noVotes: number;
   decidedStartTime?: number;
+  isHistoryLocked: boolean;
 };
 
 /** Owner create flow (DEV-385): validates, inserts event + approved owner timeslots, random `shareToken`. */
@@ -154,6 +172,7 @@ export const create = mutation({
       throw new ConvexError('Sign in to create an event');
     }
     const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
+    await assertCanCreateActiveEvent(ctx, userId);
 
     const title = args.title.trim();
     if (title.length === 0) {
@@ -203,20 +222,6 @@ export const create = mutation({
     return eventId;
   },
 });
-
-function voterKey(v: {
-  voterName: string;
-  voterUserId?: Id<'users'>;
-  voterSessionId?: string;
-}): string {
-  if (v.voterUserId != null) {
-    return `u:${v.voterUserId}`;
-  }
-  if (v.voterSessionId != null && v.voterSessionId.length > 0) {
-    return `s:${v.voterSessionId}`;
-  }
-  return `n:${v.voterName}`;
-}
 
 export const getForOwner = query({
   args: { eventId: v.id('events') },
@@ -273,24 +278,30 @@ export const getForOwner = query({
       .collect();
     timeslots.sort((a, b) => a.startTime - b.startTime);
 
+    const historyLocked = isHistoryLocked(user, event.createdAt);
+
     const approvedTimeslots = timeslots
       .filter((t) => t.approvalStatus === 'approved')
       .map((slot) => {
         const slotVotes = votesByTimeslot.get(slot._id) ?? [];
         let yesCount = 0;
         let noCount = 0;
-        for (const v of slotVotes) {
-          if (v.vote === 'yes') {
-            yesCount += 1;
-          } else {
-            noCount += 1;
+        if (!historyLocked) {
+          for (const v of slotVotes) {
+            if (v.vote === 'yes') {
+              yesCount += 1;
+            } else {
+              noCount += 1;
+            }
           }
         }
-        const votes = slotVotes.map((v) => ({
-          voterName: v.voterName,
-          vote: v.vote as 'yes' | 'no',
-          voterKey: voterKey(v),
-        }));
+        const votes = historyLocked
+          ? []
+          : slotVotes.map((v) => ({
+              voterName: v.voterName,
+              vote: v.vote as 'yes' | 'no',
+              voterKey: voterKey(v),
+            }));
         return {
           _id: slot._id,
           startTime: slot.startTime,
@@ -320,10 +331,30 @@ export const getForOwner = query({
       createdAt: event.createdAt,
       decidedTimeslotId: event.decidedTimeslotId,
       decidedStartTime,
-      distinctVoterCount: voterKeys.size,
+      distinctVoterCount: historyLocked ? 0 : voterKeys.size,
+      isHistoryLocked: historyLocked,
       approvedTimeslots,
       pendingTimeslots,
     };
+  },
+});
+
+/** Owner permanently deletes an event and all votes/timeslots (DEV-445). */
+export const deleteForOwner = mutation({
+  args: { eventId: v.id('events') },
+  handler: async (ctx, { eventId }): Promise<void> => {
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (!authUser) {
+      throw new ConvexError('Sign in to delete an event');
+    }
+    const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
+
+    const event = await ctx.db.get(eventId);
+    if (!event || event.ownerId !== userId) {
+      throw new ConvexError('Event not found or you are not the owner');
+    }
+
+    await deleteEventAndDependents(ctx, eventId);
   },
 });
 
@@ -451,6 +482,8 @@ export const castVote = mutation({
       await ctx.db.patch(duplicate._id, { vote: args.vote });
       return duplicate._id;
     }
+
+    await assertCanAcceptNewVoter(ctx, event, newKey);
 
     const voteId = await ctx.db.insert('votes', {
       eventId: args.eventId,

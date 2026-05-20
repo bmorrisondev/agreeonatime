@@ -40,6 +40,20 @@ export const strings = {
   home_title: 'Home',
   home_build_subtitle: 'Build {{label}}',
   home_empty_cta: 'No events yet. Tap + in the header to plan something.',
+  home_active_events_banner: '{{count}} of {{max}} active events',
+  home_active_events_upgrade: 'Upgrade to Pro for unlimited',
+  home_active_events_banner_a11y: '{{count}} of {{max}} active events. Upgrade to Pro for unlimited events.',
+  home_history_locked_summary: 'Vote results hidden',
+  home_history_locked_upgrade: 'Upgrade to view full history',
+  home_history_locked_a11y:
+    'Vote results hidden for this event because it is older than 30 days. Upgrade to Pro to view full history.',
+
+  event_history_locked_banner:
+    'Vote results for events older than 30 days are available on Pro. Upgrade to see who voted and full counts.',
+  event_history_locked_upgrade: 'Upgrade to Pro',
+
+  vote_event_at_capacity:
+    'This event has reached its voting limit. The organizer can upgrade to allow more responses.',
   settings_title: 'Settings',
   settings_account_header: 'Account',
   settings_signOut: 'Sign out',
@@ -68,4 +82,57 @@ export const strings = {
   settings_delete_error: 'Something went wrong. Please try again.',
   settings_signOut_a11y: 'Sign out of your account',
   settings_deleteAccount_a11y: 'Permanently delete your account and all data',
+
+  event_delete: 'Delete event',
+  event_delete_a11y: 'Permanently delete this event',
+  event_delete_modal_title: 'Delete event?',
+  event_delete_modal_body:
+    'This will permanently delete this event, its proposed times, and all votes. Invitees will no longer be able to open the voting link. This cannot be undone.',
+  event_delete_modal_confirm: 'Delete event',
+  event_delete_modal_cancel: 'Cancel',
+  event_delete_error: 'Something went wrong. Please try again.',
+
+  paywall_title: 'Unlimited events',
+  paywall_body:
+    'Free accounts can have up to three active events at a time. Subscribe to run as many open events as you need.',
+  paywall_not_configured:
+    'Subscriptions are not available in this build. Set EXPO_PUBLIC_REVENUECAT_API_KEY_WEB (or iOS key).',
+  paywall_subscribe: 'Subscribe',
+  paywall_subscribe_with_price: 'Subscribe · {{price}}/mo',
+  paywall_subscribe_a11y: 'Subscribe for unlimited active events',
+  paywall_restore: 'Restore purchases',
+  paywall_restore_a11y: 'Restore previous App Store purchases',
+  paywall_close: 'Not now',
+  paywall_close_a11y: 'Close subscription offer',
+  paywall_working: 'Working…',
+  paywall_purchase_error: 'Purchase could not be completed. Try again.',
+  paywall_purchase_unavailable: 'Subscription is not available right now.',
+  paywall_no_plan:
+    'No subscription plan is available for this platform yet. On web, add a Web Billing product in RevenueCat and attach it to offering default / package $rc_monthly.',
+  paywall_purchase_no_entitlement:
+    'Checkout finished but Agree+ did not activate. Confirm the product grants the "pro" entitlement in RevenueCat.',
+  paywall_restore_error: 'Could not restore purchases. Try again.',
+  paywall_restore_none: 'No active subscription found for this account.',
+
+  settings_subscription_header: 'Subscription',
+  settings_subscription_agree_plus_active: 'Agree+ Active',
+  settings_subscription_agree_plus_active_a11y: 'Agree+ subscription is active',
+  settings_subscription_pro_subtitle: 'Unlimited active events',
+  settings_subscription_free: 'Free plan',
+  settings_subscription_free_subtitle: 'Up to three active events at a time',
+  settings_subscription_manage: 'Subscribe or restore',
+  settings_subscription_manage_a11y: 'Open subscription options',
+  settings_subscription_loading_a11y: 'Loading subscription status',
+  settings_subscription_usage_pro: '{{count}} active events',
+  settings_subscription_usage_free: '{{count}} of {{max}} active events',
+  settings_subscription_renews: 'Renews {{date}}',
+  settings_subscription_expires: 'Expires {{date}}',
+  settings_subscription_upgrade: 'Upgrade to Agree+',
+  settings_subscription_upgrade_subtitle: 'Unlimited active events',
+  settings_subscription_upgrade_a11y: 'View Agree+ subscription options',
+  settings_subscription_manage_billing: 'Manage subscription',
+  settings_subscription_manage_billing_a11y: 'Open subscription billing settings',
+  settings_subscription_manage_error: 'Could not open subscription settings. Try again.',
+  settings_subscription_manage_unavailable:
+    'Subscription management is not available on this platform yet.',
 } as const;

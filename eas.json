@@ -11,6 +11,7 @@
         "EXPO_PUBLIC_CONVEX_URL": "https://fastidious-cardinal-591.convex.cloud",
         "EXPO_PUBLIC_CONVEX_SITE_URL": "https://fastidious-cardinal-591.convex.site",
         "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_cjcVUrUIUtyrwWtWkQXmNmgTUbI",
+        "EXPO_PUBLIC_REVENUECAT_API_KEY_WEB": "rcb_sb_ysATFmFGWVVFmtBaYWoHenuSe",
         "EXPO_PUBLIC_DEV_TOOLS": "true"
       },
       "ios": {
@@ -25,6 +26,7 @@
         "EXPO_PUBLIC_CONVEX_URL": "https://fastidious-cardinal-591.convex.cloud",
         "EXPO_PUBLIC_CONVEX_SITE_URL": "https://fastidious-cardinal-591.convex.site",
         "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_cjcVUrUIUtyrwWtWkQXmNmgTUbI",
+        "EXPO_PUBLIC_REVENUECAT_API_KEY_WEB": "rcb_sb_ysATFmFGWVVFmtBaYWoHenuSe",
         "EXPO_PUBLIC_DEV_TOOLS": "true"
       },
       "ios": {
@@ -37,6 +39,7 @@
         "EXPO_PUBLIC_CONVEX_URL": "https://fastidious-cardinal-591.convex.cloud",
         "EXPO_PUBLIC_CONVEX_SITE_URL": "https://fastidious-cardinal-591.convex.site",
         "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_cjcVUrUIUtyrwWtWkQXmNmgTUbI",
+        "EXPO_PUBLIC_REVENUECAT_API_KEY_WEB": "rcb_sb_ysATFmFGWVVFmtBaYWoHenuSe",
         "EXPO_PUBLIC_BUILD_LABEL": "preview-flatlist-rc-fix",
         "EXPO_PUBLIC_DEV_TOOLS": "true"
       },
@@ -50,6 +53,7 @@
         "EXPO_PUBLIC_CONVEX_URL": "https://fastidious-cardinal-591.convex.cloud",
         "EXPO_PUBLIC_CONVEX_SITE_URL": "https://fastidious-cardinal-591.convex.site",
         "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_cjcVUrUIUtyrwWtWkQXmNmgTUbI",
+        "EXPO_PUBLIC_REVENUECAT_API_KEY_WEB": "rcb_sb_ysATFmFGWVVFmtBaYWoHenuSe",
         "EXPO_PUBLIC_BUILD_LABEL": "preview-simulator",
         "EXPO_PUBLIC_DEV_TOOLS": "true"
       },
@@ -63,7 +67,8 @@
         "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_CONVEX_URL": "https://hearty-grasshopper-692.convex.cloud",
         "EXPO_PUBLIC_CONVEX_SITE_URL": "https://hearty-grasshopper-692.convex.site",
-        "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_cjcVUrUIUtyrwWtWkQXmNmgTUbI"
+        "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_cjcVUrUIUtyrwWtWkQXmNmgTUbI",
+        "EXPO_PUBLIC_REVENUECAT_API_KEY_WEB": "rcb_sb_ysATFmFGWVVFmtBaYWoHenuSe"
       },
       "ios": {
         "resourceClass": "m-medium"

@@ -1,11 +1,17 @@
 import { Platform } from 'react-native';
-import Purchases, { LOG_LEVEL, type CustomerInfo } from 'react-native-purchases';
+import Purchases, {
+  LOG_LEVEL,
+  type CustomerInfo,
+  type PurchasesOfferings,
+  type PurchasesPackage,
+} from 'react-native-purchases';
 
 import {
   isPurchasesConfigured,
   markPurchasesConfigured,
 } from '@/lib/purchases/configured-state';
 import { isProFromCustomerInfo } from '@/lib/purchases/customer-info';
+import { getPackagePriceLabel, pickMonthlyPackage } from '@/lib/purchases/package-selection';
 import { supportsPurchasesPlatform } from '@/lib/purchases/platform';
 import { getRevenueCatApiKeyForPlatform } from '@/lib/purchases/revenuecat-keys';
 
@@ -18,6 +24,12 @@ export {
   PRO_PRODUCT_IDS,
 } from '@/lib/purchases/constants';
 export { getProEntitlement, isProFromCustomerInfo } from '@/lib/purchases/customer-info';
+export { getPackagePriceLabel, pickMonthlyPackage } from '@/lib/purchases/package-selection';
+export {
+  getMonthlyStoreProduct,
+  getStoreProductPriceLabel,
+  purchaseMonthlySubscription,
+} from '@/lib/purchases/monthly-product';
 export { isPurchasesConfigured } from '@/lib/purchases/configured-state';
 export { supportsPurchasesPlatform } from '@/lib/purchases/platform';
 export {
@@ -25,6 +37,11 @@ export {
   getRevenueCatIosApiKey,
   getRevenueCatWebApiKey,
 } from '@/lib/purchases/revenuecat-keys';
+export {
+  canOpenSubscriptionManagement,
+  getManagementUrlFromCustomerInfo,
+  openSubscriptionManagement,
+} from '@/lib/purchases/subscription-management';
 
 /**
  * Initialise the RevenueCat SDK once (iOS + web).
@@ -96,6 +113,63 @@ export async function getCustomerInfo(): Promise<CustomerInfo | null> {
   } catch (err) {
     if (__DEV__) {
       console.warn('[RevenueCat] getCustomerInfo failed', err);
+    }
+    return null;
+  }
+}
+
+export async function getOfferings(): Promise<PurchasesOfferings | null> {
+  if (!supportsPurchasesPlatform() || !isPurchasesConfigured()) {
+    return null;
+  }
+  try {
+    return await Purchases.getOfferings();
+  } catch (err) {
+    if (__DEV__) {
+      console.warn('[RevenueCat] getOfferings failed', err);
+    }
+    return null;
+  }
+}
+
+export async function getDefaultPackage(): Promise<PurchasesPackage | null> {
+  const offerings = await getOfferings();
+  if (offerings == null) {
+    return null;
+  }
+  return pickMonthlyPackage(offerings);
+}
+
+/** @deprecated Use {@link pickMonthlyPackage} — annual is not sold in this app. */
+export function pickDefaultPackage(offerings: PurchasesOfferings): PurchasesPackage | null {
+  return pickMonthlyPackage(offerings);
+}
+
+export async function purchasePackage(pkg: PurchasesPackage): Promise<CustomerInfo> {
+  const { customerInfo } = await Purchases.purchasePackage(pkg);
+  return customerInfo;
+}
+
+export async function purchaseDefaultPackage(): Promise<CustomerInfo | null> {
+  if (!supportsPurchasesPlatform() || !isPurchasesConfigured()) {
+    return null;
+  }
+  const pkg = await getDefaultPackage();
+  if (pkg == null) {
+    return null;
+  }
+  return purchasePackage(pkg);
+}
+
+export async function restorePurchases(): Promise<CustomerInfo | null> {
+  if (!supportsPurchasesPlatform() || !isPurchasesConfigured()) {
+    return null;
+  }
+  try {
+    return await Purchases.restorePurchases();
+  } catch (err) {
+    if (__DEV__) {
+      console.warn('[RevenueCat] restorePurchases failed', err);
     }
     return null;
   }

@@ -10,11 +10,14 @@
 
 import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
+import type * as eventDeletion from "../eventDeletion.js";
 import type * as events from "../events.js";
 import type * as guestEvents from "../guestEvents.js";
 import type * as http from "../http.js";
 import type * as notifications from "../notifications.js";
 import type * as site_origins from "../site_origins.js";
+import type * as subscriptionLimits from "../subscriptionLimits.js";
+import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
 
 import type {
@@ -26,11 +29,14 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   crons: typeof crons;
+  eventDeletion: typeof eventDeletion;
   events: typeof events;
   guestEvents: typeof guestEvents;
   http: typeof http;
   notifications: typeof notifications;
   site_origins: typeof site_origins;
+  subscriptionLimits: typeof subscriptionLimits;
+  subscriptions: typeof subscriptions;
   users: typeof users;
 }>;
 
