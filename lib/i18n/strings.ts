@@ -43,6 +43,17 @@ export const strings = {
   home_active_events_banner: '{{count}} of {{max}} active events',
   home_active_events_upgrade: 'Upgrade to Pro for unlimited',
   home_active_events_banner_a11y: '{{count}} of {{max}} active events. Upgrade to Pro for unlimited events.',
+  home_history_locked_summary: 'Vote results hidden',
+  home_history_locked_upgrade: 'Upgrade to view full history',
+  home_history_locked_a11y:
+    'Vote results hidden for this event because it is older than 30 days. Upgrade to Pro to view full history.',
+
+  event_history_locked_banner:
+    'Vote results for events older than 30 days are available on Pro. Upgrade to see who voted and full counts.',
+  event_history_locked_upgrade: 'Upgrade to Pro',
+
+  vote_event_at_capacity:
+    'This event has reached its voting limit. The organizer can upgrade to allow more responses.',
   settings_title: 'Settings',
   settings_account_header: 'Account',
   settings_signOut: 'Sign out',

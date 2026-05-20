@@ -37,6 +37,7 @@ type HomeEventRow = {
   yesVotes: number;
   noVotes: number;
   decidedStartTime?: number;
+  isHistoryLocked?: boolean;
 };
 
 type FlatRow =
@@ -95,7 +96,10 @@ function HomeScreenContent(): ReactElement {
     }
     const e = item.event;
     const nowMs = Date.now();
-    const line2 = formatVoteSummary(e.yesVotes, e.noVotes);
+    const historyLocked = e.isHistoryLocked === true;
+    const line2 = historyLocked
+      ? t('home_history_locked_summary')
+      : formatVoteSummary(e.yesVotes, e.noVotes);
     let line1: string;
     if (e.status === 'decided' && e.decidedStartTime != null) {
       line1 = formatDecidedTime(e.decidedStartTime);
@@ -104,7 +108,9 @@ function HomeScreenContent(): ReactElement {
     } else {
       line1 = 'Archived';
     }
-    const a11y = `Event: ${e.title}. ${line1}. ${line2}. ${e.timeslotCount} proposed times. Double tap to open.`;
+    const a11y = historyLocked
+      ? `${e.title}. ${line1}. ${t('home_history_locked_a11y')}`
+      : `Event: ${e.title}. ${line1}. ${line2}. ${e.timeslotCount} proposed times. Double tap to open.`;
     return (
       <Pressable
         accessibilityRole="button"
@@ -116,7 +122,15 @@ function HomeScreenContent(): ReactElement {
       >
         <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{e.title}</Text>
         <Text className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{line1}</Text>
-        <Text className="mt-0.5 text-sm text-neutral-500 dark:text-neutral-500">{line2}</Text>
+        <Text
+          className={`mt-0.5 text-sm ${
+            historyLocked
+              ? 'text-brand'
+              : 'text-neutral-500 dark:text-neutral-500'
+          }`}
+        >
+          {historyLocked ? t('home_history_locked_upgrade') : line2}
+        </Text>
       </Pressable>
     );
   }, []);

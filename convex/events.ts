@@ -6,7 +6,12 @@ import { internal } from './_generated/api';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 
 import { authComponent } from './auth';
-import { assertCanCreateActiveEvent } from './subscriptionLimits';
+import {
+  assertCanAcceptNewVoter,
+  assertCanCreateActiveEvent,
+  isHistoryLocked,
+  voterKey,
+} from './subscriptionLimits';
 import { ensureAppUserIdForAuthUser, betterAuthUserIdString } from './users';
 
 function randomShareTokenHex(): string {
@@ -88,6 +93,7 @@ export const listForHome = query({
         const slot = await ctx.db.get(event.decidedTimeslotId);
         decidedStartTime = slot?.startTime;
       }
+      const historyLocked = isHistoryLocked(user, event.createdAt);
       enriched.push({
         _id: event._id,
         title: event.title,
@@ -95,9 +101,10 @@ export const listForHome = query({
         deadline: event.deadline,
         createdAt: event.createdAt,
         timeslotCount: timeslots.length,
-        yesVotes: yes,
-        noVotes: no,
+        yesVotes: historyLocked ? 0 : yes,
+        noVotes: historyLocked ? 0 : no,
         decidedStartTime,
+        isHistoryLocked: historyLocked,
       });
     }
 
@@ -145,6 +152,7 @@ type HomeEventDoc = {
   yesVotes: number;
   noVotes: number;
   decidedStartTime?: number;
+  isHistoryLocked: boolean;
 };
 
 /** Owner create flow (DEV-385): validates, inserts event + approved owner timeslots, random `shareToken`. */
@@ -214,20 +222,6 @@ export const create = mutation({
   },
 });
 
-function voterKey(v: {
-  voterName: string;
-  voterUserId?: Id<'users'>;
-  voterSessionId?: string;
-}): string {
-  if (v.voterUserId != null) {
-    return `u:${v.voterUserId}`;
-  }
-  if (v.voterSessionId != null && v.voterSessionId.length > 0) {
-    return `s:${v.voterSessionId}`;
-  }
-  return `n:${v.voterName}`;
-}
-
 export const getForOwner = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, { eventId }) => {
@@ -283,24 +277,30 @@ export const getForOwner = query({
       .collect();
     timeslots.sort((a, b) => a.startTime - b.startTime);
 
+    const historyLocked = isHistoryLocked(user, event.createdAt);
+
     const approvedTimeslots = timeslots
       .filter((t) => t.approvalStatus === 'approved')
       .map((slot) => {
         const slotVotes = votesByTimeslot.get(slot._id) ?? [];
         let yesCount = 0;
         let noCount = 0;
-        for (const v of slotVotes) {
-          if (v.vote === 'yes') {
-            yesCount += 1;
-          } else {
-            noCount += 1;
+        if (!historyLocked) {
+          for (const v of slotVotes) {
+            if (v.vote === 'yes') {
+              yesCount += 1;
+            } else {
+              noCount += 1;
+            }
           }
         }
-        const votes = slotVotes.map((v) => ({
-          voterName: v.voterName,
-          vote: v.vote as 'yes' | 'no',
-          voterKey: voterKey(v),
-        }));
+        const votes = historyLocked
+          ? []
+          : slotVotes.map((v) => ({
+              voterName: v.voterName,
+              vote: v.vote as 'yes' | 'no',
+              voterKey: voterKey(v),
+            }));
         return {
           _id: slot._id,
           startTime: slot.startTime,
@@ -330,7 +330,8 @@ export const getForOwner = query({
       createdAt: event.createdAt,
       decidedTimeslotId: event.decidedTimeslotId,
       decidedStartTime,
-      distinctVoterCount: voterKeys.size,
+      distinctVoterCount: historyLocked ? 0 : voterKeys.size,
+      isHistoryLocked: historyLocked,
       approvedTimeslots,
       pendingTimeslots,
     };
@@ -461,6 +462,8 @@ export const castVote = mutation({
       await ctx.db.patch(duplicate._id, { vote: args.vote });
       return duplicate._id;
     }
+
+    await assertCanAcceptNewVoter(ctx, event, newKey);
 
     const voteId = await ctx.db.insert('votes', {
       eventId: args.eventId,

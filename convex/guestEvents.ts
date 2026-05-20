@@ -4,6 +4,8 @@ import { ConvexError, v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import { mutation, query, type MutationCtx } from './_generated/server';
 
+import { assertCanAcceptNewVoter, voterKey } from './subscriptionLimits';
+
 const MAX_NAME_LEN = 80;
 const MIN_SESSION_LEN = 16;
 const MAX_VOTE_CHANGES_PER_SESSION = 120;
@@ -163,6 +165,7 @@ export const setGuestVote = mutation({
         createdAt,
       });
     } else {
+      await assertCanAcceptNewVoter(ctx, event, voterKey({ voterName: name, voterSessionId: session }));
       await ctx.db.insert('votes', {
         eventId: event._id,
         timeslotId: args.timeslotId,

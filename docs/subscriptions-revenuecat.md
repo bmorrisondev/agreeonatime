@@ -4,10 +4,10 @@ Agree on a Time uses **RevenueCat** for in-app purchases on **iOS** and **Expo w
 
 ## Plans
 
-| Plan | Active events | Price |
-|------|----------------|-------|
-| **Free** | Up to **3** active events | — |
-| **Pro** | Unlimited | **$3.99/mo** (target; App Store + Web Billing) |
+| Plan | Active events | Voters per event | Vote history | Price |
+|------|----------------|------------------|--------------|-------|
+| **Free** | Up to **3** active events | **8** unique voters | Full results for **30 days** after creation | — |
+| **Pro** | Unlimited | Unlimited | Unlimited | **$3.99/mo** (target; App Store + Web Billing) |
 
 **Entitlement id (RevenueCat + code):** `pro`
 
@@ -72,10 +72,11 @@ Home list grouping (`events:listForHome`): the **Active** section includes open 
 | File | Role |
 |------|------|
 | `schema.ts` | `users.proExpiresAt` (optional number, ms) |
-| `subscriptionLimits.ts` | `FREE_MAX_ACTIVE_OPEN_EVENTS`, `countActiveEventsForOwner`, `assertCanCreateActiveEvent` |
+| `subscriptionLimits.ts` | Limits, `assertCanCreateActiveEvent`, `assertCanAcceptNewVoter`, `isHistoryLocked`, structured error codes |
 | `subscriptions.ts` | `syncFromRevenueCat`, `getCreateEligibility`, webhook-driven `syncFromRevenueCatInternal` |
 | `http.ts` | `POST /revenuecat-webhook` |
-| `events.ts` | `create` mutation calls `assertCanCreateActiveEvent` |
+| `events.ts` | `create` → `assertCanCreateActiveEvent`; `castVote` → `assertCanAcceptNewVoter`; home/detail hide old vote data |
+| `guestEvents.ts` | `setGuestVote` → `assertCanAcceptNewVoter` |
 
 **Webhook → Pro expiry**
 
@@ -95,8 +96,9 @@ Home list grouping (`events:listForHome`): the **Active** section includes open 
 
 | Location | Constant |
 |----------|----------|
-| `convex/subscriptionLimits.ts` | `FREE_MAX_ACTIVE_OPEN_EVENTS = 3` |
-| `lib/subscription/free-tier.ts` | Same value for client fallbacks |
+| `convex/subscriptionLimits.ts` | `FREE_MAX_ACTIVE_OPEN_EVENTS`, `FREE_MAX_VOTERS_PER_EVENT`, `FREE_HISTORY_VISIBLE_MS` |
+| `lib/subscription/free-tier.ts` | Client mirrors of the same limits |
+| `lib/convex/subscription-errors.ts` | `TooManyActiveEvents`, `EventAtCapacity` detection |
 | `lib/purchases/constants.ts` | Product ids, `PRO_ENTITLEMENT_ID` |
 | `convex/subscriptionLimits.ts` | `PRO_PRODUCT_IDS` for webhook product fallback |
 
@@ -188,6 +190,8 @@ Set per deployment (`pnpm convex env set` or dashboard):
 | **Home** | Free users: banner `X of 3 active events` + upgrade → paywall |
 | **Create event** | Gated client-side; server throws if over cap |
 | **Onboarding create** | Same gate + paywall on limit error |
+| **Vote link (web)** | Friendly copy when event is at 8 voters (`EventAtCapacity`) |
+| **Event detail / home** | Events older than 30 days: vote counts hidden + upgrade prompt (`isHistoryLocked`) |
 | **Settings → Subscription** | Plan, usage, upgrade, restore, manage billing (iOS App Store sheet; web billing URL when present) |
 
 ---
@@ -233,9 +237,16 @@ Common on Test Store. Convex falls back to **`product_id`** + `expiration_at_ms`
 
 - Expected: web uses **`purchasePackage` only**; cache invalidation is iOS-only.
 
-### Free limit error string (client detection)
+### Subscription limit errors (client detection)
 
-Server message prefix: **`Free accounts can have`** — used in create-event and onboarding to open the paywall.
+Convex mutations throw structured errors `{ code, message }`:
+
+| Code | When | Client behavior |
+|------|------|-----------------|
+| `TooManyActiveEvents` | 4th active event on free plan | Open paywall (create + onboarding) |
+| `EventAtCapacity` | 9th unique voter on free event | Show friendly message on vote page |
+
+Use `isTooManyActiveEventsError` / `isEventAtCapacityError` from `lib/convex/subscription-errors.ts`.
 
 ---
 

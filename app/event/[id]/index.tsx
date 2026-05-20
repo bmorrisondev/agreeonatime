@@ -17,6 +17,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DsToast } from '@/components/design-system';
 import { VoteBar } from '@/components/events/vote-bar';
+import { PaywallModal } from '@/components/purchases/paywall-modal';
+import { useSubscription } from '@/hooks/use-subscription';
+import { t } from '@/lib/i18n/t';
 import { buildVoteUrl } from '@/lib/events/build-share-url';
 import {
   formatDeadlineLine,
@@ -57,6 +60,8 @@ export default function EventDetailScreen(): ReactElement {
     visible: false,
     message: '',
   });
+  const [paywallVisible, setPaywallVisible] = useState(false);
+  const subscription = useSubscription();
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -148,6 +153,8 @@ export default function EventDetailScreen(): ReactElement {
   const everySlotHasVotes =
     approvedSlots.length > 0 && approvedSlots.every((s) => s.yesCount + s.noCount > 0);
   const pickTimePrimary = deadlinePassed || everySlotHasVotes;
+  const historyLocked =
+    (event as { isHistoryLocked?: boolean }).isHistoryLocked === true && !subscription.isPro;
 
   return (
     <View className="relative flex-1 bg-white dark:bg-black">
@@ -184,6 +191,24 @@ export default function EventDetailScreen(): ReactElement {
           <Text className="mt-2 text-base text-neutral-800 dark:text-neutral-200">
             {formatDecidedTime(event.decidedStartTime)}
           </Text>
+        ) : null}
+
+        {historyLocked ? (
+          <View className="mt-4 rounded-xl border border-brand/30 bg-brand/10 px-4 py-3 dark:border-brand/40 dark:bg-brand/15">
+            <Text className="text-sm text-neutral-800 dark:text-neutral-200">
+              {t('event_history_locked_banner')}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('event_history_locked_upgrade')}
+              className="mt-3 self-start rounded-lg bg-brand px-4 py-2 active:opacity-90"
+              onPress={() => setPaywallVisible(true)}
+            >
+              <Text className="text-sm font-semibold text-white">
+                {t('event_history_locked_upgrade')}
+              </Text>
+            </Pressable>
+          </View>
         ) : null}
 
         <View className="mt-4 flex-row flex-wrap gap-2">
@@ -260,7 +285,9 @@ export default function EventDetailScreen(): ReactElement {
             approvedSlots.map((slot) => {
               const isDecided = event.decidedTimeslotId === slot._id;
               const open = expanded[slot._id] === true;
-              const barLabel = `Votes for ${formatTimeslotWithTimezone(slot.startTime)}: ${slot.yesCount} yes, ${slot.noCount} no`;
+              const barLabel = historyLocked
+                ? `Votes hidden for ${formatTimeslotWithTimezone(slot.startTime)}`
+                : `Votes for ${formatTimeslotWithTimezone(slot.startTime)}: ${slot.yesCount} yes, ${slot.noCount} no`;
               return (
                 <View
                   key={slot._id}
@@ -272,22 +299,23 @@ export default function EventDetailScreen(): ReactElement {
                 >
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`${formatTimeslotWithTimezone(slot.startTime)}. ${slot.yesCount} yes, ${slot.noCount} no. ${open ? 'Collapse' : 'Expand'} voter list`}
+                    accessibilityLabel={`${formatTimeslotWithTimezone(slot.startTime)}. ${historyLocked ? 'Vote results hidden' : `${slot.yesCount} yes, ${slot.noCount} no`}. ${open ? 'Collapse' : 'Expand'} voter list`}
+                    disabled={historyLocked}
                     onPress={() => toggleExpanded(slot._id)}
                   >
                     <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
                       {formatTimeslotWithTimezone(slot.startTime)}
                       {isDecided ? ' · Decided' : ''}
                     </Text>
-                    <View className="mt-2">
+                    <View className={`mt-2 ${historyLocked ? 'opacity-30' : ''}`}>
                       <VoteBar
-                        yesCount={slot.yesCount}
-                        noCount={slot.noCount}
+                        yesCount={historyLocked ? 1 : slot.yesCount}
+                        noCount={historyLocked ? 1 : slot.noCount}
                         accessibilityLabel={barLabel}
                       />
                     </View>
                   </Pressable>
-                  {open ? (
+                  {open && !historyLocked ? (
                     <View
                       className="mt-3 border-t border-neutral-200 pt-3 dark:border-neutral-700"
                       accessibilityRole="list"
@@ -339,6 +367,7 @@ export default function EventDetailScreen(): ReactElement {
         visible={shareToast.visible}
         onDismiss={dismissShareToast}
       />
+      <PaywallModal visible={paywallVisible} onClose={() => setPaywallVisible(false)} />
     </View>
   );
 }
