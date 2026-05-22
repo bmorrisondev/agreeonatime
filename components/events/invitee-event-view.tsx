@@ -2,7 +2,6 @@ import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -13,57 +12,47 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { makeFunctionReference } from 'convex/server';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
-import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VoteBar } from '@/components/events/vote-bar';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { isConvexConfigured } from '@/lib/convex/client';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
 import { isEventAtCapacityError } from '@/lib/convex/subscription-errors';
-import { t } from '@/lib/i18n/t';
 import {
   formatDeadlineLine,
   formatTimeslotWithTimezone,
 } from '@/lib/events/format-event-home';
+import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
 import {
   getOrCreateGuestSessionId,
   getStoredGuestName,
   setStoredGuestName,
 } from '@/lib/guest/voter-session';
-import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
+import { t } from '@/lib/i18n/t';
 
-const APP_STORE_URL = 'https://apps.apple.com/app/agree-on-a-time/id6743097026';
-
-const guestGetQuery = makeFunctionReference<'query'>('guestEvents:getByShareToken');
-const guestSetVoteMutation = makeFunctionReference<'mutation'>('guestEvents:setGuestVote');
-const guestProposeMutation = makeFunctionReference<'mutation'>('guestEvents:proposeGuestTimeslot');
-
-type GuestEvent = {
-  _id: string;
-  title: string;
-  description?: string;
-  status: 'open' | 'closed' | 'decided';
-  deadline: number;
-  allowInviteeProposals: boolean;
-  decidedTimeslotId?: string;
-  decidedStartTime?: number;
-  ownerName: string;
-  isViewerOwner?: boolean;
-  approvedTimeslots: { _id: string; startTime: number; yesCount: number; noCount: number }[];
-  pendingCount: number;
-};
+const getForInviteeQuery = makeFunctionReference<'query'>('events:getForInvitee');
+const castVoteMutation = makeFunctionReference<'mutation'>('events:castVote');
+const proposeTimeslotMutation = makeFunctionReference<'mutation'>('events:proposeTimeslot');
 
 const DEFAULT_PROPOSE_OFFSET_MS = 60 * 60 * 1000;
 
-export default function VoteByTokenScreen(): ReactElement {
+type InviteeSlot = {
+  _id: string;
+  startTime: number;
+  yesCount: number;
+  noCount: number;
+  myVote?: 'yes' | 'no';
+};
+
+export interface InviteeEventViewProps {
+  readonly eventId: string;
+}
+
+export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactElement {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const webScheme = colorScheme === 'dark' ? 'dark' : 'light';
   const { isAuthenticated } = useConvexAuth();
-  const raw = useLocalSearchParams<{ token: string }>().token;
-  const token = Array.isArray(raw) ? raw[0] : raw;
-  const configured = isConvexConfigured();
   const sessionId = useMemo(() => getOrCreateGuestSessionId(), []);
   const [name, setName] = useState(() => getStoredGuestName());
   const [busy, setBusy] = useState<string | null>(null);
@@ -73,6 +62,7 @@ export default function VoteByTokenScreen(): ReactElement {
   const [voted, setVoted] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const nameSynced = useRef(false);
 
   useEffect(() => {
     tickRef.current = setInterval(() => setNowMs(Date.now()), 30_000);
@@ -81,50 +71,52 @@ export default function VoteByTokenScreen(): ReactElement {
     };
   }, []);
 
-  const event = useQuery(
-    guestGetQuery,
-    configured && token != null && token.length >= 8 ? { shareToken: token } : 'skip',
-  ) as GuestEvent | null | undefined;
+  const event = useQuery(getForInviteeQuery, {
+    eventId,
+    voterSessionId: isAuthenticated ? undefined : sessionId,
+  });
 
   useEffect(() => {
-    if (Platform.OS === 'web' || !isAuthenticated || event == null || typeof event !== 'object') {
-      return;
+    if (
+      !nameSynced.current &&
+      event != null &&
+      typeof event === 'object' &&
+      'viewerDisplayName' in event &&
+      typeof event.viewerDisplayName === 'string' &&
+      event.viewerDisplayName.length > 0 &&
+      name.trim().length === 0
+    ) {
+      setName(event.viewerDisplayName);
+      nameSynced.current = true;
     }
-    const eventId = event._id;
-    if (typeof eventId === 'string' && eventId.length > 0) {
-      router.replace(`/event/${eventId}`);
-    }
-  }, [event, isAuthenticated]);
+  }, [event, name]);
+
+  const castVote = useMutation(castVoteMutation);
+  const proposeTimeslot = useMutation(proposeTimeslotMutation);
 
   const deadlineLine = useMemo(() => {
     if (event == null || typeof event !== 'object' || !('deadline' in event)) {
       return '';
     }
-    return `Closes ${formatDeadlineLine(event.deadline, nowMs)}`;
+    return `Closes ${formatDeadlineLine(event.deadline as number, nowMs)}`;
   }, [event, nowMs]);
-
-  const setVote = useMutation(guestSetVoteMutation);
-  const propose = useMutation(guestProposeMutation);
 
   const onVote = useCallback(
     async (timeslotId: string, vote: 'yes' | 'no') => {
-      if (!configured || token == null || token.length < 8) {
-        return;
-      }
       const n = name.trim();
       if (n.length === 0) {
-        setError('Enter your name so the host knows who voted.');
+        setError(t('invitee_name_required'));
         return;
       }
       setStoredGuestName(n);
       setBusy(`${timeslotId}:${vote}`);
       setError(null);
       try {
-        await setVote({
-          shareToken: token,
-          voterSessionId: sessionId,
-          voterName: n,
+        await castVote({
+          eventId,
           timeslotId,
+          voterName: n,
+          voterSessionId: isAuthenticated ? undefined : sessionId,
           vote,
         });
         setVoted(true);
@@ -132,22 +124,19 @@ export default function VoteByTokenScreen(): ReactElement {
         if (isEventAtCapacityError(e)) {
           setError(t('vote_event_at_capacity'));
         } else {
-          setError(formatMutationError(e, 'Could not save vote'));
+          setError(formatMutationError(e, t('invitee_vote_error')));
         }
       } finally {
         setBusy(null);
       }
     },
-    [configured, name, sessionId, setVote, token],
+    [castVote, eventId, isAuthenticated, name, sessionId],
   );
 
   const onPropose = useCallback(async () => {
-    if (!configured || token == null || token.length < 8) {
-      return;
-    }
     const n = name.trim();
     if (n.length === 0) {
-      setError('Enter your name first.');
+      setError(t('invitee_name_required'));
       return;
     }
     setStoredGuestName(n);
@@ -156,43 +145,18 @@ export default function VoteByTokenScreen(): ReactElement {
     try {
       const startMs = proposeAt.getTime();
       if (!Number.isFinite(startMs)) {
-        setError('Enter a valid date and time.');
+        setError(t('invitee_propose_invalid_time'));
         setBusy(null);
         return;
       }
-      await propose({
-        shareToken: token,
-        voterSessionId: sessionId,
-        voterName: n,
-        startTime: startMs,
-      });
+      await proposeTimeslot({ eventId, startTime: startMs });
       setProposeOpen(false);
     } catch (e: unknown) {
-      setError(formatMutationError(e, 'Could not submit proposal'));
+      setError(formatMutationError(e, t('invitee_propose_error')));
     } finally {
       setBusy(null);
     }
-  }, [configured, name, propose, proposeAt, sessionId, token]);
-
-  if (!configured) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
-        <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
-          Set EXPO_PUBLIC_CONVEX_URL to load this invite.
-        </Text>
-      </View>
-    );
-  }
-
-  if (token == null || token.length < 8) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
-        <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
-          This voting link is invalid.
-        </Text>
-      </View>
-    );
-  }
+  }, [eventId, name, proposeAt, proposeTimeslot]);
 
   if (event === undefined) {
     return (
@@ -209,18 +173,8 @@ export default function VoteByTokenScreen(): ReactElement {
     return (
       <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
         <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
-          This link does not match an event. Check with the host for an updated link.
+          {t('invitee_event_not_found')}
         </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go to home"
-          className="mt-8 rounded-lg bg-[#FF6B5C] px-5 py-2.5 active:opacity-90"
-          onPress={() => {
-            router.replace('/');
-          }}
-        >
-          <Text className="text-sm font-semibold text-white">Go to home</Text>
-        </Pressable>
       </View>
     );
   }
@@ -236,17 +190,6 @@ export default function VoteByTokenScreen(): ReactElement {
           {event.ownerName} picked a time:{' '}
           <Text className="font-semibold">{formatTimeslotWithTimezone(event.decidedStartTime)}</Text>
         </Text>
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel="Get the Agree on a Time app on the App Store"
-          className="mt-8 items-center rounded-xl bg-[#FF6B5C] py-3.5 active:opacity-90"
-          onPress={() => void Linking.openURL(APP_STORE_URL)}
-        >
-          <Text className="text-base font-semibold text-white">Get the app</Text>
-        </Pressable>
-        <Text className="mt-4 text-center text-sm text-neutral-500 dark:text-neutral-500">
-          Host your own polls with Agree on a Time.
-        </Text>
       </ScrollView>
     );
   }
@@ -255,16 +198,22 @@ export default function VoteByTokenScreen(): ReactElement {
     return (
       <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
         <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
-          Voting is closed for this event.
+          {t('invitee_voting_closed')}
         </Text>
       </View>
     );
   }
 
+  const slots = event.approvedTimeslots as InviteeSlot[];
+
   return (
     <ScrollView
       className="flex-1 bg-white dark:bg-black"
-      contentContainerStyle={{ padding: 16, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }}
+      contentContainerStyle={{
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: insets.bottom + 24,
+      }}
     >
       <Text className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{event.title}</Text>
       {event.description != null && event.description.length > 0 ? (
@@ -272,11 +221,13 @@ export default function VoteByTokenScreen(): ReactElement {
       ) : null}
       <Text className="mt-2 text-sm text-neutral-500 dark:text-neutral-500">{deadlineLine}</Text>
 
-      <Text className="mt-6 text-sm font-semibold text-neutral-800 dark:text-neutral-200">Your name</Text>
+      <Text className="mt-6 text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+        {t('invitee_your_name')}
+      </Text>
       <TextInput
-        accessibilityLabel="Your name for voting"
+        accessibilityLabel={t('invitee_your_name_a11y')}
         className="mt-2 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
-        placeholder="Required"
+        placeholder={t('invitee_name_placeholder')}
         value={name}
         onChangeText={setName}
         autoCapitalize="words"
@@ -289,29 +240,33 @@ export default function VoteByTokenScreen(): ReactElement {
       ) : null}
 
       <Text className="mt-8 text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400">
-        Times
+        {t('invitee_times_heading')}
       </Text>
-      {event.approvedTimeslots.map((slot) => {
+      {slots.map((slot) => {
         const loading = busy != null && busy.startsWith(`${slot._id}:`);
         const barLabel = `Votes for ${formatTimeslotWithTimezone(slot.startTime)}`;
+        const myVote = slot.myVote;
         return (
           <View key={slot._id} className="mt-4 rounded-xl border border-neutral-200 p-3 dark:border-neutral-700">
             <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
               {formatTimeslotWithTimezone(slot.startTime)}
             </Text>
             <View className="mt-2">
-              <VoteBar
-                yesCount={slot.yesCount}
-                noCount={slot.noCount}
-                accessibilityLabel={barLabel}
-              />
+              <VoteBar yesCount={slot.yesCount} noCount={slot.noCount} accessibilityLabel={barLabel} />
             </View>
+            {myVote != null ? (
+              <Text className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+                {t('invitee_your_vote', { vote: myVote === 'yes' ? 'Yes' : 'No' })}
+              </Text>
+            ) : null}
             <View className="mt-3 flex-row gap-2">
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Vote yes for ${formatTimeslotWithTimezone(slot.startTime)}`}
                 disabled={loading}
-                className="flex-1 items-center rounded-lg bg-emerald-600 py-2.5 active:opacity-90 disabled:opacity-50"
+                className={`flex-1 items-center rounded-lg py-2.5 active:opacity-90 disabled:opacity-50 ${
+                  myVote === 'yes' ? 'bg-emerald-700' : 'bg-emerald-600'
+                }`}
                 onPress={() => void onVote(slot._id, 'yes')}
               >
                 {loading && busy === `${slot._id}:yes` ? (
@@ -324,7 +279,11 @@ export default function VoteByTokenScreen(): ReactElement {
                 accessibilityRole="button"
                 accessibilityLabel={`Vote no for ${formatTimeslotWithTimezone(slot.startTime)}`}
                 disabled={loading}
-                className="flex-1 items-center rounded-lg border border-neutral-300 bg-white py-2.5 active:bg-neutral-50 disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800"
+                className={`flex-1 items-center rounded-lg border py-2.5 active:bg-neutral-50 disabled:opacity-50 dark:active:bg-neutral-800 ${
+                  myVote === 'no'
+                    ? 'border-neutral-500 bg-neutral-100 dark:border-neutral-400 dark:bg-neutral-800'
+                    : 'border-neutral-300 bg-white dark:border-neutral-600 dark:bg-neutral-900'
+                }`}
                 onPress={() => void onVote(slot._id, 'no')}
               >
                 {loading && busy === `${slot._id}:no` ? (
@@ -342,7 +301,9 @@ export default function VoteByTokenScreen(): ReactElement {
         <View className="mt-8">
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={proposeOpen ? 'Hide propose time form' : 'Propose another time'}
+            accessibilityLabel={
+              proposeOpen ? t('invitee_hide_propose_a11y') : t('invitee_show_propose_a11y')
+            }
             className="rounded-lg border border-dashed border-neutral-400 py-3 dark:border-neutral-600"
             onPress={() => {
               setProposeOpen((open) => {
@@ -354,14 +315,14 @@ export default function VoteByTokenScreen(): ReactElement {
             }}
           >
             <Text className="text-center text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-              {proposeOpen ? 'Hide proposal' : 'Propose another time'}
+              {proposeOpen ? t('invitee_hide_propose') : t('invitee_show_propose')}
             </Text>
           </Pressable>
           {proposeOpen ? (
             <View className="mt-4">
               {Platform.OS === 'web' ? (
                 <WebDatetimeLocalInput
-                  accessibilityLabel="Proposed date and time"
+                  accessibilityLabel={t('invitee_propose_datetime_a11y')}
                   colorScheme={webScheme}
                   minMs={nowMs + 60_000}
                   valueMs={proposeAt.getTime()}
@@ -383,7 +344,7 @@ export default function VoteByTokenScreen(): ReactElement {
               )}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Submit proposed time"
+                accessibilityLabel={t('invitee_submit_proposal_a11y')}
                 disabled={busy === 'propose'}
                 className="mt-4 items-center rounded-lg bg-[#FF6B5C] py-3 active:opacity-90 disabled:opacity-50"
                 onPress={() => void onPropose()}
@@ -391,7 +352,7 @@ export default function VoteByTokenScreen(): ReactElement {
                 {busy === 'propose' ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text className="text-sm font-semibold text-white">Submit proposal</Text>
+                  <Text className="text-sm font-semibold text-white">{t('invitee_submit_proposal')}</Text>
                 )}
               </Pressable>
             </View>
@@ -402,12 +363,12 @@ export default function VoteByTokenScreen(): ReactElement {
       {voted ? (
         <View className="mt-8 rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/30" accessibilityLiveRegion="polite">
           <Text className="text-center text-base font-semibold text-emerald-800 dark:text-emerald-200">
-            Got it — we&apos;ll let you know when {event.ownerName} picks a time.
+            {t('invitee_vote_ack', { host: event.ownerName })}
           </Text>
         </View>
       ) : (
         <Text className="mt-10 text-center text-xs text-neutral-500 dark:text-neutral-500">
-          We&apos;ll let you know when {event.ownerName} picks a time.
+          {t('invitee_vote_footer', { host: event.ownerName })}
         </Text>
       )}
     </ScrollView>
