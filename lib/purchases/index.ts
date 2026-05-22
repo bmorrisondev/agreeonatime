@@ -11,12 +11,20 @@ import {
   markPurchasesConfigured,
 } from '@/lib/purchases/configured-state';
 import { isProFromCustomerInfo } from '@/lib/purchases/customer-info';
-import { getPackagePriceLabel, pickMonthlyPackage } from '@/lib/purchases/package-selection';
+import {
+  getAnnualPackagePriceLabel,
+  getPackagePriceLabel,
+  pickAnnualPackage,
+  pickMonthlyPackage,
+} from '@/lib/purchases/package-selection';
 import { supportsPurchasesPlatform } from '@/lib/purchases/platform';
 import { getRevenueCatApiKeyForPlatform } from '@/lib/purchases/revenuecat-keys';
 
 export {
   LEGACY_TEST_STORE_PRODUCT_ID,
+  PRO_ANNUAL_IOS_PRODUCT_ID,
+  PRO_ANNUAL_STORE_PRODUCT_ID,
+  PRO_ANNUAL_USD_DISPLAY,
   PRO_ENTITLEMENT_ID,
   PRO_MONTHLY_IOS_PRODUCT_ID,
   PRO_MONTHLY_STORE_PRODUCT_ID,
@@ -24,12 +32,24 @@ export {
   PRO_PRODUCT_IDS,
 } from '@/lib/purchases/constants';
 export { getProEntitlement, isProFromCustomerInfo } from '@/lib/purchases/customer-info';
-export { getPackagePriceLabel, pickMonthlyPackage } from '@/lib/purchases/package-selection';
+export type { ProBillingPeriod } from '@/lib/purchases/billing-period';
+export {
+  getAnnualPackagePriceLabel,
+  getPackagePriceLabel,
+  pickAnnualPackage,
+  pickMonthlyPackage,
+} from '@/lib/purchases/package-selection';
+export {
+  getAnnualStoreProduct,
+  getAnnualStoreProductPriceLabel,
+  purchaseAnnualSubscription,
+} from '@/lib/purchases/annual-product';
 export {
   getMonthlyStoreProduct,
   getStoreProductPriceLabel,
   purchaseMonthlySubscription,
 } from '@/lib/purchases/monthly-product';
+export { purchaseProSubscription } from '@/lib/purchases/purchase-pro-subscription';
 export { isPurchasesConfigured } from '@/lib/purchases/configured-state';
 export { supportsPurchasesPlatform } from '@/lib/purchases/platform';
 export {
@@ -140,7 +160,15 @@ export async function getDefaultPackage(): Promise<PurchasesPackage | null> {
   return pickMonthlyPackage(offerings);
 }
 
-/** @deprecated Use {@link pickMonthlyPackage} — annual is not sold in this app. */
+export async function getAnnualPackage(): Promise<PurchasesPackage | null> {
+  const offerings = await getOfferings();
+  if (offerings == null) {
+    return null;
+  }
+  return pickAnnualPackage(offerings);
+}
+
+/** @deprecated Use {@link pickMonthlyPackage} or {@link pickAnnualPackage}. */
 export function pickDefaultPackage(offerings: PurchasesOfferings): PurchasesPackage | null {
   return pickMonthlyPackage(offerings);
 }

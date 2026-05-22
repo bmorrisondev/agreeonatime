@@ -12,6 +12,8 @@ export const PRO_PRODUCT_IDS = [
   'agreeonatime_pro_monthly_399',
   'agreeonatime_pro_monthly',
   'me.brianmm.agreeonatime.pro.monthly',
+  'agreeonatime_pro_annual_3999',
+  'me.brianmm.agreeonatime.pro.annual',
 ] as const;
 
 const PRO_PRODUCT_ID_SET = new Set<string>(PRO_PRODUCT_IDS);
