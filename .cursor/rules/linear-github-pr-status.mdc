@@ -1,22 +1,57 @@
 ---
-description: Keep Linear issue status in sync with GitHub PR state (Development team)
+description: Linear status, PR sync, and validation handoff comments (@brian)
 alwaysApply: true
 ---
 
-# Linear ↔ GitHub PR status
+# Linear issue status
 
-Applies when work maps to a **Linear** issue (e.g. **DEV-###**) on the **Development** team. Use the Linear MCP (`save_issue`) or update manually in Linear.
+Applies when work maps to a **Linear** issue (e.g. **DEV-###**) on the **Development** team.
 
-## States (exact names)
+Workspace owner for handoff comments: **@brian** (`displayName` in Linear; use `list_users` with `query` if unsure).
 
-Use **Needs Review** and **Done** (not “Needs review”).
+## Always update the ticket
 
-## Rules
+For the issue you are working on, **update Linear status in the same session** at each lifecycle step. Use the Linear MCP (`save_issue`) when available; otherwise update in the Linear UI. Do not finish substantive work on a mapped ticket without confirming status is current.
+
+| When | Linear `state` |
+|------|----------------|
+| Starting implementation | **In Progress** (from **Todo** if applicable) |
+| PR open on GitHub | **Needs Review** |
+| PR merged or closed | **Done** |
+| Coding before first PR | **In Progress** |
+
+Exact state names: **Needs Review** and **Done** (not “Needs review”). Do not set **Needs Review** until a PR exists.
+
+## GitHub PR alignment
 
 1. **Open PR** — If a GitHub PR exists for the branch/ticket and is **open** (`gh pr view`, `state: OPEN`), set the Linear issue to **Needs Review** (unless you are actively coding before the first PR: **In Progress** is fine until the PR exists; once the PR is opened, move to **Needs Review**).
 2. **PR merged or closed** — If the PR is **merged** or **closed** (any non-open terminal state), set the Linear issue to **Done**.
-3. **No PR yet** — Keep **In Progress** (or **Todo** if not started). Do not set **Needs Review** until a PR exists.
+3. **No PR yet** — Keep **In Progress** (or **Todo** if not started).
 4. **After push/PR** — When following `.cursor/rules/git-push-and-pr.mdc`, if a PR was created or merged for a **DEV-###** ticket, **update Linear in the same session** when the Linear MCP is available.
+
+## Validation handoff comments
+
+When you finish a **coherent chunk of work** on a mapped ticket (implementation done, PR opened, or blocked waiting on human testing), post a **top-level comment** on that issue via Linear MCP **`save_comment`** (`issueId`: `DEV-###` or issue UUID).
+
+- **Always @brian** at the start of the comment (e.g. `@brian — …`) so he gets notified.
+- Summarize **what you changed** in one short line, then **next actions for testing/validation** as a checklist: commands to run, URLs to open, flows to click, env/deploy steps, expected outcomes.
+- Mirror the spirit of `.cursor/rules/change-summary-format.mdc` (**What changed** / **How to verify**) but written for the ticket thread, not only the chat reply.
+- Post **in the same session** as the status update (after PR open → with **Needs Review**; before asking Brian to test manually in chat).
+- Do **not** duplicate: if you already posted an equivalent handoff comment this session, update that comment (`save_comment` with `id`) instead of spamming new threads.
+- If Linear MCP is unavailable, say so in chat and paste the same handoff text there.
+
+Example body:
+
+```markdown
+@brian — ready for validation on DEV-123.
+
+**What changed**
+- Short bullet summary
+
+**How to verify**
+- [ ] Run `pnpm run build:web`
+- [ ] Open … and expect …
+```
 
 ## Quick check
 

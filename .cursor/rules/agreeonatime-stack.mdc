@@ -18,7 +18,8 @@ alwaysApply: true
 # Issues and branches
 
 - Use **task branches** off `main` (e.g. `feature/dev-###-short-name`). Do not land unrelated work on `main` without a PR.
-- When work maps to Linear, reference **`DEV-###`** in commit messages and **update Linear status** when starting, finishing review, and merging.
+- **Worktrees:** Before `git worktree add`, **pull the latest base branch** (`main` unless specified). Follow `.cursor/rules/git-worktree-and-branch.mdc`.
+- **Linear:** Reference **`DEV-###`** in commit messages; **always update** status and post a **`@brian` handoff comment** with test/validation steps. Follow `.cursor/rules/linear-github-pr-status.mdc`.
 - After commits exist on a task branch, **push to `origin` and open a PR to `main`** (GitHub CLI when available). Follow `.cursor/rules/git-push-and-pr.mdc`.
 
 # Accessibility (baseline)

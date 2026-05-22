@@ -30,7 +30,7 @@ Before telling the user they must do something manually (dashboard clicks, copy-
 ## Examples
 
 - **Do:** Set Vercel env vars via `vercel env add` after `vercel link`, instead of "add these in the dashboard."
-- **Do:** Update Linear issue via Linear MCP when a DEV ticket exists.
+- **Do:** Update Linear issue status (`save_issue`) and post validation handoff comments (`save_comment`, **@brian**) when a DEV ticket exists.
 - **Do:** List Convex deployments via Convex MCP, then set dev env with `envSet`.
 - **Don't:** Stop at "set SITE_URL in Convex dashboard" without trying Convex MCP `envSet` or `npx convex env set` first.
 - **Don't:** Ask user to open a PR if `gh pr create` is available and credentials work.
