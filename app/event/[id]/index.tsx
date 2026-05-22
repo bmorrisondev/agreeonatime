@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DsButton } from '@/components/design-system/button';
 import { DsModal } from '@/components/design-system/modal-sheet';
 import { DsToast } from '@/components/design-system';
+import { InviteeEventView } from '@/components/events/invitee-event-view';
 import { VoteBar } from '@/components/events/vote-bar';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { useSubscription } from '@/hooks/use-subscription';
@@ -162,6 +163,9 @@ export default function EventDetailScreen(): ReactElement {
   }
 
   if (event === null) {
+    if (id != null && id.length > 0) {
+      return <InviteeEventView eventId={id} />;
+    }
     return (
       <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
         <Text className="text-center text-base text-neutral-600 dark:text-neutral-400">

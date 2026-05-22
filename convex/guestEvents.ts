@@ -4,7 +4,9 @@ import { ConvexError, v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import { mutation, query, type MutationCtx } from './_generated/server';
 
+import { authComponent } from './auth';
 import { assertCanAcceptNewVoter, voterKey } from './subscriptionLimits';
+import { betterAuthUserIdString } from './users';
 
 const MAX_NAME_LEN = 80;
 const MIN_SESSION_LEN = 16;
@@ -96,6 +98,21 @@ export const getByShareToken = query({
     const owner = await ctx.db.get(event.ownerId);
     const ownerName = owner?.name ?? 'the host';
 
+    let isViewerOwner = false;
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (authUser) {
+      const authId = betterAuthUserIdString(authUser);
+      if (authId != null) {
+        const viewer = await ctx.db
+          .query('users')
+          .withIndex('by_auth_user', (q) => q.eq('authUserId', authId))
+          .unique();
+        if (viewer != null && viewer._id === event.ownerId) {
+          isViewerOwner = true;
+        }
+      }
+    }
+
     return {
       _id: event._id,
       title: event.title,
@@ -106,6 +123,7 @@ export const getByShareToken = query({
       decidedTimeslotId: event.decidedTimeslotId,
       decidedStartTime,
       ownerName,
+      isViewerOwner,
       approvedTimeslots: slotsOut,
       pendingCount: pending.length,
     };

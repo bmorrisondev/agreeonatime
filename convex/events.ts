@@ -339,6 +339,119 @@ export const getForOwner = query({
   },
 });
 
+const MIN_INVITEE_SESSION_LEN = 16;
+
+/** Invitee read model for in-app voting by event id (DEV-389). */
+export const getForInvitee = query({
+  args: {
+    eventId: v.id('events'),
+    /** Guest session id — used to load existing votes when not signed in. */
+    voterSessionId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const event = await ctx.db.get(args.eventId);
+    if (!event) {
+      return null;
+    }
+
+    let viewerUserId: Id<'users'> | undefined;
+    let viewerDisplayName = '';
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (authUser) {
+      const authId = betterAuthUserIdString(authUser);
+      if (authId != null) {
+        const user = await ctx.db
+          .query('users')
+          .withIndex('by_auth_user', (q) => q.eq('authUserId', authId))
+          .unique();
+        if (user) {
+          viewerUserId = user._id;
+          viewerDisplayName = user.name;
+        }
+      }
+    }
+
+    const session = args.voterSessionId?.trim() ?? '';
+    const viewerKey =
+      viewerUserId != null
+        ? `u:${viewerUserId}`
+        : session.length >= MIN_INVITEE_SESSION_LEN
+          ? `s:${session}`
+          : null;
+
+    const timeslots = await ctx.db
+      .query('timeslots')
+      .withIndex('by_event', (q) => q.eq('eventId', event._id))
+      .collect();
+    timeslots.sort((a, b) => a.startTime - b.startTime);
+
+    const allVotes = await ctx.db
+      .query('votes')
+      .withIndex('by_event', (q) => q.eq('eventId', event._id))
+      .collect();
+
+    const votesByTimeslot = new Map<string, typeof allVotes>();
+    for (const row of allVotes) {
+      const key = row.timeslotId;
+      const bucket = votesByTimeslot.get(key);
+      if (bucket) {
+        bucket.push(row);
+      } else {
+        votesByTimeslot.set(key, [row]);
+      }
+    }
+
+    const approvedTimeslots = timeslots
+      .filter((t) => t.approvalStatus === 'approved')
+      .map((slot) => {
+        const slotVotes = votesByTimeslot.get(slot._id) ?? [];
+        let yesCount = 0;
+        let noCount = 0;
+        let myVote: 'yes' | 'no' | undefined;
+        for (const v of slotVotes) {
+          if (v.vote === 'yes') {
+            yesCount += 1;
+          } else {
+            noCount += 1;
+          }
+          if (viewerKey != null && voterKey(v) === viewerKey) {
+            myVote = v.vote as 'yes' | 'no';
+          }
+        }
+        return {
+          _id: slot._id,
+          startTime: slot.startTime,
+          yesCount,
+          noCount,
+          myVote,
+        };
+      });
+
+    let decidedStartTime: number | undefined;
+    if (event.decidedTimeslotId != null) {
+      const decided = await ctx.db.get(event.decidedTimeslotId);
+      decidedStartTime = decided?.startTime;
+    }
+
+    const owner = await ctx.db.get(event.ownerId);
+    const ownerName = owner?.name ?? 'the host';
+
+    return {
+      _id: event._id,
+      title: event.title,
+      description: event.description,
+      status: event.status,
+      deadline: event.deadline,
+      allowInviteeProposals: event.allowInviteeProposals,
+      decidedStartTime,
+      ownerName,
+      viewerDisplayName,
+      isViewerOwner: viewerUserId != null && viewerUserId === event.ownerId,
+      approvedTimeslots,
+    };
+  },
+});
+
 /** Owner permanently deletes an event and all votes/timeslots (DEV-445). */
 export const deleteForOwner = mutation({
   args: { eventId: v.id('events') },
@@ -520,7 +633,11 @@ export const proposeTimeslot = mutation({
     if (!event.allowInviteeProposals) {
       throw new ConvexError('This event does not accept new time proposals');
     }
-    if (args.startTime <= Date.now()) {
+    const now = Date.now();
+    if (now > event.deadline) {
+      throw new ConvexError('The voting deadline has passed');
+    }
+    if (args.startTime <= now) {
       throw new ConvexError('Proposed time must be in the future');
     }
 
@@ -535,7 +652,7 @@ export const proposeTimeslot = mutation({
       startTime: args.startTime,
       proposedBy,
       approvalStatus: 'pending',
-      createdAt: Date.now(),
+      createdAt: now,
     });
 
     await ctx.scheduler.runAfter(0, internal.notifications.notifyOwnerOfProposal, {
