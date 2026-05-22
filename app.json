@@ -15,7 +15,7 @@
     "ios": {
       "deploymentTarget": "16.4",
       "bundleIdentifier": "me.brianmm.agreeonatime",
-      "supportsTablet": true,
+      "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
