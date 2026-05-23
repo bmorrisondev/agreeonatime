@@ -1,5 +1,7 @@
 /** Shared validation and defaults for event creation (create-event screen + onboarding guided step). */
 
+import { roundTimeMs } from '@/lib/events/time-rounding';
+
 export const EVENT_MAX_SLOTS = 20;
 export const EVENT_HOUR_MS = 60 * 60 * 1000;
 export const EVENT_DAY_MS = 24 * EVENT_HOUR_MS;
@@ -12,9 +14,9 @@ export interface EventFormValidationInput {
 
 export function buildDefaultEventSlots(): { slotStarts: number[]; deadline: number } {
   const now = Date.now();
-  const first = now + 2 * EVENT_DAY_MS + 18 * EVENT_HOUR_MS;
-  const second = first + 2 * EVENT_HOUR_MS;
-  const deadline = first - EVENT_HOUR_MS;
+  const first = roundTimeMs(now + 2 * EVENT_DAY_MS + 18 * EVENT_HOUR_MS);
+  const second = roundTimeMs(first + 2 * EVENT_HOUR_MS);
+  const deadline = roundTimeMs(first - EVENT_HOUR_MS);
   return { slotStarts: [first, second], deadline };
 }
 

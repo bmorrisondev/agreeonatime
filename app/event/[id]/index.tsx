@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { makeFunctionReference } from 'convex/server';
 import { useMutation, useQuery } from 'convex/react';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -12,21 +12,26 @@ import {
   Share,
   Text,
   View,
+  type View as ViewType,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DsButton } from '@/components/design-system/button';
 import { DsModal } from '@/components/design-system/modal-sheet';
 import { DsToast } from '@/components/design-system';
+import { AvailabilityGrid } from '@/components/availability/availability-grid';
+import { AddToCalendarButton } from '@/components/events/add-to-calendar-button';
+import { AgreedCardPreview } from '@/components/events/agreed-card-preview';
 import { InviteeEventView } from '@/components/events/invitee-event-view';
 import { VoteBar } from '@/components/events/vote-bar';
+import { formatBlockTimeLabel, type GridSpec, type RangeWindow } from '@/lib/availability/grid';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { useSubscription } from '@/hooks/use-subscription';
 import { buildVoteUrl } from '@/lib/events/build-share-url';
+import { shareAgreedCard } from '@/lib/events/share-agreed-card';
 import { t } from '@/lib/i18n/t';
 import {
   formatDeadlineLine,
-  formatDecidedTime,
   formatTimeslotWithTimezone,
 } from '@/lib/events/format-event-home';
 import { isConvexConfigured } from '@/lib/convex/client';
@@ -36,6 +41,7 @@ const resolvePendingTimeslotMutation = makeFunctionReference<'mutation'>(
   'events:resolvePendingTimeslot',
 );
 const deleteForOwnerMutation = makeFunctionReference<'mutation'>('events:deleteForOwner');
+const finalizeRangeBlockMutation = makeFunctionReference<'mutation'>('events:finalizeRangeBlock');
 
 interface ApprovedSlot {
   _id: string;
@@ -69,6 +75,8 @@ export default function EventDetailScreen(): ReactElement {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const agreedCardRef = useRef<ViewType>(null);
+  const [sharingAgreed, setSharingAgreed] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -84,6 +92,7 @@ export default function EventDetailScreen(): ReactElement {
 
   const resolvePending = useMutation(resolvePendingTimeslotMutation);
   const deleteForOwner = useMutation(deleteForOwnerMutation);
+  const finalizeRangeBlock = useMutation(finalizeRangeBlockMutation);
 
   const toggleExpanded = useCallback((slotId: string) => {
     setExpanded((prev) => ({ ...prev, [slotId]: !prev[slotId] }));
@@ -91,6 +100,15 @@ export default function EventDetailScreen(): ReactElement {
 
   const dismissShareToast = useCallback(() => {
     setShareToast((s) => ({ ...s, visible: false }));
+  }, []);
+
+  const onShareAgreedCard = useCallback(async (title: string, decidedStartTimeMs: number) => {
+    setSharingAgreed(true);
+    try {
+      await shareAgreedCard(agreedCardRef, { title, decidedStartTimeMs });
+    } finally {
+      setSharingAgreed(false);
+    }
   }, []);
 
   const onShare = useCallback(async (title: string, shareToken: string) => {
@@ -175,6 +193,14 @@ export default function EventDetailScreen(): ReactElement {
     );
   }
 
+  const schedulingMode = (event as { schedulingMode?: 'discrete' | 'range' }).schedulingMode ?? 'discrete';
+  const rangeGridSpec = (event as { gridSpec?: GridSpec }).gridSpec;
+  const rangeWindows = (event as { rangeWindows?: RangeWindow[] }).rangeWindows ?? [];
+  const overlapCounts = (event as { overlapCounts?: number[] }).overlapCounts;
+  const bestWindow = (event as {
+    bestWindow?: { startMs: number; endMs: number; overlapCount: number };
+  }).bestWindow;
+
   const approvedSlots = event.approvedTimeslots as ApprovedSlot[];
   const pendingSlots = event.pendingTimeslots as PendingSlot[];
   const deadlinePassed = nowMs >= event.deadline;
@@ -216,9 +242,42 @@ export default function EventDetailScreen(): ReactElement {
         </Text>
 
         {event.status === 'decided' && event.decidedStartTime != null ? (
-          <Text className="mt-2 text-base text-neutral-800 dark:text-neutral-200">
-            {formatDecidedTime(event.decidedStartTime)}
-          </Text>
+          <>
+            <AgreedCardPreview
+              cardRef={agreedCardRef}
+              title={event.title}
+              decidedStartTimeMs={event.decidedStartTime}
+            />
+            <View className="mt-4">
+              <AddToCalendarButton
+                event={{
+                  title: event.title,
+                  startTimeMs: event.decidedStartTime,
+                  notes:
+                    event.description != null && event.description.length > 0
+                      ? event.description
+                      : undefined,
+                }}
+                eventId={event._id}
+                variant="secondary"
+              />
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('decided_share_news_a11y')}
+              disabled={sharingAgreed}
+              className="mt-3 min-h-[44px] items-center justify-center rounded-lg bg-brand active:opacity-90 disabled:opacity-50"
+              onPress={() => {
+                void onShareAgreedCard(event.title, event.decidedStartTime as number);
+              }}
+            >
+              {sharingAgreed ? (
+                <ActivityIndicator color="#fff" accessibilityLabel={t('a11y_loading')} />
+              ) : (
+                <Text className="text-base font-semibold text-white">{t('decided_share_news')}</Text>
+              )}
+            </Pressable>
+          </>
         ) : null}
 
         {historyLocked ? (
@@ -239,7 +298,7 @@ export default function EventDetailScreen(): ReactElement {
           </View>
         ) : null}
 
-        <View className="mt-4 flex-row flex-wrap gap-2">
+        <View className="mt-4 flex-row flex-wrap items-center gap-2">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Share voting link"
@@ -252,7 +311,52 @@ export default function EventDetailScreen(): ReactElement {
           </Pressable>
         </View>
 
-        {pendingSlots.length > 0 ? (
+        {schedulingMode === 'range' && rangeGridSpec != null ? (
+          <View className="mt-8">
+            <Text className="text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400">
+              Availability heat map
+            </Text>
+            <Text className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              Darker coral = more invitees free. Tap a block to pick that time.
+            </Text>
+            {bestWindow != null && event.status === 'open' ? (
+              <View className="mt-3 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2">
+                <Text className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                  Best window (~{bestWindow.overlapCount} available)
+                </Text>
+                <Text className="mt-1 text-sm text-neutral-700 dark:text-neutral-300">
+                  {formatBlockTimeLabel(bestWindow.startMs)} – {formatBlockTimeLabel(bestWindow.endMs)}
+                </Text>
+              </View>
+            ) : null}
+            <AvailabilityGrid
+              gridSpec={rangeGridSpec}
+              overlapCounts={historyLocked ? undefined : overlapCounts}
+              rangeWindows={rangeWindows}
+              readOnly={historyLocked || event.status !== 'open'}
+              selectedBlocks={new Set()}
+              onPickBlock={
+                event.status === 'open' && !historyLocked && id != null
+                  ? (blockIndex) => {
+                      void (async () => {
+                        try {
+                          await finalizeRangeBlock({ eventId: id, blockIndex });
+                        } catch (e: unknown) {
+                          const msg = e instanceof Error ? e.message : 'Could not pick time';
+                          Alert.alert('Could not pick time', msg);
+                        }
+                      })();
+                    }
+                  : undefined
+              }
+            />
+            <Text className="mt-2 text-xs text-neutral-500">
+              {(event as { distinctVoterCount?: number }).distinctVoterCount ?? 0} responses
+            </Text>
+          </View>
+        ) : null}
+
+        {schedulingMode === 'discrete' && pendingSlots.length > 0 ? (
           <View className="mt-8" accessibilityRole="summary">
             <Text className="text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400">
               Pending proposals
@@ -301,6 +405,7 @@ export default function EventDetailScreen(): ReactElement {
           </View>
         ) : null}
 
+        {schedulingMode === 'discrete' ? (
         <View className="mt-8">
           <Text className="text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400">
             Proposed times
@@ -370,25 +475,28 @@ export default function EventDetailScreen(): ReactElement {
             })
           )}
         </View>
+        ) : null}
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Pick the time for this event"
-          className={`mt-10 items-center rounded-xl py-3.5 ${
-            pickTimePrimary
-              ? 'bg-[#FF6B5C] active:opacity-90'
-              : 'border border-neutral-300 bg-white active:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800'
-          }`}
-          onPress={() => {
-            router.push(`/event/${id}/pick-time`);
-          }}
-        >
-          <Text
-            className={`text-base font-semibold ${pickTimePrimary ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}
+        {event.status === 'open' && schedulingMode === 'discrete' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Pick the time for this event"
+            className={`mt-10 items-center rounded-xl py-3.5 ${
+              pickTimePrimary
+                ? 'bg-[#FF6B5C] active:opacity-90'
+                : 'border border-neutral-300 bg-white active:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800'
+            }`}
+            onPress={() => {
+              router.push(`/event/${id}/pick-time`);
+            }}
           >
-            Pick the time
-          </Text>
-        </Pressable>
+            <Text
+              className={`text-base font-semibold ${pickTimePrimary ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}
+            >
+              Pick the time
+            </Text>
+          </Pressable>
+        ) : null}
 
         <Pressable
           accessibilityRole="button"

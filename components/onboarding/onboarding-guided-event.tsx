@@ -21,6 +21,7 @@ import {
   EVENT_MAX_SLOTS,
   validateEventForm,
 } from '@/lib/events/event-form';
+import { EVENT_TIME_MINUTE_INTERVAL, roundTimeMs } from '@/lib/events/time-rounding';
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
 import type { OnboardingEventDraft } from '@/lib/onboarding/onboarding-storage';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -75,12 +76,13 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
       return;
     }
     const target = pickerRef.current;
+    const roundedMs = roundTimeMs(date.getTime());
     if (target?.kind === 'deadline') {
-      setDeadline(date.getTime());
+      setDeadline(roundedMs);
     } else if (target?.kind === 'slot') {
       setSlotStarts((rows) => {
         const next = [...rows];
-        next[target.index] = date.getTime();
+        next[target.index] = roundedMs;
         return next;
       });
     }
@@ -367,6 +369,7 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
               </View>
               <DateTimePicker
                 display="spinner"
+                minuteInterval={EVENT_TIME_MINUTE_INTERVAL}
                 mode="datetime"
                 themeVariant={pickerThemeVariant}
                 value={pickerValue}
@@ -378,6 +381,7 @@ export function OnboardingGuidedEvent(props: OnboardingGuidedEventProps): ReactE
           {picker != null && Platform.OS === 'android' ? (
             <DateTimePicker
               display="default"
+              minuteInterval={EVENT_TIME_MINUTE_INTERVAL}
               mode="datetime"
               themeVariant={pickerThemeVariant}
               value={pickerValue}

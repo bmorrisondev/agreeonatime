@@ -18,12 +18,19 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatDateTimeMs } from '@/lib/events/format-event-home';
+import { RangeWindowEditor } from '@/components/availability/range-window-editor';
 import {
   buildDefaultEventSlots,
   EVENT_HOUR_MS,
   EVENT_MAX_SLOTS,
   validateEventForm,
 } from '@/lib/events/event-form';
+import {
+  buildDefaultRangeEvent,
+  validateRangeEventForm,
+} from '@/lib/events/range-event-form';
+import type { RangeWindow } from '@/lib/availability/grid';
+import { EVENT_TIME_MINUTE_INTERVAL, roundTimeMs } from '@/lib/events/time-rounding';
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
@@ -45,11 +52,15 @@ export default function CreateEventScreen(): ReactElement {
   const webScheme = colorScheme === 'dark' ? 'dark' : 'light';
   const configured = isConvexConfigured();
   const defaults = useMemo(() => buildDefaultEventSlots(), []);
+  const rangeDefaults = useMemo(() => buildDefaultRangeEvent(), []);
+  const [schedulingMode, setSchedulingMode] = useState<'discrete' | 'range'>('discrete');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [slotStarts, setSlotStarts] = useState<number[]>(defaults.slotStarts);
+  const [rangeWindows, setRangeWindows] = useState<RangeWindow[]>(rangeDefaults.rangeWindows);
   const [deadline, setDeadline] = useState(defaults.deadline);
   const [allowInviteeProposals, setAllowInviteeProposals] = useState(true);
+  const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [picker, setPicker] = useState<PickerTarget | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +72,41 @@ export default function CreateEventScreen(): ReactElement {
 
   const createEvent = useMutation(createEventMutation);
   const { paywallVisible, closePaywall, openPaywall, subscription } = useCreateEventGate();
+
+  const onSelectSchedulingMode = useCallback(
+    (mode: 'discrete' | 'range') => {
+      if (mode === 'range' && subscription.isLoaded && !subscription.isPro) {
+        openPaywall();
+        return;
+      }
+      setSchedulingMode(mode);
+      if (mode === 'range') {
+        setDeadline(rangeDefaults.deadline);
+        setRangeWindows(rangeDefaults.rangeWindows);
+      }
+    },
+    [openPaywall, rangeDefaults, subscription.isLoaded, subscription.isPro],
+  );
+
+  useEffect(() => {
+    if (subscription.isLoaded && subscription.isPro) {
+      setRemindersEnabled(true);
+    }
+    if (subscription.isLoaded && !subscription.isPro) {
+      setRemindersEnabled(false);
+    }
+  }, [subscription.isLoaded, subscription.isPro]);
+
+  const onRemindersToggle = useCallback(
+    (next: boolean) => {
+      if (next && subscription.isLoaded && !subscription.isPro) {
+        openPaywall();
+        return;
+      }
+      setRemindersEnabled(next);
+    },
+    [openPaywall, subscription.isLoaded, subscription.isPro],
+  );
 
   const pickerValue = useMemo(() => {
     if (picker == null) {
@@ -82,12 +128,13 @@ export default function CreateEventScreen(): ReactElement {
       return;
     }
     const target = pickerRef.current;
+    const roundedMs = roundTimeMs(date.getTime());
     if (target?.kind === 'deadline') {
-      setDeadline(date.getTime());
+      setDeadline(roundedMs);
     } else if (target?.kind === 'slot') {
       setSlotStarts((rows) => {
         const next = [...rows];
-        next[target.index] = date.getTime();
+        next[target.index] = roundedMs;
         return next;
       });
     }
@@ -143,6 +190,7 @@ export default function CreateEventScreen(): ReactElement {
         timeslotStarts: slotStarts,
         deadline,
         allowInviteeProposals,
+        remindersEnabled: subscription.isPro ? remindersEnabled : false,
       });
       router.replace(`/event/${id}`);
     } catch (e: unknown) {
@@ -160,9 +208,13 @@ export default function CreateEventScreen(): ReactElement {
     deadline,
     description,
     openPaywall,
+    rangeWindows,
+    remindersEnabled,
+    schedulingMode,
     slotStarts,
     subscription.canCreateMore,
     subscription.isLoaded,
+    subscription.isPro,
     title,
   ]);
 
@@ -216,6 +268,76 @@ export default function CreateEventScreen(): ReactElement {
           value={description}
         />
 
+        <Text className="mb-1 text-sm font-medium text-neutral-700 dark:text-neutral-300">Scheduling</Text>
+        <View className="mb-4 flex-row gap-2">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Discrete times"
+            accessibilityState={{ selected: schedulingMode === 'discrete' }}
+            className={`flex-1 rounded-lg border px-3 py-3 ${
+              schedulingMode === 'discrete'
+                ? 'border-[#FF6B5C] bg-[#FF6B5C]/10'
+                : 'border-neutral-300 dark:border-neutral-600'
+            }`}
+            disabled={submitting}
+            onPress={() => {
+              onSelectSchedulingMode('discrete');
+            }}
+          >
+            <Text className="text-center text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              Discrete times
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Availability window, Agree plus feature"
+            accessibilityState={{ selected: schedulingMode === 'range' }}
+            className={`flex-1 rounded-lg border px-3 py-3 ${
+              schedulingMode === 'range'
+                ? 'border-[#FF6B5C] bg-[#FF6B5C]/10'
+                : 'border-neutral-300 dark:border-neutral-600'
+            }`}
+            disabled={submitting}
+            onPress={() => {
+              onSelectSchedulingMode('range');
+            }}
+          >
+            <Text className="text-center text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              Availability window
+            </Text>
+            <Text className="mt-0.5 text-center text-[10px] text-neutral-500">Agree+</Text>
+          </Pressable>
+        </View>
+
+        {schedulingMode === 'range' ? (
+          <View className="mb-6">
+            <Text className="mb-1 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+              Availability windows
+            </Text>
+            <RangeWindowEditor
+              colorScheme={webScheme}
+              disabled={submitting}
+              windows={rangeWindows}
+              onAddWindow={() => {
+                const last = rangeWindows[rangeWindows.length - 1];
+                const offset = 24 * 60 * 60 * 1000;
+                const start = (last?.endBound ?? Date.now()) + offset;
+                setRangeWindows((rows) => [...rows, { startBound: start, endBound: start + 12 * 60 * 60 * 1000 }]);
+              }}
+              onChangeWindow={(index, window) => {
+                setRangeWindows((rows) => {
+                  const next = [...rows];
+                  next[index] = window;
+                  return next;
+                });
+              }}
+              onRemoveWindow={(index) => {
+                setRangeWindows((rows) => rows.filter((_, i) => i !== index));
+              }}
+            />
+          </View>
+        ) : (
+          <>
         <Text className="mb-1 text-sm font-medium text-neutral-700 dark:text-neutral-300">Proposed times</Text>
         <Text className="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
           At least 2 times, up to {EVENT_MAX_SLOTS}. Voting must end before your latest time.{' '}
@@ -287,6 +409,8 @@ export default function CreateEventScreen(): ReactElement {
         ) : (
           <Text className="mb-6 text-xs text-neutral-500 dark:text-neutral-400">Maximum {EVENT_MAX_SLOTS} times reached.</Text>
         )}
+          </>
+        )}
 
         <Text className="mb-1 text-sm font-medium text-neutral-700 dark:text-neutral-300">Voting deadline</Text>
         {Platform.OS === 'web' ? (
@@ -313,17 +437,35 @@ export default function CreateEventScreen(): ReactElement {
           </Pressable>
         )}
 
+        {schedulingMode === 'discrete' ? (
+          <View className="mb-6 flex-row items-center justify-between gap-3">
+            <Text className="shrink text-base text-neutral-900 dark:text-neutral-100">
+              Allow invitees to propose times
+            </Text>
+            <Switch
+              accessibilityLabel="Allow invitees to propose times"
+              disabled={submitting}
+              onValueChange={setAllowInviteeProposals}
+              value={allowInviteeProposals}
+            />
+          </View>
+        ) : null}
+
         <View className="mb-6 flex-row items-center justify-between gap-3">
-          <Text className="shrink text-base text-neutral-900 dark:text-neutral-100">
-            Allow invitees to propose times
-          </Text>
+          <View className="shrink">
+            <Text className="text-base text-neutral-900 dark:text-neutral-100">Automatic reminders</Text>
+            <Text className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+              Email invitees who have not voted 48h and 24h before the deadline. Agree+ only.
+            </Text>
+          </View>
           <Switch
-            accessibilityLabel="Allow invitees to propose times"
+            accessibilityLabel="Send automatic vote reminders to invitees"
             disabled={submitting}
-            onValueChange={setAllowInviteeProposals}
-            value={allowInviteeProposals}
+            onValueChange={onRemindersToggle}
+            value={remindersEnabled}
           />
         </View>
+
 
         {picker != null && Platform.OS === 'ios' ? (
           <View className="mb-4">
@@ -341,6 +483,7 @@ export default function CreateEventScreen(): ReactElement {
             </View>
             <DateTimePicker
               display="spinner"
+              minuteInterval={EVENT_TIME_MINUTE_INTERVAL}
               mode="datetime"
               themeVariant={colorScheme === 'dark' ? 'dark' : 'light'}
               value={pickerValue}
@@ -352,6 +495,7 @@ export default function CreateEventScreen(): ReactElement {
         {picker != null && Platform.OS === 'android' ? (
           <DateTimePicker
             display="default"
+            minuteInterval={EVENT_TIME_MINUTE_INTERVAL}
             mode="datetime"
             themeVariant={colorScheme === 'dark' ? 'dark' : 'light'}
             value={pickerValue}

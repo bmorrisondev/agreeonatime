@@ -14,6 +14,7 @@ import { makeFunctionReference } from 'convex/server';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AddToCalendarButton } from '@/components/events/add-to-calendar-button';
 import { VoteBar } from '@/components/events/vote-bar';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { formatVoteYesNoLabel, formatVotesForTimeLabel } from '@/lib/accessibility/vote-controls';
@@ -24,6 +25,7 @@ import {
   formatTimeslotWithTimezone,
 } from '@/lib/events/format-event-home';
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
+import { EVENT_TIME_MINUTE_INTERVAL, roundDate } from '@/lib/events/time-rounding';
 import {
   getOrCreateGuestSessionId,
   getStoredGuestName,
@@ -59,7 +61,9 @@ export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactEleme
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [proposeOpen, setProposeOpen] = useState(false);
-  const [proposeAt, setProposeAt] = useState(() => new Date(Date.now() + DEFAULT_PROPOSE_OFFSET_MS));
+  const [proposeAt, setProposeAt] = useState(() =>
+    roundDate(new Date(Date.now() + DEFAULT_PROPOSE_OFFSET_MS)),
+  );
   const [voted, setVoted] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -193,6 +197,19 @@ export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactEleme
           {event.ownerName} picked a time:{' '}
           <Text className="font-semibold">{formatTimeslotWithTimezone(event.decidedStartTime)}</Text>
         </Text>
+        <View className="mt-6">
+          <AddToCalendarButton
+            event={{
+              title: event.title,
+              startTimeMs: event.decidedStartTime,
+              notes:
+                event.description != null && event.description.length > 0
+                  ? event.description
+                  : undefined,
+            }}
+            eventId={eventId}
+          />
+        </View>
       </ScrollView>
     );
   }
@@ -322,7 +339,7 @@ export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactEleme
             onPress={() => {
               setProposeOpen((open) => {
                 if (!open) {
-                  setProposeAt(new Date(Date.now() + DEFAULT_PROPOSE_OFFSET_MS));
+                  setProposeAt(roundDate(new Date(Date.now() + DEFAULT_PROPOSE_OFFSET_MS)));
                 }
                 return !open;
               });
@@ -348,10 +365,11 @@ export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactEleme
                 <DateTimePicker
                   value={proposeAt}
                   mode="datetime"
+                  minuteInterval={EVENT_TIME_MINUTE_INTERVAL}
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={(_, date) => {
                     if (date) {
-                      setProposeAt(date);
+                      setProposeAt(roundDate(date));
                     }
                   }}
                 />

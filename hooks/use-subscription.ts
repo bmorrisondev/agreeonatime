@@ -12,6 +12,9 @@ export interface SubscriptionState {
   readonly canCreateMore: boolean;
   readonly activeOpenCount: number;
   readonly maxActiveEvents: number | null;
+  /** Convex deployment allows dev Pro override (Settings toggle). */
+  readonly devProOverrideAvailable: boolean;
+  readonly devProOverride: boolean;
 }
 
 /**
@@ -29,6 +32,8 @@ export function useSubscription(): SubscriptionState {
   const canCreateMore = eligibility?.canCreateMore ?? isPro;
   const activeOpenCount = eligibility?.activeOpenCount ?? 0;
   const maxActiveEvents = eligibility?.maxActiveEvents ?? (isPro ? null : FREE_MAX_ACTIVE_OPEN_EVENTS);
+  const devProOverrideAvailable = eligibility?.devProOverrideAvailable ?? false;
+  const devProOverride = eligibility?.devProOverride ?? false;
 
   return {
     isPro,
@@ -36,5 +41,7 @@ export function useSubscription(): SubscriptionState {
     canCreateMore,
     activeOpenCount,
     maxActiveEvents,
+    devProOverrideAvailable,
+    devProOverride,
   };
 }

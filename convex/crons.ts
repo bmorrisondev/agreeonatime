@@ -12,4 +12,11 @@ crons.interval(
   {},
 );
 
+crons.interval(
+  'invitee-reminder-sweep',
+  { minutes: 15 },
+  internal.reminderEmails.inviteeReminderSweep,
+  {},
+);
+
 export default crons;
