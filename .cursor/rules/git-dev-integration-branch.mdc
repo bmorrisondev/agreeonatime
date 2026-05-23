@@ -1,0 +1,36 @@
+---
+description: Use dev as the integration branch between feature work and main
+alwaysApply: true
+---
+
+# Dev integration branch
+
+**`dev`** is the required intermediary between task branches and **`main`**.
+
+```
+task branch → dev (CI / early prod) → main (stable release)
+```
+
+## Pull requests
+
+- **Always** open feature/fix PRs with base **`dev`**, not `main`.
+- Use `gh pr create --base dev` (or retarget with `gh pr edit <n> --base dev`).
+- PRs to **`main`** are only for promoting **`dev`** (release/integration) or when the user explicitly requests a hotfix directly to `main`.
+
+## Branching
+
+- Create task branches from an up-to-date **`dev`**: `git fetch origin && git checkout dev && git pull origin dev --ff-only`, then `git checkout -b feature/...`.
+- Before `git worktree add`, sync **`dev`** the same way (not `main`) unless the user specifies another base.
+
+## Keeping dev current
+
+- When **`main`** moves ahead (release, hotfix), fast-forward or merge **`main`** into **`dev`** so the integration branch does not drift.
+- Do not force-push **`dev`** without the user’s OK.
+
+## CI / deploy
+
+- Point preview/staging CI at **`dev`** so merged features ship early before **`main`** promotion.
+
+## Linear alignment
+
+- When a PR exists targeting **`dev`**, Linear issue status **Needs Review** still applies per `.cursor/rules/linear-github-pr-status.mdc`.

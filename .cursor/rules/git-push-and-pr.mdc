@@ -1,17 +1,19 @@
 ---
-description: After task-branch work, push to origin and open a PR to main
+description: After task-branch work, push to origin and open a PR to dev
 alwaysApply: true
 ---
 
 # Push and pull request workflow
 
-Applies whenever you complete **substantive** work on a **task branch** (not `main` / default integration branch), unless the user explicitly asked for local-only or no-PR delivery.
+Applies whenever you complete **substantive** work on a **task branch** (not `dev` / `main`), unless the user explicitly asked for local-only or no-PR delivery.
+
+See `.cursor/rules/git-dev-integration-branch.mdc` — feature PRs **always** target **`dev`**, not `main`.
 
 ## Required steps
 
 1. **Inspect git:** Run `git status` and `git log origin/$(git branch --show-current)..HEAD 2>/dev/null || git log @{u}..HEAD 2>/dev/null` (or equivalent) to see if there are **commits** not yet on the remote.
 2. **Push:** If the branch is ahead of its upstream (or has no upstream and has local commits), run `git push -u origin HEAD` (first time) or `git push`. Resolve auth errors; do not force-push to shared branches except when the user explicitly requests a safe force (e.g. lease).
-3. **Open a PR:** If no PR exists for this branch, run `gh pr create --base main` (or the repo’s default integration branch) with a clear title and body. Include the Linear id (e.g. **DEV-387**) and link when the work maps to Linear. Prefer `gh pr view` / `gh pr list --head $(git branch --show-current)` to avoid duplicates.
+3. **Open a PR:** If no PR exists for this branch, run `gh pr create --base dev` with a clear title and body. Include the Linear id (e.g. **DEV-387**) and link when the work maps to Linear. Prefer `gh pr view` / `gh pr list --head $(git branch --show-current)` to avoid duplicates.
 4. **If `gh` is missing or fails:** Paste the exact `git push` and GitHub “compare & PR” URL instructions so the user can finish in one step.
 
 ## When there is nothing to push
