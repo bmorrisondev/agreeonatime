@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DsButton } from '@/components/design-system/button';
 import { DsModal } from '@/components/design-system/modal-sheet';
 import { DsToast } from '@/components/design-system';
+import { AddToCalendarButton } from '@/components/events/add-to-calendar-button';
 import { InviteeEventView } from '@/components/events/invitee-event-view';
 import { VoteBar } from '@/components/events/vote-bar';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
@@ -216,9 +217,25 @@ export default function EventDetailScreen(): ReactElement {
         </Text>
 
         {event.status === 'decided' && event.decidedStartTime != null ? (
-          <Text className="mt-2 text-base text-neutral-800 dark:text-neutral-200">
-            {formatDecidedTime(event.decidedStartTime)}
-          </Text>
+          <>
+            <Text className="mt-2 text-base text-neutral-800 dark:text-neutral-200">
+              {formatDecidedTime(event.decidedStartTime)}
+            </Text>
+            <View className="mt-4">
+              <AddToCalendarButton
+                event={{
+                  title: event.title,
+                  startTimeMs: event.decidedStartTime,
+                  notes:
+                    event.description != null && event.description.length > 0
+                      ? event.description
+                      : undefined,
+                }}
+                eventId={event._id}
+                variant="secondary"
+              />
+            </View>
+          </>
         ) : null}
 
         {historyLocked ? (
