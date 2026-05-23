@@ -14,6 +14,7 @@ import { makeFunctionReference } from 'convex/server';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AddToCalendarButton } from '@/components/events/add-to-calendar-button';
 import { VoteBar } from '@/components/events/vote-bar';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { formatVoteYesNoLabel, formatVotesForTimeLabel } from '@/lib/accessibility/vote-controls';
@@ -193,6 +194,19 @@ export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactEleme
           {event.ownerName} picked a time:{' '}
           <Text className="font-semibold">{formatTimeslotWithTimezone(event.decidedStartTime)}</Text>
         </Text>
+        <View className="mt-6">
+          <AddToCalendarButton
+            event={{
+              title: event.title,
+              startTimeMs: event.decidedStartTime,
+              notes:
+                event.description != null && event.description.length > 0
+                  ? event.description
+                  : undefined,
+            }}
+            eventId={eventId}
+          />
+        </View>
       </ScrollView>
     );
   }

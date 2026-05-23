@@ -126,6 +126,20 @@ export const strings = {
   pick_time_back_a11y: 'Back to event',
   pick_time_loading_a11y: 'Loading event',
 
+  decided_title: 'Event decided',
+  decided_subtitle: 'Share the good news — and add it to your calendar so you do not forget.',
+  decided_time_line: 'Time: {{time}}',
+  decided_back_a11y: 'Back to event',
+  decided_back: 'Back to event',
+  decided_share_a11y: 'Share voting link',
+  decided_share: 'Share link',
+
+  add_to_calendar: 'Add to Calendar',
+  add_to_calendar_a11y: 'Add this event to your calendar',
+  add_to_calendar_error_title: 'Could not open calendar',
+  add_to_calendar_error_body:
+    'Try again on your device, or add the event manually in your calendar app.',
+
   settings_title: 'Settings',
   settings_account_header: 'Account',
   settings_signOut: 'Sign out',
