@@ -3,6 +3,7 @@ import { ConvexError } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
+import { userHasDevProOverride } from './devProOverride';
 
 /** RevenueCat entitlement identifier — must match the dashboard. */
 export const PRO_ENTITLEMENT_ID = 'pro';
@@ -48,8 +49,14 @@ export function subscriptionLimitError(
   return new ConvexError({ code, message } satisfies SubscriptionLimitErrorPayload);
 }
 
-export function userHasPro(user: Pick<Doc<'users'>, 'proExpiresAt'>, nowMs: number = Date.now()): boolean {
-  return user.proExpiresAt != null && user.proExpiresAt > nowMs;
+export function userHasPro(
+  user: Pick<Doc<'users'>, 'proExpiresAt' | 'devProOverride'>,
+  nowMs: number = Date.now(),
+): boolean {
+  if (user.proExpiresAt != null && user.proExpiresAt > nowMs) {
+    return true;
+  }
+  return userHasDevProOverride(user);
 }
 
 export function voterKey(v: {

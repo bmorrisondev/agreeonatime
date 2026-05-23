@@ -12,6 +12,7 @@ import {
   loadRangeWindowsForEvent,
   rangeWindowsFromTimeslots,
 } from './availabilityGrid';
+import { roundTimeMs } from './timeRounding';
 import { assertCanAcceptNewVoter, voterKey } from './subscriptionLimits';
 import { betterAuthUserIdString } from './users';
 
@@ -353,11 +354,12 @@ export const proposeGuestTimeslot = mutation({
     if (!event.allowInviteeProposals) {
       throw new ConvexError('The host has turned off new time proposals');
     }
+    const startTime = roundTimeMs(args.startTime);
     const now = Date.now();
     if (now > event.deadline) {
       throw new ConvexError('The voting deadline has passed');
     }
-    if (args.startTime <= now) {
+    if (startTime <= now) {
       throw new ConvexError('Pick a time in the future');
     }
 
@@ -371,7 +373,7 @@ export const proposeGuestTimeslot = mutation({
 
     await ctx.db.insert('timeslots', {
       eventId: event._id,
-      startTime: args.startTime,
+      startTime,
       proposedByGuestName: name,
       proposedByGuestSessionId: session,
       approvalStatus: 'pending',

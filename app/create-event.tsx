@@ -30,6 +30,7 @@ import {
   validateRangeEventForm,
 } from '@/lib/events/range-event-form';
 import type { RangeWindow } from '@/lib/availability/grid';
+import { EVENT_TIME_MINUTE_INTERVAL, roundTimeMs } from '@/lib/events/time-rounding';
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
@@ -59,6 +60,7 @@ export default function CreateEventScreen(): ReactElement {
   const [rangeWindows, setRangeWindows] = useState<RangeWindow[]>(rangeDefaults.rangeWindows);
   const [deadline, setDeadline] = useState(defaults.deadline);
   const [allowInviteeProposals, setAllowInviteeProposals] = useState(true);
+  const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [picker, setPicker] = useState<PickerTarget | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +88,26 @@ export default function CreateEventScreen(): ReactElement {
     [openPaywall, rangeDefaults, subscription.isLoaded, subscription.isPro],
   );
 
+  useEffect(() => {
+    if (subscription.isLoaded && subscription.isPro) {
+      setRemindersEnabled(true);
+    }
+    if (subscription.isLoaded && !subscription.isPro) {
+      setRemindersEnabled(false);
+    }
+  }, [subscription.isLoaded, subscription.isPro]);
+
+  const onRemindersToggle = useCallback(
+    (next: boolean) => {
+      if (next && subscription.isLoaded && !subscription.isPro) {
+        openPaywall();
+        return;
+      }
+      setRemindersEnabled(next);
+    },
+    [openPaywall, subscription.isLoaded, subscription.isPro],
+  );
+
   const pickerValue = useMemo(() => {
     if (picker == null) {
       return new Date(0);
@@ -106,12 +128,13 @@ export default function CreateEventScreen(): ReactElement {
       return;
     }
     const target = pickerRef.current;
+    const roundedMs = roundTimeMs(date.getTime());
     if (target?.kind === 'deadline') {
-      setDeadline(date.getTime());
+      setDeadline(roundedMs);
     } else if (target?.kind === 'slot') {
       setSlotStarts((rows) => {
         const next = [...rows];
-        next[target.index] = date.getTime();
+        next[target.index] = roundedMs;
         return next;
       });
     }
@@ -167,6 +190,7 @@ export default function CreateEventScreen(): ReactElement {
         timeslotStarts: slotStarts,
         deadline,
         allowInviteeProposals,
+        remindersEnabled: subscription.isPro ? remindersEnabled : false,
       });
       router.replace(`/event/${id}`);
     } catch (e: unknown) {
@@ -185,6 +209,7 @@ export default function CreateEventScreen(): ReactElement {
     description,
     openPaywall,
     rangeWindows,
+    remindersEnabled,
     schedulingMode,
     slotStarts,
     subscription.canCreateMore,
@@ -426,6 +451,22 @@ export default function CreateEventScreen(): ReactElement {
           </View>
         ) : null}
 
+        <View className="mb-6 flex-row items-center justify-between gap-3">
+          <View className="shrink">
+            <Text className="text-base text-neutral-900 dark:text-neutral-100">Automatic reminders</Text>
+            <Text className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+              Email invitees who have not voted 48h and 24h before the deadline. Agree+ only.
+            </Text>
+          </View>
+          <Switch
+            accessibilityLabel="Send automatic vote reminders to invitees"
+            disabled={submitting}
+            onValueChange={onRemindersToggle}
+            value={remindersEnabled}
+          />
+        </View>
+
+
         {picker != null && Platform.OS === 'ios' ? (
           <View className="mb-4">
             <View className="mb-2 flex-row justify-end">
@@ -442,6 +483,7 @@ export default function CreateEventScreen(): ReactElement {
             </View>
             <DateTimePicker
               display="spinner"
+              minuteInterval={EVENT_TIME_MINUTE_INTERVAL}
               mode="datetime"
               themeVariant={colorScheme === 'dark' ? 'dark' : 'light'}
               value={pickerValue}
@@ -453,6 +495,7 @@ export default function CreateEventScreen(): ReactElement {
         {picker != null && Platform.OS === 'android' ? (
           <DateTimePicker
             display="default"
+            minuteInterval={EVENT_TIME_MINUTE_INTERVAL}
             mode="datetime"
             themeVariant={colorScheme === 'dark' ? 'dark' : 'light'}
             value={pickerValue}

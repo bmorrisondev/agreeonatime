@@ -22,9 +22,11 @@ import {
   assertCanCreateActiveEvent,
   assertCanUseAvailabilityGrid,
   isHistoryLocked,
+  userHasPro,
   voterKey,
 } from './subscriptionLimits';
 import { ensureAppUserIdForAuthUser, betterAuthUserIdString } from './users';
+import { roundTimeMs } from './timeRounding';
 
 function randomShareTokenHex(): string {
   const bytes = new Uint8Array(24);
@@ -179,6 +181,7 @@ export const create = mutation({
     rangeWindows: v.optional(v.array(rangeWindowValidator)),
     deadline: v.number(),
     allowInviteeProposals: v.boolean(),
+    remindersEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<Id<'events'>> => {
     const authUser = await authComponent.safeGetAuthUser(ctx);
@@ -188,19 +191,38 @@ export const create = mutation({
     const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
     await assertCanCreateActiveEvent(ctx, userId);
 
+    const owner = await ctx.db.get(userId);
+    if (owner == null) {
+      throw new ConvexError('Account not found — try signing in again.');
+    }
+    const isPro = userHasPro(owner);
+
     const title = args.title.trim();
     if (title.length === 0) {
       throw new ConvexError('Title is required');
     }
 
     const mode = args.schedulingMode ?? 'discrete';
+
     const now = Date.now();
-    if (args.deadline <= now) {
+    const deadline = roundTimeMs(args.deadline);
+    if (deadline <= now) {
       throw new ConvexError('Voting deadline must be in the future');
     }
 
+
     const descRaw = args.description?.trim();
     const description = descRaw != null && descRaw.length > 0 ? descRaw : undefined;
+
+    let remindersEnabled = isPro;
+    if (args.remindersEnabled === true) {
+      if (!isPro) {
+        throw new ConvexError('Automatic reminders require Agree+');
+      }
+      remindersEnabled = true;
+    } else if (args.remindersEnabled === false) {
+      remindersEnabled = false;
+    }
 
     const shareToken = await uniqueShareToken(ctx);
     const createdAt = now;
@@ -235,8 +257,9 @@ export const create = mutation({
         description,
         status: 'open',
         schedulingMode: 'range',
-        deadline: args.deadline,
+        deadline,
         allowInviteeProposals: false,
+        remindersEnabled,
         createdAt,
         shareToken,
       });
@@ -256,12 +279,12 @@ export const create = mutation({
       return eventId;
     }
 
-    const starts = args.timeslotStarts ?? [];
+    const starts = (args.timeslotStarts ?? []).map((startTime) => roundTimeMs(startTime));
     if (starts.length < 2 || starts.length > 20) {
       throw new ConvexError('Add between 2 and 20 proposed times');
     }
     const latestSlot = Math.max(...starts);
-    if (args.deadline >= latestSlot) {
+    if (deadline >= latestSlot) {
       throw new ConvexError('Voting deadline must be before the latest proposed time');
     }
 
@@ -271,8 +294,9 @@ export const create = mutation({
       description,
       status: 'open',
       schedulingMode: 'discrete',
-      deadline: args.deadline,
+      deadline,
       allowInviteeProposals: args.allowInviteeProposals,
+      remindersEnabled,
       createdAt,
       shareToken,
     });
@@ -822,11 +846,12 @@ export const proposeTimeslot = mutation({
     if (!event.allowInviteeProposals) {
       throw new ConvexError('This event does not accept new time proposals');
     }
+    const startTime = roundTimeMs(args.startTime);
     const now = Date.now();
     if (now > event.deadline) {
       throw new ConvexError('The voting deadline has passed');
     }
-    if (args.startTime <= now) {
+    if (startTime <= now) {
       throw new ConvexError('Proposed time must be in the future');
     }
 
@@ -838,7 +863,7 @@ export const proposeTimeslot = mutation({
 
     const slotId = await ctx.db.insert('timeslots', {
       eventId: args.eventId,
-      startTime: args.startTime,
+      startTime,
       proposedBy,
       approvalStatus: 'pending',
       createdAt: now,
@@ -846,7 +871,7 @@ export const proposeTimeslot = mutation({
 
     await ctx.scheduler.runAfter(0, internal.notifications.notifyOwnerOfProposal, {
       eventId: args.eventId,
-      timeslotStart: args.startTime,
+      timeslotStart: startTime,
     });
 
     return slotId;

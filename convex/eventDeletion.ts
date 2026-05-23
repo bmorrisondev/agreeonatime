@@ -38,5 +38,31 @@ export async function deleteEventAndDependents(
     }
   }
 
+  while (true) {
+    const invitees = await ctx.db
+      .query('eventInvitees')
+      .withIndex('by_event', (q) => q.eq('eventId', eventId))
+      .take(BATCH_SIZE);
+    if (invitees.length === 0) {
+      break;
+    }
+    for (const invitee of invitees) {
+      await ctx.db.delete(invitee._id);
+    }
+  }
+
+  while (true) {
+    const unsubscribes = await ctx.db
+      .query('emailUnsubscribes')
+      .withIndex('by_event', (q) => q.eq('eventId', eventId))
+      .take(BATCH_SIZE);
+    if (unsubscribes.length === 0) {
+      break;
+    }
+    for (const row of unsubscribes) {
+      await ctx.db.delete(row._id);
+    }
+  }
+
   await ctx.db.delete(eventId);
 }
