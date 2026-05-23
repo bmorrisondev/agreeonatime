@@ -11,6 +11,7 @@ import {
   assertCanAcceptNewVoter,
   assertCanCreateActiveEvent,
   isHistoryLocked,
+  userHasPro,
   voterKey,
 } from './subscriptionLimits';
 import { ensureAppUserIdForAuthUser, betterAuthUserIdString } from './users';
@@ -165,6 +166,7 @@ export const create = mutation({
     timeslotStarts: v.array(v.number()),
     deadline: v.number(),
     allowInviteeProposals: v.boolean(),
+    remindersEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<Id<'events'>> => {
     const authUser = await authComponent.safeGetAuthUser(ctx);
@@ -173,6 +175,12 @@ export const create = mutation({
     }
     const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
     await assertCanCreateActiveEvent(ctx, userId);
+
+    const owner = await ctx.db.get(userId);
+    if (owner == null) {
+      throw new ConvexError('Account not found — try signing in again.');
+    }
+    const isPro = userHasPro(owner);
 
     const title = args.title.trim();
     if (title.length === 0) {
@@ -196,6 +204,16 @@ export const create = mutation({
     const descRaw = args.description?.trim();
     const description = descRaw != null && descRaw.length > 0 ? descRaw : undefined;
 
+    let remindersEnabled = isPro;
+    if (args.remindersEnabled === true) {
+      if (!isPro) {
+        throw new ConvexError('Automatic reminders require Agree+');
+      }
+      remindersEnabled = true;
+    } else if (args.remindersEnabled === false) {
+      remindersEnabled = false;
+    }
+
     const shareToken = await uniqueShareToken(ctx);
     const createdAt = now;
     const eventId = await ctx.db.insert('events', {
@@ -205,6 +223,7 @@ export const create = mutation({
       status: 'open',
       deadline: args.deadline,
       allowInviteeProposals: args.allowInviteeProposals,
+      remindersEnabled,
       createdAt,
       shareToken,
     });

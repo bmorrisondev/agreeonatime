@@ -34,9 +34,37 @@ export default defineSchema({
     /** Notification tracking — set by cron after sending (DEV-391). */
     deadlineReminderSent: v.optional(v.boolean()),
     deadlineReachedSent: v.optional(v.boolean()),
+    /** Agree+ automatic invitee reminders (DEV-435). */
+    remindersEnabled: v.optional(v.boolean()),
+    remindersSent: v.optional(
+      v.object({
+        h48: v.optional(v.boolean()),
+        h24: v.optional(v.boolean()),
+      }),
+    ),
   })
     .index('by_share_token', ['shareToken'])
-    .index('by_owner', ['ownerId']),
+    .index('by_owner', ['ownerId'])
+    .index('by_status_and_deadline', ['status', 'deadline']),
+
+  eventInvitees: defineTable({
+    eventId: v.id('events'),
+    email: v.string(),
+    name: v.optional(v.string()),
+    voterUserId: v.optional(v.id('users')),
+    voterSessionId: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index('by_event', ['eventId'])
+    .index('by_event_and_email', ['eventId', 'email']),
+
+  emailUnsubscribes: defineTable({
+    email: v.string(),
+    eventId: v.id('events'),
+    createdAt: v.number(),
+  })
+    .index('by_email_and_event', ['email', 'eventId'])
+    .index('by_event', ['eventId']),
 
   timeslots: defineTable({
     eventId: v.id('events'),
