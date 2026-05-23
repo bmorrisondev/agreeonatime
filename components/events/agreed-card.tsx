@@ -68,18 +68,19 @@ export const AgreedCard = forwardRef<ViewType, AgreedCardProps>(function AgreedC
           {t('agreed_card_headline')}
         </Text>
 
-        <Text
-          numberOfLines={4}
-          style={{
-            marginTop: 12,
-            fontSize: 32,
-            lineHeight: 38,
-            fontWeight: '800',
-            color: '#171717',
-          }}
-        >
-          {title}
-        </Text>
+        <View style={{ marginTop: 12, overflow: 'visible' as const }}>
+          <Text
+            style={{
+              fontSize: 32,
+              lineHeight: 44,
+              fontWeight: '800',
+              color: '#171717',
+              paddingTop: 4,
+            }}
+          >
+            {title}
+          </Text>
+        </View>
 
         <View
           style={{

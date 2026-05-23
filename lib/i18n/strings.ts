@@ -128,9 +128,10 @@ export const strings = {
 
   decided_badge: 'Agreed',
   decided_title: 'Time locked in',
-  decided_subtitle: 'Share a card with your group — and add it to your calendar so you do not forget.',
+  decided_subtitle: 'Share this card with your group — or add it to your calendar.',
   decided_share_news: 'Share the news',
   decided_share_news_a11y: 'Share an image card with the agreed time',
+  decided_card_preview_a11y: 'Share card preview for {{title}} on {{time}}',
   decided_done: 'Done',
   decided_done_a11y: 'Done, go to event details',
   decided_not_ready: 'This event is not finalized yet.',
@@ -148,6 +149,8 @@ export const strings = {
   agreed_share_copied_body: 'Share message copied to clipboard.',
   agreed_share_error_title: 'Could not share',
   agreed_share_error_body: 'Try again in a moment.',
+  agreed_share_download_title: 'Image saved',
+  agreed_share_download_body: 'Your share card was downloaded. You can attach it in Messages or email.',
 
   add_to_calendar: 'Add to Calendar',
   add_to_calendar_a11y: 'Add this event to your calendar',

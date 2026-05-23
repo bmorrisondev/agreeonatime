@@ -14,9 +14,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddToCalendarButton } from '@/components/events/add-to-calendar-button';
-import { AgreedCardShareHost } from '@/components/events/agreed-card-share-host';
+import { AgreedCardPreview } from '@/components/events/agreed-card-preview';
 import { isConvexConfigured } from '@/lib/convex/client';
-import { formatAgreedCardTime } from '@/lib/events/format-agreed-card-time';
 import { shareAgreedCard } from '@/lib/events/share-agreed-card';
 import { t } from '@/lib/i18n/t';
 
@@ -133,73 +132,57 @@ export default function EventDecidedScreen(): ReactElement {
     );
   }
 
-  const whenLabel = formatAgreedCardTime(decidedStartTimeMs);
   const description =
     typeof event.description === 'string' && event.description.length > 0
       ? event.description
       : undefined;
 
   return (
-    <View className="relative flex-1 bg-white dark:bg-black">
-      <AgreedCardShareHost
+    <ScrollView
+      className="flex-1 bg-white dark:bg-black"
+      contentContainerStyle={{
+        padding: 16,
+        paddingTop: 12,
+        paddingBottom: insets.bottom + 24,
+        flexGrow: 1,
+      }}
+    >
+      <Text
+        allowFontScaling
+        className="text-center text-sm font-bold uppercase tracking-wider text-brand"
+        maxFontSizeMultiplier={2}
+      >
+        {t('decided_badge')}
+      </Text>
+      <Text
+        allowFontScaling
+        accessibilityRole="header"
+        className="mt-3 text-center text-2xl font-bold text-neutral-900 dark:text-neutral-100"
+        maxFontSizeMultiplier={2}
+      >
+        {t('decided_title')}
+      </Text>
+      <Text
+        allowFontScaling
+        className="mt-2 text-center text-sm text-neutral-600 dark:text-neutral-400"
+        maxFontSizeMultiplier={2}
+      >
+        {t('decided_subtitle')}
+      </Text>
+
+      <AgreedCardPreview
         cardRef={cardRef}
         title={event.title}
         decidedStartTimeMs={decidedStartTimeMs}
       />
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          padding: 16,
-          paddingTop: 12,
-          paddingBottom: insets.bottom + 24,
-          flexGrow: 1,
-          justifyContent: 'center',
-        }}
-      >
-        <Text
-          allowFontScaling
-          className="text-center text-sm font-bold uppercase tracking-wider text-brand"
-          maxFontSizeMultiplier={2}
-        >
-          {t('decided_badge')}
-        </Text>
-        <Text
-          allowFontScaling
-          accessibilityRole="header"
-          className="mt-3 text-center text-2xl font-bold text-neutral-900 dark:text-neutral-100"
-          maxFontSizeMultiplier={2}
-        >
-          {t('decided_title')}
-        </Text>
-        <Text
-          allowFontScaling
-          className="mt-2 text-center text-lg font-semibold text-neutral-900 dark:text-neutral-100"
-          maxFontSizeMultiplier={2}
-        >
-          {event.title}
-        </Text>
-        <Text
-          allowFontScaling
-          className="mt-2 text-center text-base text-neutral-600 dark:text-neutral-400"
-          maxFontSizeMultiplier={2}
-        >
-          {whenLabel}
-        </Text>
-        <Text
-          allowFontScaling
-          className="mt-4 text-center text-sm text-neutral-600 dark:text-neutral-400"
-          maxFontSizeMultiplier={2}
-        >
-          {t('decided_subtitle')}
-        </Text>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('decided_share_news_a11y')}
-          disabled={sharing}
-          className="mt-10 min-h-[44px] items-center justify-center rounded-lg bg-brand active:opacity-90 disabled:opacity-50"
-          onPress={() => void onShare()}
-        >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('decided_share_news_a11y')}
+        disabled={sharing}
+        className="mt-8 min-h-[44px] items-center justify-center rounded-lg bg-brand active:opacity-90 disabled:opacity-50"
+        onPress={() => void onShare()}
+      >
           {sharing ? (
             <ActivityIndicator color="#fff" accessibilityLabel={t('a11y_loading')} />
           ) : (
@@ -231,7 +214,6 @@ export default function EventDecidedScreen(): ReactElement {
             {t('decided_done')}
           </Text>
         </Pressable>
-      </ScrollView>
-    </View>
+    </ScrollView>
   );
 }
