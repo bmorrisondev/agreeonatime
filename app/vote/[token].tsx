@@ -36,6 +36,7 @@ import {
   setStoredGuestName,
 } from '@/lib/guest/voter-session';
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
+import { EVENT_TIME_MINUTE_INTERVAL, roundDate } from '@/lib/events/time-rounding';
 
 const APP_STORE_URL = `https://apps.apple.com/app/agree-on-a-time/id${APP_STORE_APP_ID}`;
 
@@ -73,7 +74,9 @@ export default function VoteByTokenScreen(): ReactElement {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [proposeOpen, setProposeOpen] = useState(false);
-  const [proposeAt, setProposeAt] = useState(() => new Date(Date.now() + DEFAULT_PROPOSE_OFFSET_MS));
+  const [proposeAt, setProposeAt] = useState(() =>
+    roundDate(new Date(Date.now() + DEFAULT_PROPOSE_OFFSET_MS)),
+  );
   const [voted, setVoted] = useState(false);
   const [myVotes, setMyVotes] = useState<Record<string, 'yes' | 'no'>>({});
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -429,7 +432,7 @@ export default function VoteByTokenScreen(): ReactElement {
             onPress={() => {
               setProposeOpen((open) => {
                 if (!open) {
-                  setProposeAt(new Date(Date.now() + DEFAULT_PROPOSE_OFFSET_MS));
+                  setProposeAt(roundDate(new Date(Date.now() + DEFAULT_PROPOSE_OFFSET_MS)));
                 }
                 return !open;
               });
@@ -455,10 +458,11 @@ export default function VoteByTokenScreen(): ReactElement {
                 <DateTimePicker
                   value={proposeAt}
                   mode="datetime"
+                  minuteInterval={EVENT_TIME_MINUTE_INTERVAL}
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={(_, date) => {
                     if (date) {
-                      setProposeAt(date);
+                      setProposeAt(roundDate(date));
                     }
                   }}
                 />
