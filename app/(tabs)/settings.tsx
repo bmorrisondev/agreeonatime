@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Platform,
   ScrollView,
@@ -29,6 +30,9 @@ import { resetOnboardingForManualPreview } from '@/lib/onboarding/onboarding-sto
 
 const getCurrentUserQuery = makeFunctionReference<'query'>('users:getCurrentUser');
 const deleteAccountMutation = makeFunctionReference<'mutation'>('users:deleteAccount');
+const sendTestReminderEmailMutation = makeFunctionReference<'mutation'>(
+  'reminderEmails:sendTestReminderEmail',
+);
 
 const MARKETING_BASE = 'https://agreeonatime.com';
 const FEATUREBASE_URL = 'https://agreeonatime.featurebase.app';
@@ -51,11 +55,13 @@ export default function SettingsTabScreen(): ReactElement {
   const insets = useSafeAreaInsets();
   const user = useQuery(getCurrentUserQuery);
   const deleteAccount = useMutation(deleteAccountMutation);
+  const sendTestReminderEmail = useMutation(sendTestReminderEmailMutation);
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [onboardingSheetVisible, setOnboardingSheetVisible] = useState(false);
+  const [sendingTestReminder, setSendingTestReminder] = useState(false);
   const showDevTools = isDevToolsEnabled();
 
   const version = Constants.expoConfig?.version ?? '0.0.0';
@@ -97,6 +103,30 @@ export default function SettingsTabScreen(): ReactElement {
     setOnboardingSheetVisible(false);
     router.push('/sign-in');
   }, []);
+
+  const handleSendTestReminderEmail = useCallback(async () => {
+    if (user == null) {
+      Alert.alert(t('settings_test_reminder_sign_in_title'), t('settings_test_reminder_sign_in_body'));
+      return;
+    }
+    setSendingTestReminder(true);
+    try {
+      const result = await sendTestReminderEmail({ kind: '24h' });
+      Alert.alert(
+        t('settings_test_reminder_sent_title'),
+        t('settings_test_reminder_sent_body', {
+          email: result.toEmail,
+          event: result.eventTitle,
+        }),
+      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : t('settings_test_reminder_error_body');
+      Alert.alert(t('settings_test_reminder_error_title'), message);
+    } finally {
+      setSendingTestReminder(false);
+    }
+  }, [sendTestReminderEmail, user]);
 
   return (
     <View className="flex-1 bg-white dark:bg-black">
@@ -190,6 +220,19 @@ export default function SettingsTabScreen(): ReactElement {
               accessibilityLabel={t('settings_reset_onboarding_a11y')}
               onPress={() => {
                 resetOnboardingForManualPreview();
+              }}
+            />
+            <DsListItem
+              title={t('settings_test_reminder_email')}
+              subtitle={t('settings_test_reminder_email_subtitle')}
+              accessibilityLabel={t('settings_test_reminder_email_a11y')}
+              rightAccessory={
+                sendingTestReminder ? <ActivityIndicator accessibilityLabel={t('a11y_loading')} /> : undefined
+              }
+              onPress={() => {
+                if (!sendingTestReminder) {
+                  void handleSendTestReminderEmail();
+                }
               }}
             />
           </View>

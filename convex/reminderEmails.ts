@@ -1,10 +1,9 @@
 // @ts-nocheck — Run `pnpm convex:dev` for generated types.
-import { v } from 'convex/values';
-
+import { ConvexError, v } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { internal } from './_generated/api';
-import { internalAction, internalMutation } from './_generated/server';
-
+import { internalAction, internalMutation, mutation } from './_generated/server';
+import { authComponent } from './auth';
 import { hasInviteeVoted } from './eventInvitees';
 import {
   buildReminderUnsubscribeUrl,
@@ -17,6 +16,13 @@ const REMINDER_48H_MS = 48 * HOUR_MS;
 const REMINDER_24H_MS = 24 * HOUR_MS;
 
 type ReminderKind = '48h' | '24h';
+
+function assertDevReminderTestEnabled(): void {
+  const enabled = process.env.DEV_REMINDER_TEST_ENABLED?.trim().toLowerCase();
+  if (enabled !== 'true' && enabled !== '1') {
+    throw new ConvexError('Test reminder emails are disabled on this deployment.');
+  }
+}
 
 function buildVoteUrl(shareToken: string): string {
   const site = process.env.SITE_URL?.split(',')[0]?.trim() ?? 'https://app.agreeonatime.com';
@@ -89,7 +95,7 @@ export const sendInviteeReminderEmail = internalAction({
     shareToken: v.string(),
     kind: v.union(v.literal('48h'), v.literal('24h')),
     inviteeName: v.optional(v.string()),
-    eventId: v.id('events'),
+    eventId: v.optional(v.id('events')),
   },
   handler: async (_ctx, args) => {
     const apiKey = process.env.RESEND_API_KEY;
@@ -107,7 +113,10 @@ export const sendInviteeReminderEmail = internalAction({
     const voteUrl = buildVoteUrl(args.shareToken);
     const deadlineLabel = formatDeadlineUtc(args.deadline);
     const greeting = args.inviteeName != null && args.inviteeName.length > 0 ? args.inviteeName : 'there';
-    const unsubscribeToken = await createReminderUnsubscribeToken(toEmail, args.eventId);
+    const unsubscribeToken =
+      args.eventId != null
+        ? await createReminderUnsubscribeToken(toEmail, args.eventId)
+        : null;
     const unsubscribeLine =
       unsubscribeToken != null
         ? `<p style="font-size:12px;color:#8884AA;margin-top:24px"><a href="${escapeHtml(buildReminderUnsubscribeUrl(unsubscribeToken))}" style="color:#8884AA">Unsubscribe from reminders for this event</a></p>`
@@ -140,6 +149,76 @@ ${unsubscribeLine}
       const text = await res.text();
       console.error('[notify] Resend invitee reminder failed:', res.status, text);
     }
+  },
+});
+
+/** Developer-only: send a sample invitee reminder to the signed-in user's email. */
+export const sendTestReminderEmail = mutation({
+  args: {
+    kind: v.optional(v.union(v.literal('48h'), v.literal('24h'))),
+  },
+  handler: async (ctx, args) => {
+    assertDevReminderTestEnabled();
+
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (authUser == null) {
+      throw new ConvexError('Sign in to send a test reminder.');
+    }
+    const toEmail = typeof authUser.email === 'string' ? authUser.email.trim() : '';
+    if (toEmail.length === 0) {
+      throw new ConvexError('Your account has no email address.');
+    }
+
+    const authId =
+      typeof authUser.id === 'string'
+        ? authUser.id
+        : typeof authUser._id === 'string'
+          ? authUser._id
+          : null;
+    if (authId == null) {
+      throw new ConvexError('Account id missing.');
+    }
+
+    const appUser = await ctx.db
+      .query('users')
+      .withIndex('by_auth_user', (q) => q.eq('authUserId', authId))
+      .unique();
+
+    const kind: ReminderKind = args.kind ?? '24h';
+    let eventTitle = 'Dev reminder test';
+    let deadline = Date.now() + REMINDER_24H_MS;
+    let shareToken = 'dev-test';
+    let eventId: Doc<'events'>['_id'] | undefined;
+
+    if (appUser != null) {
+      const ownedEvents = await ctx.db
+        .query('events')
+        .withIndex('by_owner', (q) => q.eq('ownerId', appUser._id))
+        .order('desc')
+        .take(1);
+      const sample = ownedEvents[0];
+      if (sample != null) {
+        eventTitle = sample.title;
+        deadline = sample.deadline;
+        shareToken = sample.shareToken;
+        eventId = sample._id;
+      }
+    }
+
+    const inviteeName =
+      typeof authUser.name === 'string' && authUser.name.length > 0 ? authUser.name : undefined;
+
+    await ctx.scheduler.runAfter(0, internal.reminderEmails.sendInviteeReminderEmail, {
+      toEmail,
+      eventTitle,
+      deadline,
+      shareToken,
+      kind,
+      inviteeName,
+      eventId,
+    });
+
+    return { toEmail, kind, eventTitle };
   },
 });
 
