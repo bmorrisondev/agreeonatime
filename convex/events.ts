@@ -15,6 +15,7 @@ import {
   voterKey,
 } from './subscriptionLimits';
 import { ensureAppUserIdForAuthUser, betterAuthUserIdString } from './users';
+import { roundTimeMs } from './timeRounding';
 
 function randomShareTokenHex(): string {
   const bytes = new Uint8Array(24);
@@ -187,17 +188,18 @@ export const create = mutation({
       throw new ConvexError('Title is required');
     }
 
-    const starts = args.timeslotStarts;
+    const starts = args.timeslotStarts.map((startTime) => roundTimeMs(startTime));
     if (starts.length < 2 || starts.length > 20) {
       throw new ConvexError('Add between 2 and 20 proposed times');
     }
 
     const now = Date.now();
-    if (args.deadline <= now) {
+    const deadline = roundTimeMs(args.deadline);
+    if (deadline <= now) {
       throw new ConvexError('Voting deadline must be in the future');
     }
     const latestSlot = Math.max(...starts);
-    if (args.deadline >= latestSlot) {
+    if (deadline >= latestSlot) {
       throw new ConvexError('Voting deadline must be before the latest proposed time');
     }
 
@@ -221,7 +223,7 @@ export const create = mutation({
       title,
       description,
       status: 'open',
-      deadline: args.deadline,
+      deadline,
       allowInviteeProposals: args.allowInviteeProposals,
       remindersEnabled,
       createdAt,
@@ -652,11 +654,12 @@ export const proposeTimeslot = mutation({
     if (!event.allowInviteeProposals) {
       throw new ConvexError('This event does not accept new time proposals');
     }
+    const startTime = roundTimeMs(args.startTime);
     const now = Date.now();
     if (now > event.deadline) {
       throw new ConvexError('The voting deadline has passed');
     }
-    if (args.startTime <= now) {
+    if (startTime <= now) {
       throw new ConvexError('Proposed time must be in the future');
     }
 
@@ -668,7 +671,7 @@ export const proposeTimeslot = mutation({
 
     const slotId = await ctx.db.insert('timeslots', {
       eventId: args.eventId,
-      startTime: args.startTime,
+      startTime,
       proposedBy,
       approvalStatus: 'pending',
       createdAt: now,
@@ -676,7 +679,7 @@ export const proposeTimeslot = mutation({
 
     await ctx.scheduler.runAfter(0, internal.notifications.notifyOwnerOfProposal, {
       eventId: args.eventId,
-      timeslotStart: args.startTime,
+      timeslotStart: startTime,
     });
 
     return slotId;

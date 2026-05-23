@@ -21,6 +21,7 @@ import type * as reminderUnsubscribe from "../reminderUnsubscribe.js";
 import type * as site_origins from "../site_origins.js";
 import type * as subscriptionLimits from "../subscriptionLimits.js";
 import type * as subscriptions from "../subscriptions.js";
+import type * as timeRounding from "../timeRounding.js";
 import type * as users from "../users.js";
 
 import type {
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   site_origins: typeof site_origins;
   subscriptionLimits: typeof subscriptionLimits;
   subscriptions: typeof subscriptions;
+  timeRounding: typeof timeRounding;
   users: typeof users;
 }>;
 
