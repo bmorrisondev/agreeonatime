@@ -126,6 +126,24 @@ export const strings = {
   pick_time_back_a11y: 'Back to event',
   pick_time_loading_a11y: 'Loading event',
 
+  decided_badge: 'Agreed',
+  decided_title: 'Time locked in',
+  decided_subtitle: 'Share a card with your group so everyone has the details.',
+  decided_share_news: 'Share the news',
+  decided_share_news_a11y: 'Share an image card with the agreed time',
+  decided_done: 'Done',
+  decided_done_a11y: 'Done, go to event details',
+  decided_not_ready: 'This event is not finalized yet.',
+  decided_share_icon_a11y: 'Share agreed time card',
+
+  agreed_card_headline: 'Agreed',
+  agreed_card_tagline: 'Agreed with Agree on a Time',
+
+  agreed_share_copied_title: 'Copied',
+  agreed_share_copied_body: 'Share message copied to clipboard.',
+  agreed_share_error_title: 'Could not share',
+  agreed_share_error_body: 'Try again in a moment.',
+
   settings_title: 'Settings',
   settings_account_header: 'Account',
   settings_signOut: 'Sign out',

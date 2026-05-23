@@ -73,15 +73,7 @@ export default function PickTimeScreen(): ReactElement {
     setSubmitting(true);
     try {
       await finalize({ eventId: id, timeslotId: effectiveSelection });
-      Alert.alert('Time locked in', 'Share with the group?', [
-        {
-          text: 'Back to event',
-          onPress: () => {
-            router.replace(`/event/${id}`);
-          },
-        },
-        { text: 'OK', onPress: () => router.replace(`/event/${id}`) },
-      ]);
+      router.replace(`/event/${id}/decided`);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Could not finalize';
       Alert.alert('Something went wrong', msg);
