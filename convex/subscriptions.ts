@@ -11,6 +11,7 @@ import {
 } from './_generated/server';
 
 import { authComponent } from './auth';
+import { isDevProOverrideDeploymentEnabled } from './devProOverride';
 import {
   countActiveEventsForOwner,
   FREE_MAX_ACTIVE_OPEN_EVENTS,
@@ -297,11 +298,15 @@ export const getCreateEligibility = query({
     const canCreateMore =
       isPro || activeOpenCount < FREE_MAX_ACTIVE_OPEN_EVENTS;
 
+    const devProOverrideAvailable = isDevProOverrideDeploymentEnabled();
+
     return {
       isPro,
       activeOpenCount,
       maxActiveEvents: isPro ? null : FREE_MAX_ACTIVE_OPEN_EVENTS,
       canCreateMore,
+      devProOverrideAvailable,
+      devProOverride: devProOverrideAvailable ? user.devProOverride === true : undefined,
     };
   },
 });
