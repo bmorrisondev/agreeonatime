@@ -1,6 +1,11 @@
 import type { ChangeEvent, CSSProperties, ReactElement } from 'react';
 import { createElement } from 'react';
 
+import {
+  EVENT_TIME_ROUNDING_MINUTES,
+  roundTimeMs,
+} from '@/lib/events/time-rounding';
+
 export function formatMsForDatetimeLocal(ms: number): string {
   const d = new Date(ms);
   const p = (n: number): string => String(n).padStart(2, '0');
@@ -33,7 +38,7 @@ export function WebDatetimeLocalInput(props: {
 }): ReactElement {
   return createElement('input', {
     type: 'datetime-local',
-    step: 60,
+    step: EVENT_TIME_ROUNDING_MINUTES * 60,
     'aria-label': props.accessibilityLabel,
     disabled: props.disabled,
     min: props.minMs != null ? formatMsForDatetimeLocal(props.minMs) : undefined,
@@ -41,7 +46,7 @@ export function WebDatetimeLocalInput(props: {
     onChange: (e: ChangeEvent<HTMLInputElement>) => {
       const ms = new Date(e.target.value).getTime();
       if (!Number.isNaN(ms)) {
-        props.onChangeMs(ms);
+        props.onChangeMs(roundTimeMs(ms));
       }
     },
     style: webDatetimeLocalStyle(props.colorScheme),
