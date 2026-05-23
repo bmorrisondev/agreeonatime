@@ -195,11 +195,6 @@ export const create = mutation({
     if (owner == null) {
       throw new ConvexError('Account not found — try signing in again.');
     }
-
-    const owner = await ctx.db.get(userId);
-    if (owner == null) {
-      throw new ConvexError('Account not found — try signing in again.');
-    }
     const isPro = userHasPro(owner);
 
     const title = args.title.trim();
