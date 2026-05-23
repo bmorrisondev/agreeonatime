@@ -21,6 +21,8 @@ import {
   getStoreProductPriceLabel,
   identifyUser,
   isPurchasesConfigured,
+  PRO_ANNUAL_USD_DISPLAY,
+  PRO_MONTHLY_USD_DISPLAY,
   purchaseProSubscription,
   restorePurchases,
   supportsPurchasesPlatform,
@@ -37,9 +39,8 @@ export interface PaywallModalProps {
 }
 
 interface PlanPrices {
-  readonly monthly: string | null;
-  readonly annual: string | null;
-  readonly annualAvailable: boolean;
+  readonly monthly: string;
+  readonly annual: string;
 }
 
 interface PlanOptionProps {
@@ -119,9 +120,8 @@ export function PaywallModal({ visible, onClose, onSubscribed }: PaywallModalPro
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prices, setPrices] = useState<PlanPrices>({
-    monthly: null,
-    annual: null,
-    annualAvailable: false,
+    monthly: PRO_MONTHLY_USD_DISPLAY,
+    annual: PRO_ANNUAL_USD_DISPLAY,
   });
   const [selectedPeriod, setSelectedPeriod] = useState<ProBillingPeriod>('annual');
 
@@ -129,7 +129,7 @@ export function PaywallModal({ visible, onClose, onSubscribed }: PaywallModalPro
 
   useEffect(() => {
     if (!visible || !canPurchase) {
-      setPrices({ monthly: null, annual: null, annualAvailable: false });
+      setPrices({ monthly: PRO_MONTHLY_USD_DISPLAY, annual: PRO_ANNUAL_USD_DISPLAY });
       return;
     }
     let cancelled = false;
@@ -151,13 +151,14 @@ export function PaywallModal({ visible, onClose, onSubscribed }: PaywallModalPro
         return;
       }
       const monthly =
-        getStoreProductPriceLabel(monthlyStoreProduct) ?? getPackagePriceLabel(monthlyPkg);
+        getStoreProductPriceLabel(monthlyStoreProduct) ??
+        getPackagePriceLabel(monthlyPkg) ??
+        PRO_MONTHLY_USD_DISPLAY;
       const annual =
         getAnnualStoreProductPriceLabel(annualStoreProduct) ??
-        getAnnualPackagePriceLabel(annualPkg);
-      const annualAvailable = annualPkg != null || annualStoreProduct != null;
-      setPrices({ monthly, annual, annualAvailable });
-      setSelectedPeriod(annualAvailable ? 'annual' : 'monthly');
+        getAnnualPackagePriceLabel(annualPkg) ??
+        PRO_ANNUAL_USD_DISPLAY;
+      setPrices({ monthly, annual });
     })();
     return () => {
       cancelled = true;
@@ -237,15 +238,9 @@ export function PaywallModal({ visible, onClose, onSubscribed }: PaywallModalPro
     }
   }, [canPurchase, finishSubscribe, session.data?.user?.id]);
 
-  const selectedPrice =
-    selectedPeriod === 'annual'
-      ? prices.annual
-      : prices.monthly;
+  const selectedPrice = selectedPeriod === 'annual' ? prices.annual : prices.monthly;
 
-  const continueLabel =
-    selectedPrice != null
-      ? t('paywall_continue_with_price', { price: selectedPrice })
-      : t('paywall_continue');
+  const continueLabel = t('paywall_continue_with_price', { price: selectedPrice });
 
   return (
     <DsModal visible={visible} title={t('paywall_title')} onClose={busy ? () => undefined : onClose}>
@@ -268,41 +263,24 @@ export function PaywallModal({ visible, onClose, onSubscribed }: PaywallModalPro
       ) : null}
 
       {canPurchase ? (
-        <View
-          className={[
-            'mb-ds-md gap-ds-sm',
-            prices.annualAvailable ? 'flex-row' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        >
+        <View className="mb-ds-md flex-row gap-ds-sm">
           <PlanOption
             period="monthly"
             title={t('paywall_plan_monthly')}
-            subtitle={
-              prices.monthly != null
-                ? t('paywall_plan_monthly_subtitle', { price: prices.monthly })
-                : t('paywall_plan_price_loading')
-            }
+            subtitle={t('paywall_plan_monthly_subtitle', { price: prices.monthly })}
             selected={selectedPeriod === 'monthly'}
             disabled={busy}
             onSelect={() => setSelectedPeriod('monthly')}
           />
-          {prices.annualAvailable ? (
-            <PlanOption
-              period="annual"
-              title={t('paywall_plan_yearly')}
-              subtitle={
-                prices.annual != null
-                  ? t('paywall_plan_yearly_subtitle', { price: prices.annual })
-                  : t('paywall_plan_price_loading')
-              }
-              badge={t('paywall_plan_yearly_badge')}
-              selected={selectedPeriod === 'annual'}
-              disabled={busy}
-              onSelect={() => setSelectedPeriod('annual')}
-            />
-          ) : null}
+          <PlanOption
+            period="annual"
+            title={t('paywall_plan_yearly')}
+            subtitle={t('paywall_plan_yearly_subtitle', { price: prices.annual })}
+            badge={t('paywall_plan_yearly_badge')}
+            selected={selectedPeriod === 'annual'}
+            disabled={busy}
+            onSelect={() => setSelectedPeriod('annual')}
+          />
         </View>
       ) : null}
 

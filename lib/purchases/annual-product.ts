@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import Purchases, {
   type CustomerInfo,
   type PurchasesStoreProduct,
@@ -13,6 +14,10 @@ import { isPurchasesConfigured } from '@/lib/purchases/configured-state';
 import { supportsPurchasesPlatform } from '@/lib/purchases/platform';
 
 const ANNUAL_PRODUCT_IDS = [PRO_ANNUAL_STORE_PRODUCT_ID, PRO_ANNUAL_IOS_PRODUCT_ID] as const;
+
+export function isExpectedAnnualProductId(productId: string): boolean {
+  return productId === PRO_ANNUAL_STORE_PRODUCT_ID || productId === PRO_ANNUAL_IOS_PRODUCT_ID;
+}
 
 export function getAnnualStoreProductPriceLabel(product: PurchasesStoreProduct | null): string | null {
   if (product == null) {
@@ -32,8 +37,10 @@ export async function getAnnualStoreProduct(): Promise<PurchasesStoreProduct | n
   if (!supportsPurchasesPlatform() || !isPurchasesConfigured()) {
     return null;
   }
+  const productIds =
+    Platform.OS === 'ios' ? [...ANNUAL_PRODUCT_IDS] : [PRO_ANNUAL_STORE_PRODUCT_ID];
   try {
-    const products = await Purchases.getProducts([...ANNUAL_PRODUCT_IDS]);
+    const products = await Purchases.getProducts(productIds);
     const preferred = products.find((p) => p.identifier === PRO_ANNUAL_STORE_PRODUCT_ID);
     if (preferred != null) {
       return preferred;
@@ -69,6 +76,18 @@ export async function purchaseAnnualSubscription(): Promise<CustomerInfo | null>
   const pkg = offerings != null ? pickAnnualPackage(offerings) : null;
   if (pkg == null) {
     return null;
+  }
+
+  // Web (Test Store + Web Billing): package purchase only — purchaseStoreProduct throws.
+  if (Platform.OS === 'web') {
+    if (!isExpectedAnnualProductId(pkg.product.identifier) && __DEV__) {
+      console.warn(
+        `[RevenueCat] Web annual package uses unexpected product ${pkg.product.identifier}. ` +
+          `Expected ${PRO_ANNUAL_STORE_PRODUCT_ID} on package $rc_annual.`,
+      );
+    }
+    const { customerInfo } = await Purchases.purchasePackage(pkg);
+    return customerInfo;
   }
 
   const { customerInfo } = await Purchases.purchasePackage(pkg);

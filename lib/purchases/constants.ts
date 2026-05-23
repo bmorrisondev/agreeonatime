@@ -28,7 +28,7 @@ export const PRO_ANNUAL_USD_AMOUNT_MICROS = 39_990_000;
 /** Human-readable USD price for docs and dashboard setup. */
 export const PRO_ANNUAL_USD_DISPLAY = '$39.99';
 
-/** Test Store + Web Billing annual product id. */
+/** Test Store + Web Billing annual product id (`agreeonatime_pro_annual_3999`). */
 export const PRO_ANNUAL_STORE_PRODUCT_ID = 'agreeonatime_pro_annual_3999';
 
 /** App Store annual product id. */

@@ -2,7 +2,11 @@ import { PACKAGE_TYPE, type PurchasesOfferings, type PurchasesPackage } from 're
 
 import {
   LEGACY_TEST_STORE_PRODUCT_ID,
+  PRO_ANNUAL_IOS_PRODUCT_ID,
+  PRO_ANNUAL_STORE_PRODUCT_ID,
   PRO_ANNUAL_USD_DISPLAY,
+  PRO_MONTHLY_IOS_PRODUCT_ID,
+  PRO_MONTHLY_STORE_PRODUCT_ID,
   PRO_MONTHLY_USD_DISPLAY,
 } from '@/lib/purchases/constants';
 
@@ -10,6 +14,18 @@ const MONTHLY_PACKAGE_LOOKUP = '$rc_monthly';
 const ANNUAL_PACKAGE_LOOKUP = '$rc_annual';
 
 const LEGACY_PRICE_LABELS = new Set(['$9.99', 'US$9.99', '9,99 $US']);
+
+function pickPackageByProductIds(
+  offerings: PurchasesOfferings,
+  productIds: readonly string[],
+): PurchasesPackage | null {
+  const current = offerings.current;
+  if (current == null) {
+    return null;
+  }
+  const idSet = new Set(productIds);
+  return current.availablePackages.find((pkg) => idSet.has(pkg.product.identifier)) ?? null;
+}
 
 /**
  * Prefer the monthly package on the current offering (not annual/custom).
@@ -30,6 +46,14 @@ export function pickMonthlyPackage(offerings: PurchasesOfferings): PurchasesPack
     current.availablePackages.find((pkg) => pkg.packageType === PACKAGE_TYPE.MONTHLY) ?? null;
   if (byType != null) {
     return byType;
+  }
+
+  const byProduct = pickPackageByProductIds(offerings, [
+    PRO_MONTHLY_STORE_PRODUCT_ID,
+    PRO_MONTHLY_IOS_PRODUCT_ID,
+  ]);
+  if (byProduct != null) {
+    return byProduct;
   }
 
   return current.monthly ?? null;
@@ -54,6 +78,14 @@ export function pickAnnualPackage(offerings: PurchasesOfferings): PurchasesPacka
     current.availablePackages.find((pkg) => pkg.packageType === PACKAGE_TYPE.ANNUAL) ?? null;
   if (byType != null) {
     return byType;
+  }
+
+  const byProduct = pickPackageByProductIds(offerings, [
+    PRO_ANNUAL_STORE_PRODUCT_ID,
+    PRO_ANNUAL_IOS_PRODUCT_ID,
+  ]);
+  if (byProduct != null) {
+    return byProduct;
   }
 
   return current.annual ?? null;
