@@ -22,6 +22,18 @@ task branch → dev (CI / early prod) → main (stable release)
 - Create task branches from an up-to-date **`dev`**: `git fetch origin && git checkout dev && git pull origin dev --ff-only`, then `git checkout -b feature/...`.
 - Before `git worktree add`, sync **`dev`** the same way (not `main`) unless the user specifies another base.
 
+## Before continuing or opening a PR
+
+When picking up or finishing work on a **task branch** (including in a worktree):
+
+1. `git fetch origin`
+2. Merge latest **`dev`** into the task branch: `git merge origin/dev` (or rebase if the user prefers)
+3. **Resolve all merge conflicts** — do not hand off with conflict markers or a broken tree
+4. Run validation (`pnpm run build:web`, etc.) after the merge
+5. Push the updated branch, then open or update the PR targeting **`dev`** for review
+
+Do not skip the **`dev`** sync because a worktree was created earlier — **`dev`** may have merged other features since then.
+
 ## Keeping dev current
 
 - When **`main`** moves ahead (release, hotfix), fast-forward or merge **`main`** into **`dev`** so the integration branch does not drift.

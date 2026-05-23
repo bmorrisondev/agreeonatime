@@ -15,6 +15,16 @@ alwaysApply: true
 
 Integration flow: task branch → **`dev`** → **`main`**. See `.cursor/rules/git-dev-integration-branch.mdc`.
 
+## Resuming work in an existing worktree
+
+Before substantive edits or PR prep on a task branch that already exists:
+
+1. `git fetch origin`
+2. `git merge origin/dev` (fix conflicts before continuing)
+3. Re-run validation after the merge
+
+The user reviews after conflicts are resolved and the branch is pushed — do not leave conflict resolution to them unless blocked.
+
 Do not add a worktree or branch from a stale local base without pulling first.
 
 ## Worktree setup
