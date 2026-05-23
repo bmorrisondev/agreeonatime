@@ -17,7 +17,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VoteBar } from '@/components/events/vote-bar';
+import { WebVoteAppLink } from '@/components/linking/web-vote-app-link';
+import { useWebOpenVoteInApp } from '@/hooks/use-web-open-vote-in-app';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { APP_STORE_APP_ID } from '@/lib/constants/native-app-linking';
 import { isConvexConfigured } from '@/lib/convex/client';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
 import { isEventAtCapacityError } from '@/lib/convex/subscription-errors';
@@ -33,7 +36,7 @@ import {
 } from '@/lib/guest/voter-session';
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
 
-const APP_STORE_URL = 'https://apps.apple.com/app/agree-on-a-time/id6743097026';
+const APP_STORE_URL = `https://apps.apple.com/app/agree-on-a-time/id${APP_STORE_APP_ID}`;
 
 const guestGetQuery = makeFunctionReference<'query'>('guestEvents:getByShareToken');
 const guestSetVoteMutation = makeFunctionReference<'mutation'>('guestEvents:setGuestVote');
@@ -95,6 +98,16 @@ export default function VoteByTokenScreen(): ReactElement {
       router.replace(`/event/${eventId}`);
     }
   }, [event, isAuthenticated]);
+
+  const shouldOpenInApp =
+    configured &&
+    token != null &&
+    token.length >= 8 &&
+    event != null &&
+    typeof event === 'object' &&
+    event.status === 'open';
+
+  useWebOpenVoteInApp(token, shouldOpenInApp);
 
   const deadlineLine = useMemo(() => {
     if (event == null || typeof event !== 'object' || !('deadline' in event)) {
@@ -266,6 +279,7 @@ export default function VoteByTokenScreen(): ReactElement {
       className="flex-1 bg-white dark:bg-black"
       contentContainerStyle={{ padding: 16, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }}
     >
+      {token != null && token.length >= 8 ? <WebVoteAppLink shareToken={token} /> : null}
       <Text className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{event.title}</Text>
       {event.description != null && event.description.length > 0 ? (
         <Text className="mt-2 text-base text-neutral-600 dark:text-neutral-400">{event.description}</Text>

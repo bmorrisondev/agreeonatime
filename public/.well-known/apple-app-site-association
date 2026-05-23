@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["2GS83LLSPS.me.brianmm.agreeonatime"],
+        "paths": ["/vote/*", "/event/*", "/event/*/pick-time"]
+      }
+    ]
+  }
+}
