@@ -26,6 +26,7 @@ export function DsButton({
   variant = 'primary',
   children,
   accessibilityHint,
+  accessibilityLabel,
   disabled,
   className,
   ...rest
@@ -35,6 +36,7 @@ export function DsButton({
   return (
     <Pressable
       accessibilityHint={accessibilityHint}
+      accessibilityLabel={accessibilityLabel ?? children}
       accessibilityRole="button"
       accessibilityState={{ disabled: Boolean(disabled) }}
       className={[base, variantClasses[variant], disabled ? '' : '', className].filter(Boolean).join(' ')}

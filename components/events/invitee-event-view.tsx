@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VoteBar } from '@/components/events/vote-bar';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { formatVoteYesNoLabel, formatVotesForTimeLabel } from '@/lib/accessibility/vote-controls';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
 import { isEventAtCapacityError } from '@/lib/convex/subscription-errors';
 import {
@@ -98,7 +99,9 @@ export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactEleme
     if (event == null || typeof event !== 'object' || !('deadline' in event)) {
       return '';
     }
-    return `Closes ${formatDeadlineLine(event.deadline as number, nowMs)}`;
+    return t('invitee_closes_line', {
+      deadline: formatDeadlineLine(event.deadline as number, nowMs),
+    });
   }, [event, nowMs]);
 
   const onVote = useCallback(
@@ -244,27 +247,31 @@ export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactEleme
       </Text>
       {slots.map((slot) => {
         const loading = busy != null && busy.startsWith(`${slot._id}:`);
-        const barLabel = `Votes for ${formatTimeslotWithTimezone(slot.startTime)}`;
+        const timeLabel = formatTimeslotWithTimezone(slot.startTime);
+        const barLabel = formatVotesForTimeLabel(timeLabel);
         const myVote = slot.myVote;
         return (
           <View key={slot._id} className="mt-4 rounded-xl border border-neutral-200 p-3 dark:border-neutral-700">
-            <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-              {formatTimeslotWithTimezone(slot.startTime)}
+            <Text allowFontScaling className="text-base font-semibold text-neutral-900 dark:text-neutral-100" maxFontSizeMultiplier={2}>
+              {timeLabel}
             </Text>
             <View className="mt-2">
               <VoteBar yesCount={slot.yesCount} noCount={slot.noCount} accessibilityLabel={barLabel} />
             </View>
             {myVote != null ? (
-              <Text className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-                {t('invitee_your_vote', { vote: myVote === 'yes' ? 'Yes' : 'No' })}
+              <Text allowFontScaling className="mt-2 text-sm text-neutral-600 dark:text-neutral-400" maxFontSizeMultiplier={2}>
+                {t('invitee_your_vote', {
+                  vote: myVote === 'yes' ? t('invitee_vote_yes') : t('invitee_vote_no'),
+                })}
               </Text>
             ) : null}
             <View className="mt-3 flex-row gap-2">
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Vote yes for ${formatTimeslotWithTimezone(slot.startTime)}`}
+                accessibilityLabel={formatVoteYesNoLabel(timeLabel, 'yes', myVote === 'yes')}
+                accessibilityState={{ selected: myVote === 'yes' }}
                 disabled={loading}
-                className={`flex-1 items-center rounded-lg py-2.5 active:opacity-90 disabled:opacity-50 ${
+                className={`min-h-[44px] flex-1 items-center justify-center rounded-lg active:opacity-90 disabled:opacity-50 ${
                   myVote === 'yes' ? 'bg-emerald-700' : 'bg-emerald-600'
                 }`}
                 onPress={() => void onVote(slot._id, 'yes')}
@@ -272,14 +279,18 @@ export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactEleme
                 {loading && busy === `${slot._id}:yes` ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text className="text-sm font-semibold text-white">Yes</Text>
+                  <Text allowFontScaling className="text-sm font-semibold text-white" maxFontSizeMultiplier={2}>
+                    {myVote === 'yes' ? '✓ ' : ''}
+                    {t('invitee_vote_yes')}
+                  </Text>
                 )}
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Vote no for ${formatTimeslotWithTimezone(slot.startTime)}`}
+                accessibilityLabel={formatVoteYesNoLabel(timeLabel, 'no', myVote === 'no')}
+                accessibilityState={{ selected: myVote === 'no' }}
                 disabled={loading}
-                className={`flex-1 items-center rounded-lg border py-2.5 active:bg-neutral-50 disabled:opacity-50 dark:active:bg-neutral-800 ${
+                className={`min-h-[44px] flex-1 items-center justify-center rounded-lg border active:bg-neutral-50 disabled:opacity-50 dark:active:bg-neutral-800 ${
                   myVote === 'no'
                     ? 'border-neutral-500 bg-neutral-100 dark:border-neutral-400 dark:bg-neutral-800'
                     : 'border-neutral-300 bg-white dark:border-neutral-600 dark:bg-neutral-900'
@@ -289,7 +300,10 @@ export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactEleme
                 {loading && busy === `${slot._id}:no` ? (
                   <ActivityIndicator color="#666" />
                 ) : (
-                  <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">No</Text>
+                  <Text allowFontScaling className="text-sm font-semibold text-neutral-900 dark:text-neutral-100" maxFontSizeMultiplier={2}>
+                    {myVote === 'no' ? '✗ ' : ''}
+                    {t('invitee_vote_no')}
+                  </Text>
                 )}
               </Pressable>
             </View>
@@ -304,7 +318,7 @@ export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactEleme
             accessibilityLabel={
               proposeOpen ? t('invitee_hide_propose_a11y') : t('invitee_show_propose_a11y')
             }
-            className="rounded-lg border border-dashed border-neutral-400 py-3 dark:border-neutral-600"
+            className="min-h-[44px] justify-center rounded-lg border border-dashed border-neutral-400 dark:border-neutral-600"
             onPress={() => {
               setProposeOpen((open) => {
                 if (!open) {
@@ -346,7 +360,7 @@ export function InviteeEventView({ eventId }: InviteeEventViewProps): ReactEleme
                 accessibilityRole="button"
                 accessibilityLabel={t('invitee_submit_proposal_a11y')}
                 disabled={busy === 'propose'}
-                className="mt-4 items-center rounded-lg bg-[#FF6B5C] py-3 active:opacity-90 disabled:opacity-50"
+                className="mt-4 min-h-[44px] items-center justify-center rounded-lg bg-[#FF6B5C] active:opacity-90 disabled:opacity-50"
                 onPress={() => void onPropose()}
               >
                 {busy === 'propose' ? (

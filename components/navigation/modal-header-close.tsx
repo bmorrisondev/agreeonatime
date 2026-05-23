@@ -12,7 +12,7 @@ export function ModalHeaderClose(): ReactElement {
     <Pressable
       accessibilityLabel={t('ds_modal_close_a11y')}
       accessibilityRole="button"
-      className="-ml-1 p-2"
+      className="-ml-1 min-h-[44px] min-w-[44px] items-center justify-center p-2"
       hitSlop={12}
       onPress={() => {
         if (router.canGoBack()) {

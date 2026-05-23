@@ -5,7 +5,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const BRAND = '#FF6B5C';
-const SIZE = 40;
+const SIZE = 44;
 const RADIUS = 12;
 
 export interface HomeHeaderCreateButtonProps {
@@ -28,7 +28,7 @@ export function HomeHeaderCreateButton({
       <Pressable
         accessibilityLabel={accessibilityLabel}
         accessibilityRole="button"
-        className="h-10 w-10 items-center justify-center rounded-xl bg-[#FF6B5C] active:opacity-90"
+        className="h-11 w-11 items-center justify-center rounded-xl bg-[#FF6B5C] active:opacity-90"
         hitSlop={6}
         onPress={onPress}
       >

@@ -14,8 +14,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VoteBar } from '@/components/events/vote-bar';
+import { formatPickTimeSlotLabel, formatVotesForTimeLabel } from '@/lib/accessibility/vote-controls';
 import { isConvexConfigured } from '@/lib/convex/client';
 import { formatTimeslotWithTimezone } from '@/lib/events/format-event-home';
+import { t } from '@/lib/i18n/t';
 
 const getForOwnerQuery = makeFunctionReference<'query'>('events:getForOwner');
 const finalizeMutation = makeFunctionReference<'mutation'>('events:finalizeEventTime');
@@ -91,7 +93,9 @@ export default function PickTimeScreen(): ReactElement {
   if (!configured || id == null || id.length === 0) {
     return (
       <View className="flex-1 bg-white px-4 pt-4 dark:bg-black">
-        <Text className="text-base text-neutral-700 dark:text-neutral-300">Missing event.</Text>
+        <Text allowFontScaling className="text-base text-neutral-700 dark:text-neutral-300" maxFontSizeMultiplier={2}>
+          {t('pick_time_missing_event')}
+        </Text>
       </View>
     );
   }
@@ -100,9 +104,9 @@ export default function PickTimeScreen(): ReactElement {
     return (
       <View
         className="flex-1 items-center justify-center bg-white dark:bg-black"
-        accessibilityLabel="Loading event"
+        accessibilityLabel={t('pick_time_loading_a11y')}
       >
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" accessibilityLabel={t('a11y_loading')} />
       </View>
     );
   }
@@ -110,8 +114,8 @@ export default function PickTimeScreen(): ReactElement {
   if (event === null) {
     return (
       <View className="flex-1 bg-white px-4 pt-4 dark:bg-black">
-        <Text className="text-base text-neutral-700 dark:text-neutral-300">
-          Sign in as the host to pick a time.
+        <Text allowFontScaling className="text-base text-neutral-700 dark:text-neutral-300" maxFontSizeMultiplier={2}>
+          {t('pick_time_host_only')}
         </Text>
       </View>
     );
@@ -120,16 +124,18 @@ export default function PickTimeScreen(): ReactElement {
   if (event.status !== 'open') {
     return (
       <View className="flex-1 bg-white px-4 pt-4 dark:bg-black">
-        <Text className="text-base text-neutral-700 dark:text-neutral-300">
-          This event is already finalized.
+        <Text allowFontScaling className="text-base text-neutral-700 dark:text-neutral-300" maxFontSizeMultiplier={2}>
+          {t('pick_time_already_finalized')}
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Back to event"
-          className="mt-6 self-start rounded-lg bg-neutral-200 px-4 py-2.5 dark:bg-neutral-800"
+          accessibilityLabel={t('pick_time_back_a11y')}
+          className="mt-6 min-h-[44px] items-center justify-center self-start rounded-lg bg-neutral-200 px-4 dark:bg-neutral-800"
           onPress={() => router.replace(`/event/${id}`)}
         >
-          <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Back</Text>
+          <Text allowFontScaling className="text-sm font-semibold text-neutral-900 dark:text-neutral-100" maxFontSizeMultiplier={2}>
+            {t('pick_time_back')}
+          </Text>
         </Pressable>
       </View>
     );
@@ -140,39 +146,47 @@ export default function PickTimeScreen(): ReactElement {
       className="flex-1 bg-white dark:bg-black"
       contentContainerStyle={{ padding: 16, paddingTop: 12, paddingBottom: insets.bottom + 24 }}
     >
-      <Text className="text-xl font-bold text-neutral-900 dark:text-neutral-100">Pick the time</Text>
-      <Text className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-        Suggested winner has the most yes votes (ties go to the earliest time). Tap another slot to override, then
-        confirm.
+      <Text allowFontScaling className="text-xl font-bold text-neutral-900 dark:text-neutral-100" maxFontSizeMultiplier={2}>
+        {t('pick_time_title')}
+      </Text>
+      <Text allowFontScaling className="mt-2 text-sm text-neutral-600 dark:text-neutral-400" maxFontSizeMultiplier={2}>
+        {t('pick_time_subtitle')}
       </Text>
 
       {suggested != null ? (
         <View className="mt-6 rounded-xl border border-emerald-300 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-950/30">
-          <Text className="text-xs font-semibold uppercase text-emerald-800 dark:text-emerald-200">Suggested</Text>
-          <Text className="mt-1 text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+          <Text allowFontScaling className="text-xs font-semibold uppercase text-emerald-800 dark:text-emerald-200" maxFontSizeMultiplier={2}>
+            {t('pick_time_suggested')}
+          </Text>
+          <Text allowFontScaling className="mt-1 text-lg font-semibold text-neutral-900 dark:text-neutral-100" maxFontSizeMultiplier={2}>
             {formatTimeslotWithTimezone(suggested.startTime)}
           </Text>
           <View className="mt-2">
             <VoteBar
               yesCount={suggested.yesCount}
               noCount={suggested.noCount}
-              accessibilityLabel={`Suggested slot votes ${suggested.yesCount} yes ${suggested.noCount} no`}
+              accessibilityLabel={t('pick_time_suggested_votes_a11y', {
+                yes: suggested.yesCount,
+                no: suggested.noCount,
+              })}
             />
           </View>
         </View>
       ) : null}
 
-      <Text className="mt-8 text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400">
-        All times
+      <Text allowFontScaling className="mt-8 text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400" maxFontSizeMultiplier={2}>
+        {t('pick_time_all_times')}
       </Text>
       {approvedSlots.map((slot) => {
         const selected = effectiveSelection === slot._id;
+        const timeLabel = formatTimeslotWithTimezone(slot.startTime);
         return (
           <Pressable
             key={slot._id}
             accessibilityRole="button"
-            accessibilityLabel={`Select ${formatTimeslotWithTimezone(slot.startTime)}`}
-            className={`mt-3 rounded-xl border p-3 ${
+            accessibilityLabel={formatPickTimeSlotLabel(timeLabel, selected)}
+            accessibilityState={{ selected }}
+            className={`mt-3 min-h-[44px] rounded-xl border p-3 ${
               selected
                 ? 'border-[#FF6B5C] bg-orange-50 dark:border-[#FF6B5C] dark:bg-orange-950/20'
                 : 'border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900/50'
@@ -181,14 +195,19 @@ export default function PickTimeScreen(): ReactElement {
               setSelectedId(slot._id);
             }}
           >
-            <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-              {formatTimeslotWithTimezone(slot.startTime)}
+            <Text allowFontScaling className="text-base font-semibold text-neutral-900 dark:text-neutral-100" maxFontSizeMultiplier={2}>
+              {timeLabel}
             </Text>
+            {selected ? (
+              <Text allowFontScaling className="mt-1 text-sm text-brand" maxFontSizeMultiplier={2}>
+                {t('a11y_selected')}
+              </Text>
+            ) : null}
             <View className="mt-2">
               <VoteBar
                 yesCount={slot.yesCount}
                 noCount={slot.noCount}
-                accessibilityLabel={`Votes ${slot.yesCount} yes ${slot.noCount} no`}
+                accessibilityLabel={formatVotesForTimeLabel(timeLabel)}
               />
             </View>
           </Pressable>
@@ -197,25 +216,29 @@ export default function PickTimeScreen(): ReactElement {
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Confirm selected time"
+        accessibilityLabel={t('pick_time_confirm_a11y')}
         disabled={submitting || effectiveSelection == null}
-        className="mt-8 items-center rounded-lg bg-[#FF6B5C] py-3.5 active:opacity-90 disabled:opacity-50"
+        className="mt-8 min-h-[44px] items-center justify-center rounded-lg bg-[#FF6B5C] active:opacity-90 disabled:opacity-50"
         onPress={() => void onConfirm()}
       >
         {submitting ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text className="text-base font-semibold text-white">Confirm</Text>
+          <Text allowFontScaling className="text-base font-semibold text-white" maxFontSizeMultiplier={2}>
+            {t('pick_time_confirm')}
+          </Text>
         )}
       </Pressable>
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Cancel and go back"
-        className="mt-4 items-center py-2"
+        accessibilityLabel={t('pick_time_cancel_a11y')}
+        className="mt-4 min-h-[44px] items-center justify-center"
         onPress={() => router.back()}
       >
-        <Text className="text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
+        <Text allowFontScaling className="text-sm font-semibold text-neutral-600 dark:text-neutral-400" maxFontSizeMultiplier={2}>
+          {t('pick_time_cancel')}
+        </Text>
       </Pressable>
     </ScrollView>
   );

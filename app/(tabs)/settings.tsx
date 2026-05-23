@@ -235,6 +235,7 @@ export default function SettingsTabScreen(): ReactElement {
         {deleteError != null ? (
           <Text
             allowFontScaling
+            accessibilityLiveRegion="polite"
             className="mb-ds-md text-caption text-danger"
             accessibilityRole="alert"
             maxFontSizeMultiplier={2}
