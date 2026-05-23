@@ -16,6 +16,7 @@ import { makeFunctionReference } from 'convex/server';
 import { useMutation, useQuery } from 'convex/react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DevProOverrideToggle } from '@/components/dev/dev-pro-override-toggle';
 import { DsButton } from '@/components/design-system/button';
 import { DsListItem } from '@/components/design-system/list-item';
 import { DsModal } from '@/components/design-system/modal-sheet';
@@ -200,6 +201,7 @@ export default function SettingsTabScreen(): ReactElement {
         <>
           <SectionHeader text={t('settings_developer_header')} />
           <View className="px-ds-lg">
+            <DevProOverrideToggle />
             <DsListItem
               title={t('settings_design_system')}
               subtitle={t('settings_design_system_subtitle')}

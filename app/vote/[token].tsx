@@ -16,7 +16,9 @@ import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AvailabilityGrid } from '@/components/availability/availability-grid';
 import { VoteBar } from '@/components/events/vote-bar';
+import type { GridSpec, RangeWindow } from '@/lib/availability/grid';
 import { WebVoteAppLink } from '@/components/linking/web-vote-app-link';
 import { useWebOpenVoteInApp } from '@/hooks/use-web-open-vote-in-app';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -43,6 +45,9 @@ const APP_STORE_URL = `https://apps.apple.com/app/agree-on-a-time/id${APP_STORE_
 const guestGetQuery = makeFunctionReference<'query'>('guestEvents:getByShareToken');
 const guestSetVoteMutation = makeFunctionReference<'mutation'>('guestEvents:setGuestVote');
 const guestProposeMutation = makeFunctionReference<'mutation'>('guestEvents:proposeGuestTimeslot');
+const guestSubmitAvailabilityMutation = makeFunctionReference<'mutation'>(
+  'guestEvents:submitGuestAvailability',
+);
 
 type GuestEvent = {
   _id: string;
@@ -51,6 +56,10 @@ type GuestEvent = {
   status: 'open' | 'closed' | 'decided';
   deadline: number;
   allowInviteeProposals: boolean;
+  schedulingMode?: 'discrete' | 'range';
+  gridSpec?: GridSpec;
+  rangeWindows?: RangeWindow[];
+  myAvailableBlocks?: number[];
   decidedTimeslotId?: string;
   decidedStartTime?: number;
   ownerName: string;
@@ -79,6 +88,7 @@ export default function VoteByTokenScreen(): ReactElement {
   );
   const [voted, setVoted] = useState(false);
   const [myVotes, setMyVotes] = useState<Record<string, 'yes' | 'no'>>({});
+  const [selectedBlocks, setSelectedBlocks] = useState<Set<number>>(() => new Set());
   const [nowMs, setNowMs] = useState(() => Date.now());
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -91,8 +101,19 @@ export default function VoteByTokenScreen(): ReactElement {
 
   const event = useQuery(
     guestGetQuery,
-    configured && token != null && token.length >= 8 ? { shareToken: token } : 'skip',
+    configured && token != null && token.length >= 8
+      ? { shareToken: token, voterSessionId: sessionId }
+      : 'skip',
   ) as GuestEvent | null | undefined;
+
+  useEffect(() => {
+    if (event?.myAvailableBlocks != null) {
+      setSelectedBlocks(new Set(event.myAvailableBlocks));
+      if (event.myAvailableBlocks.length > 0) {
+        setVoted(true);
+      }
+    }
+  }, [event?.myAvailableBlocks]);
 
   useEffect(() => {
     if (Platform.OS === 'web' || !isAuthenticated || event == null || typeof event !== 'object') {
@@ -125,6 +146,50 @@ export default function VoteByTokenScreen(): ReactElement {
 
   const setVote = useMutation(guestSetVoteMutation);
   const propose = useMutation(guestProposeMutation);
+  const submitAvailability = useMutation(guestSubmitAvailabilityMutation);
+
+  const onToggleBlock = useCallback((blockIndex: number) => {
+    setSelectedBlocks((prev) => {
+      const next = new Set(prev);
+      if (next.has(blockIndex)) {
+        next.delete(blockIndex);
+      } else {
+        next.add(blockIndex);
+      }
+      return next;
+    });
+  }, []);
+
+  const onSubmitAvailability = useCallback(async () => {
+    if (!configured || token == null || token.length < 8) {
+      return;
+    }
+    const n = name.trim();
+    if (n.length === 0) {
+      setError(t('invitee_name_required'));
+      return;
+    }
+    setStoredGuestName(n);
+    setBusy('availability');
+    setError(null);
+    try {
+      await submitAvailability({
+        shareToken: token,
+        voterSessionId: sessionId,
+        voterName: n,
+        availableBlockIndices: [...selectedBlocks],
+      });
+      setVoted(true);
+    } catch (e: unknown) {
+      if (isEventAtCapacityError(e)) {
+        setError(t('vote_event_at_capacity'));
+      } else {
+        setError(formatMutationError(e, 'Could not save availability'));
+      }
+    } finally {
+      setBusy(null);
+    }
+  }, [configured, name, selectedBlocks, sessionId, submitAvailability, token]);
 
   const onVote = useCallback(
     async (timeslotId: string, vote: 'yes' | 'no') => {
@@ -348,6 +413,35 @@ export default function VoteByTokenScreen(): ReactElement {
         </Text>
       ) : null}
 
+      {event.schedulingMode === 'range' && event.gridSpec != null && event.rangeWindows != null ? (
+        <View className="mt-6">
+          <Text allowFontScaling className="text-sm font-semibold text-neutral-800 dark:text-neutral-200" maxFontSizeMultiplier={2}>
+            Tap blocks when you are free (30 min each)
+          </Text>
+          <AvailabilityGrid
+            gridSpec={event.gridSpec}
+            rangeWindows={event.rangeWindows}
+            selectedBlocks={selectedBlocks}
+            onToggleBlock={onToggleBlock}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Submit availability"
+            disabled={busy === 'availability'}
+            className="mt-4 min-h-[44px] items-center justify-center rounded-xl bg-[#FF6B5C] active:opacity-90 disabled:opacity-50"
+            onPress={() => void onSubmitAvailability()}
+          >
+            {busy === 'availability' ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text allowFontScaling className="text-base font-semibold text-white" maxFontSizeMultiplier={2}>
+                Submit availability
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      ) : (
+        <>
       <Text allowFontScaling className="mt-8 text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400" maxFontSizeMultiplier={2}>
         {t('vote_guest_times')}
       </Text>
@@ -421,7 +515,7 @@ export default function VoteByTokenScreen(): ReactElement {
         );
       })}
 
-      {event.allowInviteeProposals ? (
+      {event.schedulingMode !== 'range' && event.allowInviteeProposals ? (
         <View className="mt-8">
           <Pressable
             accessibilityRole="button"
@@ -487,17 +581,22 @@ export default function VoteByTokenScreen(): ReactElement {
         </View>
       ) : null}
 
+        </>
+      )}
+
       {voted ? (
         <View className="mt-8 rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/30" accessibilityLiveRegion="polite">
           <Text allowFontScaling className="text-center text-base font-semibold text-emerald-800 dark:text-emerald-200" maxFontSizeMultiplier={2}>
-            {t('invitee_vote_ack', { host: event.ownerName })}
+            {event.schedulingMode === 'range'
+              ? `Thanks — ${event.ownerName} will see when you are free.`
+              : t('invitee_vote_ack', { host: event.ownerName })}
           </Text>
         </View>
-      ) : (
+      ) : event.schedulingMode !== 'range' ? (
         <Text allowFontScaling className="mt-10 text-center text-xs text-neutral-500 dark:text-neutral-500" maxFontSizeMultiplier={2}>
           {t('invitee_vote_footer', { host: event.ownerName })}
         </Text>
-      )}
+      ) : null}
     </ScrollView>
   );
 }

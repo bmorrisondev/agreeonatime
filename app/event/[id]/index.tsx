@@ -19,10 +19,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DsButton } from '@/components/design-system/button';
 import { DsModal } from '@/components/design-system/modal-sheet';
 import { DsToast } from '@/components/design-system';
+import { AvailabilityGrid } from '@/components/availability/availability-grid';
 import { AddToCalendarButton } from '@/components/events/add-to-calendar-button';
 import { AgreedCardPreview } from '@/components/events/agreed-card-preview';
 import { InviteeEventView } from '@/components/events/invitee-event-view';
 import { VoteBar } from '@/components/events/vote-bar';
+import { formatBlockTimeLabel, type GridSpec, type RangeWindow } from '@/lib/availability/grid';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { useSubscription } from '@/hooks/use-subscription';
 import { buildVoteUrl } from '@/lib/events/build-share-url';
@@ -39,6 +41,7 @@ const resolvePendingTimeslotMutation = makeFunctionReference<'mutation'>(
   'events:resolvePendingTimeslot',
 );
 const deleteForOwnerMutation = makeFunctionReference<'mutation'>('events:deleteForOwner');
+const finalizeRangeBlockMutation = makeFunctionReference<'mutation'>('events:finalizeRangeBlock');
 
 interface ApprovedSlot {
   _id: string;
@@ -89,6 +92,7 @@ export default function EventDetailScreen(): ReactElement {
 
   const resolvePending = useMutation(resolvePendingTimeslotMutation);
   const deleteForOwner = useMutation(deleteForOwnerMutation);
+  const finalizeRangeBlock = useMutation(finalizeRangeBlockMutation);
 
   const toggleExpanded = useCallback((slotId: string) => {
     setExpanded((prev) => ({ ...prev, [slotId]: !prev[slotId] }));
@@ -188,6 +192,14 @@ export default function EventDetailScreen(): ReactElement {
       </View>
     );
   }
+
+  const schedulingMode = (event as { schedulingMode?: 'discrete' | 'range' }).schedulingMode ?? 'discrete';
+  const rangeGridSpec = (event as { gridSpec?: GridSpec }).gridSpec;
+  const rangeWindows = (event as { rangeWindows?: RangeWindow[] }).rangeWindows ?? [];
+  const overlapCounts = (event as { overlapCounts?: number[] }).overlapCounts;
+  const bestWindow = (event as {
+    bestWindow?: { startMs: number; endMs: number; overlapCount: number };
+  }).bestWindow;
 
   const approvedSlots = event.approvedTimeslots as ApprovedSlot[];
   const pendingSlots = event.pendingTimeslots as PendingSlot[];
@@ -299,7 +311,52 @@ export default function EventDetailScreen(): ReactElement {
           </Pressable>
         </View>
 
-        {pendingSlots.length > 0 ? (
+        {schedulingMode === 'range' && rangeGridSpec != null ? (
+          <View className="mt-8">
+            <Text className="text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400">
+              Availability heat map
+            </Text>
+            <Text className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              Darker coral = more invitees free. Tap a block to pick that time.
+            </Text>
+            {bestWindow != null && event.status === 'open' ? (
+              <View className="mt-3 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2">
+                <Text className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                  Best window (~{bestWindow.overlapCount} available)
+                </Text>
+                <Text className="mt-1 text-sm text-neutral-700 dark:text-neutral-300">
+                  {formatBlockTimeLabel(bestWindow.startMs)} – {formatBlockTimeLabel(bestWindow.endMs)}
+                </Text>
+              </View>
+            ) : null}
+            <AvailabilityGrid
+              gridSpec={rangeGridSpec}
+              overlapCounts={historyLocked ? undefined : overlapCounts}
+              rangeWindows={rangeWindows}
+              readOnly={historyLocked || event.status !== 'open'}
+              selectedBlocks={new Set()}
+              onPickBlock={
+                event.status === 'open' && !historyLocked && id != null
+                  ? (blockIndex) => {
+                      void (async () => {
+                        try {
+                          await finalizeRangeBlock({ eventId: id, blockIndex });
+                        } catch (e: unknown) {
+                          const msg = e instanceof Error ? e.message : 'Could not pick time';
+                          Alert.alert('Could not pick time', msg);
+                        }
+                      })();
+                    }
+                  : undefined
+              }
+            />
+            <Text className="mt-2 text-xs text-neutral-500">
+              {(event as { distinctVoterCount?: number }).distinctVoterCount ?? 0} responses
+            </Text>
+          </View>
+        ) : null}
+
+        {schedulingMode === 'discrete' && pendingSlots.length > 0 ? (
           <View className="mt-8" accessibilityRole="summary">
             <Text className="text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400">
               Pending proposals
@@ -348,6 +405,7 @@ export default function EventDetailScreen(): ReactElement {
           </View>
         ) : null}
 
+        {schedulingMode === 'discrete' ? (
         <View className="mt-8">
           <Text className="text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400">
             Proposed times
@@ -417,8 +475,9 @@ export default function EventDetailScreen(): ReactElement {
             })
           )}
         </View>
+        ) : null}
 
-        {event.status === 'open' ? (
+        {event.status === 'open' && schedulingMode === 'discrete' ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Pick the time for this event"

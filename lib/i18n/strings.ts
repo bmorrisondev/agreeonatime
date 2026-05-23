@@ -177,6 +177,13 @@ export const strings = {
   settings_reset_onboarding: 'Reset onboarding intro',
   settings_reset_onboarding_subtitle: 'Show first-launch modal again on next app open',
   settings_reset_onboarding_a11y: 'Clear onboarding intro seen flag',
+  settings_dev_pro_override: 'Simulate Agree+',
+  settings_dev_pro_override_subtitle:
+    'Unlock Agree+ features without a subscription. Dev deployment only.',
+  settings_dev_pro_override_a11y: 'Toggle dev Agree plus simulation',
+  settings_dev_pro_override_real_sub: 'You have a real subscription; turn off dev override to test free tier.',
+  settings_dev_pro_override_error_title: 'Could not update Agree+ override',
+  settings_dev_pro_override_error_body: 'Set DEV_PRO_OVERRIDE_ENABLED=true on your Convex dev deployment.',
   settings_test_reminder_email: 'Send test reminder email',
   settings_test_reminder_email_subtitle: '24h invitee reminder to your account email',
   settings_test_reminder_email_a11y: 'Send test vote reminder email',
