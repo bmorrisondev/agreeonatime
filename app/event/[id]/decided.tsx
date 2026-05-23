@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -13,6 +13,7 @@ import { useQuery } from 'convex/react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AddToCalendarButton } from '@/components/events/add-to-calendar-button';
 import { AgreedCardShareHost } from '@/components/events/agreed-card-share-host';
 import { isConvexConfigured } from '@/lib/convex/client';
 import { formatAgreedCardTime } from '@/lib/events/format-agreed-card-time';
@@ -23,8 +24,9 @@ const getForOwnerQuery = makeFunctionReference<'query'>('events:getForOwner');
 
 export default function EventDecidedScreen(): ReactElement {
   const insets = useSafeAreaInsets();
-  const rawId = useLocalSearchParams<{ id: string }>().id;
-  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  const rawId = useLocalSearchParams<{ id: string; startTimeMs?: string }>();
+  const id = Array.isArray(rawId.id) ? rawId.id[0] : rawId.id;
+  const startTimeMsParam = Array.isArray(rawId.startTimeMs) ? rawId.startTimeMs[0] : rawId.startTimeMs;
   const configured = isConvexConfigured();
   const cardRef = useRef<ViewType>(null);
   const [sharing, setSharing] = useState(false);
@@ -34,20 +36,33 @@ export default function EventDecidedScreen(): ReactElement {
     configured && id != null && id.length > 0 ? { eventId: id } : 'skip',
   );
 
+  const decidedStartTimeMs = useMemo((): number | null => {
+    if (event != null && event.decidedStartTime != null) {
+      return event.decidedStartTime as number;
+    }
+    if (startTimeMsParam != null) {
+      const parsed = Number(startTimeMsParam);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    return null;
+  }, [event, startTimeMsParam]);
+
   const onShare = useCallback(async () => {
-    if (event == null || event.decidedStartTime == null) {
+    if (event == null || decidedStartTimeMs == null) {
       return;
     }
     setSharing(true);
     try {
       await shareAgreedCard(cardRef, {
         title: event.title,
-        decidedStartTimeMs: event.decidedStartTime,
+        decidedStartTimeMs,
       });
     } finally {
       setSharing(false);
     }
-  }, [event]);
+  }, [decidedStartTimeMs, event]);
 
   const onDone = useCallback(() => {
     if (id == null || id.length === 0) {
@@ -78,17 +93,27 @@ export default function EventDecidedScreen(): ReactElement {
     );
   }
 
-  if (event === null) {
+  if (event === null || decidedStartTimeMs == null) {
     return (
       <View className="flex-1 bg-white px-4 pt-4 dark:bg-black">
         <Text allowFontScaling className="text-base text-neutral-700 dark:text-neutral-300" maxFontSizeMultiplier={2}>
           {t('pick_time_host_only')}
         </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('decided_done_a11y')}
+          className="mt-6 min-h-[44px] items-center justify-center self-start rounded-lg bg-neutral-200 px-4 dark:bg-neutral-800"
+          onPress={onDone}
+        >
+          <Text allowFontScaling className="text-sm font-semibold text-neutral-900 dark:text-neutral-100" maxFontSizeMultiplier={2}>
+            {t('decided_done')}
+          </Text>
+        </Pressable>
       </View>
     );
   }
 
-  if (event.status !== 'decided' || event.decidedStartTime == null) {
+  if (event.status !== 'decided') {
     return (
       <View className="flex-1 bg-white px-4 pt-4 dark:bg-black">
         <Text allowFontScaling className="text-base text-neutral-700 dark:text-neutral-300" maxFontSizeMultiplier={2}>
@@ -108,14 +133,18 @@ export default function EventDecidedScreen(): ReactElement {
     );
   }
 
-  const whenLabel = formatAgreedCardTime(event.decidedStartTime);
+  const whenLabel = formatAgreedCardTime(decidedStartTimeMs);
+  const description =
+    typeof event.description === 'string' && event.description.length > 0
+      ? event.description
+      : undefined;
 
   return (
     <View className="relative flex-1 bg-white dark:bg-black">
       <AgreedCardShareHost
         cardRef={cardRef}
         title={event.title}
-        decidedStartTimeMs={event.decidedStartTime}
+        decidedStartTimeMs={decidedStartTimeMs}
       />
       <ScrollView
         className="flex-1"
@@ -179,6 +208,18 @@ export default function EventDecidedScreen(): ReactElement {
             </Text>
           )}
         </Pressable>
+
+        <View className="mt-3">
+          <AddToCalendarButton
+            event={{
+              title: event.title,
+              startTimeMs: decidedStartTimeMs,
+              notes: description,
+            }}
+            eventId={id}
+            variant="secondary"
+          />
+        </View>
 
         <Pressable
           accessibilityRole="button"

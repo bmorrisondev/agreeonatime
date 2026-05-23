@@ -1,13 +1,6 @@
 import type { ReactElement } from 'react';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { makeFunctionReference } from 'convex/server';
 import { useMutation, useQuery } from 'convex/react';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -70,17 +63,24 @@ export default function PickTimeScreen(): ReactElement {
     if (!configured || id == null || effectiveSelection == null || event == null) {
       return;
     }
+    const selectedSlot = approvedSlots.find((s) => s._id === effectiveSelection);
+    if (selectedSlot == null) {
+      return;
+    }
     setSubmitting(true);
     try {
       await finalize({ eventId: id, timeslotId: effectiveSelection });
-      router.replace(`/event/${id}/decided`);
+      router.replace({
+        pathname: '/event/[id]/decided',
+        params: { id, startTimeMs: String(selectedSlot.startTime) },
+      });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Could not finalize';
       Alert.alert('Something went wrong', msg);
     } finally {
       setSubmitting(false);
     }
-  }, [configured, effectiveSelection, event, finalize, id]);
+  }, [approvedSlots, configured, effectiveSelection, event, finalize, id]);
 
   if (!configured || id == null || id.length === 0) {
     return (

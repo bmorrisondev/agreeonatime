@@ -128,13 +128,18 @@ export const strings = {
 
   decided_badge: 'Agreed',
   decided_title: 'Time locked in',
-  decided_subtitle: 'Share a card with your group so everyone has the details.',
+  decided_subtitle: 'Share a card with your group — and add it to your calendar so you do not forget.',
   decided_share_news: 'Share the news',
   decided_share_news_a11y: 'Share an image card with the agreed time',
   decided_done: 'Done',
   decided_done_a11y: 'Done, go to event details',
   decided_not_ready: 'This event is not finalized yet.',
   decided_share_icon_a11y: 'Share agreed time card',
+  decided_time_line: 'Time: {{time}}',
+  decided_back_a11y: 'Back to event',
+  decided_back: 'Back to event',
+  decided_share_a11y: 'Share voting link',
+  decided_share: 'Share link',
 
   agreed_card_headline: 'Agreed',
   agreed_card_tagline: 'Agreed with Agree on a Time',
@@ -143,6 +148,12 @@ export const strings = {
   agreed_share_copied_body: 'Share message copied to clipboard.',
   agreed_share_error_title: 'Could not share',
   agreed_share_error_body: 'Try again in a moment.',
+
+  add_to_calendar: 'Add to Calendar',
+  add_to_calendar_a11y: 'Add this event to your calendar',
+  add_to_calendar_error_title: 'Could not open calendar',
+  add_to_calendar_error_body:
+    'Try again on your device, or add the event manually in your calendar app.',
 
   settings_title: 'Settings',
   settings_account_header: 'Account',

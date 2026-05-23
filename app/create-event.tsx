@@ -24,6 +24,7 @@ import {
   EVENT_MAX_SLOTS,
   validateEventForm,
 } from '@/lib/events/event-form';
+import { EVENT_TIME_MINUTE_INTERVAL, roundTimeMs } from '@/lib/events/time-rounding';
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
@@ -82,12 +83,13 @@ export default function CreateEventScreen(): ReactElement {
       return;
     }
     const target = pickerRef.current;
+    const roundedMs = roundTimeMs(date.getTime());
     if (target?.kind === 'deadline') {
-      setDeadline(date.getTime());
+      setDeadline(roundedMs);
     } else if (target?.kind === 'slot') {
       setSlotStarts((rows) => {
         const next = [...rows];
-        next[target.index] = date.getTime();
+        next[target.index] = roundedMs;
         return next;
       });
     }
@@ -341,6 +343,7 @@ export default function CreateEventScreen(): ReactElement {
             </View>
             <DateTimePicker
               display="spinner"
+              minuteInterval={EVENT_TIME_MINUTE_INTERVAL}
               mode="datetime"
               themeVariant={colorScheme === 'dark' ? 'dark' : 'light'}
               value={pickerValue}
@@ -352,6 +355,7 @@ export default function CreateEventScreen(): ReactElement {
         {picker != null && Platform.OS === 'android' ? (
           <DateTimePicker
             display="default"
+            minuteInterval={EVENT_TIME_MINUTE_INTERVAL}
             mode="datetime"
             themeVariant={colorScheme === 'dark' ? 'dark' : 'light'}
             value={pickerValue}

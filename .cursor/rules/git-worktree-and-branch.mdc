@@ -7,11 +7,23 @@ alwaysApply: true
 
 ## Before creating a worktree
 
-**Always** sync the base branch first (default **`main`**, or the branch the user specified):
+**Always** sync the base branch first (default **`dev`**, or the branch the user specified):
 
 1. From the primary repo checkout: `git fetch origin`
 2. Update the base branch: `git checkout <base>` then `git pull origin <base>` (or `git pull --ff-only` on that branch)
 3. Only then run `git worktree add` (or create the task branch from the updated base)
+
+Integration flow: task branch → **`dev`** → **`main`**. See `.cursor/rules/git-dev-integration-branch.mdc`.
+
+## Resuming work in an existing worktree
+
+Before substantive edits or PR prep on a task branch that already exists:
+
+1. `git fetch origin`
+2. `git merge origin/dev` (fix conflicts before continuing)
+3. Re-run validation after the merge
+
+The user reviews after conflicts are resolved and the branch is pushed — do not leave conflict resolution to them unless blocked.
 
 Do not add a worktree or branch from a stale local base without pulling first.
 
@@ -19,9 +31,10 @@ Do not add a worktree or branch from a stale local base without pulling first.
 
 - Name task branches conventionally (e.g. `feature/dev-###-short-name`). See `.cursor/rules/agreeonatime-stack.mdc`.
 - If **`.env`** or **`.env.local`** exist in the primary checkout, **copy them into the new worktree** before running installs or dev servers.
-- Do substantive implementation on the task branch, not on `main`, unless the user explicitly asks otherwise.
+- Do substantive implementation on the task branch, not on `dev` or `main`, unless the user explicitly asks otherwise.
 
 ## Exceptions
 
 - Read-only exploration with no new branch/worktree: pulling is still good practice but not blocking.
-- User gave an explicit base ref (tag, commit): use that instead of `pull` on `main`.
+- User gave an explicit base ref (tag, commit): use that instead of `pull` on `dev`.
+- Hotfix directly to `main`: branch from `main` only when the user explicitly requests it.
