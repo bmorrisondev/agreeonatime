@@ -5,7 +5,7 @@ import type { Id } from './_generated/dataModel';
 import { mutation, query, type MutationCtx } from './_generated/server';
 
 import { authComponent } from './auth';
-import { assertCanAcceptNewVoter, voterKey } from './subscriptionLimits';
+import { assertCanAcceptNewVoter, ownerHasActiveSubFromUser, voterKey } from './subscriptionLimits';
 import { betterAuthUserIdString } from './users';
 
 const MAX_NAME_LEN = 80;
@@ -97,6 +97,8 @@ export const getByShareToken = query({
 
     const owner = await ctx.db.get(event.ownerId);
     const ownerName = owner?.name ?? 'the host';
+    const ownerHasActiveSub =
+      event.ownerHasActiveSub ?? (owner != null ? ownerHasActiveSubFromUser(owner) : false);
 
     let isViewerOwner = false;
     const authUser = await authComponent.safeGetAuthUser(ctx);
@@ -123,6 +125,7 @@ export const getByShareToken = query({
       decidedTimeslotId: event.decidedTimeslotId,
       decidedStartTime,
       ownerName,
+      ownerHasActiveSub,
       isViewerOwner,
       approvedTimeslots: slotsOut,
       pendingCount: pending.length,

@@ -53,6 +53,7 @@ type GuestEvent = {
   decidedTimeslotId?: string;
   decidedStartTime?: number;
   ownerName: string;
+  ownerHasActiveSub: boolean;
   isViewerOwner?: boolean;
   approvedTimeslots: { _id: string; startTime: number; yesCount: number; noCount: number }[];
   pendingCount: number;

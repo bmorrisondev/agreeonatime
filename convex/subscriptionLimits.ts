@@ -52,6 +52,14 @@ export function userHasPro(user: Pick<Doc<'users'>, 'proExpiresAt'>, nowMs: numb
   return user.proExpiresAt != null && user.proExpiresAt > nowMs;
 }
 
+/** Snapshot for ad gating on web guest flows (DEV-452). */
+export function ownerHasActiveSubFromUser(
+  user: Pick<Doc<'users'>, 'proExpiresAt'>,
+  nowMs: number = Date.now(),
+): boolean {
+  return userHasPro(user, nowMs);
+}
+
 export function voterKey(v: {
   voterName: string;
   voterUserId?: Id<'users'>;

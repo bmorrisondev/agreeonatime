@@ -11,6 +11,7 @@ import {
   assertCanAcceptNewVoter,
   assertCanCreateActiveEvent,
   isHistoryLocked,
+  ownerHasActiveSubFromUser,
   voterKey,
 } from './subscriptionLimits';
 import { ensureAppUserIdForAuthUser, betterAuthUserIdString } from './users';
@@ -173,6 +174,10 @@ export const create = mutation({
     }
     const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
     await assertCanCreateActiveEvent(ctx, userId);
+    const owner = await ctx.db.get(userId);
+    if (owner == null) {
+      throw new ConvexError('Account not found — try signing in again.');
+    }
 
     const title = args.title.trim();
     if (title.length === 0) {
@@ -207,6 +212,7 @@ export const create = mutation({
       allowInviteeProposals: args.allowInviteeProposals,
       createdAt,
       shareToken,
+      ownerHasActiveSub: ownerHasActiveSubFromUser(owner, now),
     });
 
     for (const startTime of starts) {

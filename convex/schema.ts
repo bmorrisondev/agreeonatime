@@ -34,6 +34,8 @@ export default defineSchema({
     /** Notification tracking — set by cron after sending (DEV-391). */
     deadlineReminderSent: v.optional(v.boolean()),
     deadlineReachedSent: v.optional(v.boolean()),
+    /** Whether the event owner had an active Pro subscription when last synced (DEV-452). */
+    ownerHasActiveSub: v.optional(v.boolean()),
   })
     .index('by_share_token', ['shareToken'])
     .index('by_owner', ['ownerId']),
