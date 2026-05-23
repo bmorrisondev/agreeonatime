@@ -31,7 +31,7 @@ export default function EventIdLayout(): ReactElement {
         }}
       />
       <Stack.Screen name="pick-time" options={{ title: 'Pick a time' }} />
-      <Stack.Screen name="decided" options={{ title: 'Event decided' }} />
+      <Stack.Screen name="decided" options={{ title: 'Time locked in', headerBackVisible: false }} />
     </Stack>
   );
 }

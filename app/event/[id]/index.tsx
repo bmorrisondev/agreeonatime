@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { makeFunctionReference } from 'convex/server';
 import { useMutation, useQuery } from 'convex/react';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -12,6 +12,7 @@ import {
   Share,
   Text,
   View,
+  type View as ViewType,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,15 +20,16 @@ import { DsButton } from '@/components/design-system/button';
 import { DsModal } from '@/components/design-system/modal-sheet';
 import { DsToast } from '@/components/design-system';
 import { AddToCalendarButton } from '@/components/events/add-to-calendar-button';
+import { AgreedCardPreview } from '@/components/events/agreed-card-preview';
 import { InviteeEventView } from '@/components/events/invitee-event-view';
 import { VoteBar } from '@/components/events/vote-bar';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { useSubscription } from '@/hooks/use-subscription';
 import { buildVoteUrl } from '@/lib/events/build-share-url';
+import { shareAgreedCard } from '@/lib/events/share-agreed-card';
 import { t } from '@/lib/i18n/t';
 import {
   formatDeadlineLine,
-  formatDecidedTime,
   formatTimeslotWithTimezone,
 } from '@/lib/events/format-event-home';
 import { isConvexConfigured } from '@/lib/convex/client';
@@ -70,6 +72,8 @@ export default function EventDetailScreen(): ReactElement {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const agreedCardRef = useRef<ViewType>(null);
+  const [sharingAgreed, setSharingAgreed] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -92,6 +96,15 @@ export default function EventDetailScreen(): ReactElement {
 
   const dismissShareToast = useCallback(() => {
     setShareToast((s) => ({ ...s, visible: false }));
+  }, []);
+
+  const onShareAgreedCard = useCallback(async (title: string, decidedStartTimeMs: number) => {
+    setSharingAgreed(true);
+    try {
+      await shareAgreedCard(agreedCardRef, { title, decidedStartTimeMs });
+    } finally {
+      setSharingAgreed(false);
+    }
   }, []);
 
   const onShare = useCallback(async (title: string, shareToken: string) => {
@@ -218,9 +231,11 @@ export default function EventDetailScreen(): ReactElement {
 
         {event.status === 'decided' && event.decidedStartTime != null ? (
           <>
-            <Text className="mt-2 text-base text-neutral-800 dark:text-neutral-200">
-              {formatDecidedTime(event.decidedStartTime)}
-            </Text>
+            <AgreedCardPreview
+              cardRef={agreedCardRef}
+              title={event.title}
+              decidedStartTimeMs={event.decidedStartTime}
+            />
             <View className="mt-4">
               <AddToCalendarButton
                 event={{
@@ -235,6 +250,21 @@ export default function EventDetailScreen(): ReactElement {
                 variant="secondary"
               />
             </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('decided_share_news_a11y')}
+              disabled={sharingAgreed}
+              className="mt-3 min-h-[44px] items-center justify-center rounded-lg bg-brand active:opacity-90 disabled:opacity-50"
+              onPress={() => {
+                void onShareAgreedCard(event.title, event.decidedStartTime as number);
+              }}
+            >
+              {sharingAgreed ? (
+                <ActivityIndicator color="#fff" accessibilityLabel={t('a11y_loading')} />
+              ) : (
+                <Text className="text-base font-semibold text-white">{t('decided_share_news')}</Text>
+              )}
+            </Pressable>
           </>
         ) : null}
 
@@ -256,7 +286,7 @@ export default function EventDetailScreen(): ReactElement {
           </View>
         ) : null}
 
-        <View className="mt-4 flex-row flex-wrap gap-2">
+        <View className="mt-4 flex-row flex-wrap items-center gap-2">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Share voting link"
@@ -388,24 +418,26 @@ export default function EventDetailScreen(): ReactElement {
           )}
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Pick the time for this event"
-          className={`mt-10 items-center rounded-xl py-3.5 ${
-            pickTimePrimary
-              ? 'bg-[#FF6B5C] active:opacity-90'
-              : 'border border-neutral-300 bg-white active:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800'
-          }`}
-          onPress={() => {
-            router.push(`/event/${id}/pick-time`);
-          }}
-        >
-          <Text
-            className={`text-base font-semibold ${pickTimePrimary ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}
+        {event.status === 'open' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Pick the time for this event"
+            className={`mt-10 items-center rounded-xl py-3.5 ${
+              pickTimePrimary
+                ? 'bg-[#FF6B5C] active:opacity-90'
+                : 'border border-neutral-300 bg-white active:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800'
+            }`}
+            onPress={() => {
+              router.push(`/event/${id}/pick-time`);
+            }}
           >
-            Pick the time
-          </Text>
-        </Pressable>
+            <Text
+              className={`text-base font-semibold ${pickTimePrimary ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}
+            >
+              Pick the time
+            </Text>
+          </Pressable>
+        ) : null}
 
         <Pressable
           accessibilityRole="button"
