@@ -266,7 +266,7 @@ export default function SignInScreen(): ReactElement {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Send reset code"
-          className="mb-3 items-center rounded-xl bg-[#FF6B5C] py-4 opacity-100 active:opacity-90 disabled:opacity-50"
+          className="mb-3 min-h-[44px] items-center justify-center rounded-xl bg-[#FF6B5C] opacity-100 active:opacity-90 disabled:opacity-50"
           disabled={busy || email.trim().length === 0}
           onPress={() => void onRequestResetCode()}
         >
@@ -314,7 +314,7 @@ export default function SignInScreen(): ReactElement {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Reset password"
-            className="mb-3 items-center rounded-xl bg-[#FF6B5C] py-4 opacity-100 active:opacity-90 disabled:opacity-50"
+            className="mb-3 min-h-[44px] items-center justify-center rounded-xl bg-[#FF6B5C] opacity-100 active:opacity-90 disabled:opacity-50"
             disabled={busy || otp.trim().length !== 6 || newPassword.length < 8}
             onPress={() => void onResetPassword()}
           >
@@ -329,7 +329,7 @@ export default function SignInScreen(): ReactElement {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={mode === 'sign-up' ? 'Create account' : 'Sign in'}
-          className="mb-3 items-center rounded-xl bg-[#FF6B5C] py-4 opacity-100 active:opacity-90 disabled:opacity-50"
+          className="mb-3 min-h-[44px] items-center justify-center rounded-xl bg-[#FF6B5C] opacity-100 active:opacity-90 disabled:opacity-50"
           disabled={busy || !canSubmitPassword}
           onPress={() => void onPasswordSubmit()}
         >
@@ -383,7 +383,11 @@ export default function SignInScreen(): ReactElement {
       ) : null}
 
       {notice != null ? (
-        <Text className="mt-6 text-center text-sm text-neutral-700 dark:text-neutral-300">
+        <Text
+          accessibilityLiveRegion="polite"
+          accessibilityRole="alert"
+          className="mt-6 text-center text-sm text-neutral-700 dark:text-neutral-300"
+        >
           {notice}
         </Text>
       ) : null}

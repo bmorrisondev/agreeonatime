@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { t } from '@/lib/i18n/t';
 
 export interface DsModalProps {
@@ -11,15 +12,23 @@ export interface DsModalProps {
 }
 
 export function DsModal({ visible, title, children, onClose }: DsModalProps): ReactElement {
+  const reduceMotion = useReducedMotion();
+
   return (
-    <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
+    <Modal
+      accessibilityViewIsModal
+      animationType={reduceMotion ? 'none' : 'fade'}
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+    >
       <View className="flex-1 justify-center bg-black/50 px-ds-lg">
         <View className="max-h-[85%] rounded-ds-md bg-white p-ds-lg dark:bg-neutral-900">
           <View className="mb-ds-md flex-row items-center gap-ds-sm">
             <Pressable
               accessibilityLabel={t('ds_modal_close_a11y')}
               accessibilityRole="button"
-              className="rounded-ds-sm p-ds-sm"
+              className="min-h-[44px] min-w-[44px] items-center justify-center rounded-ds-sm p-ds-sm"
               hitSlop={8}
               onPress={onClose}
             >

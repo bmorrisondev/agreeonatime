@@ -309,6 +309,7 @@ export function PaywallModal({ visible, onClose, onSubscribed }: PaywallModalPro
       {error != null ? (
         <Text
           allowFontScaling
+          accessibilityLiveRegion="polite"
           accessibilityRole="alert"
           className="mb-ds-md text-caption text-danger"
           maxFontSizeMultiplier={2}

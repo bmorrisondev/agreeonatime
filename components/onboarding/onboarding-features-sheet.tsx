@@ -9,6 +9,7 @@ import {
   type OnboardingThemeColors,
   useOnboardingTheme,
 } from '@/components/onboarding/onboarding-theme';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 
 const HERO_ICON_SIZE = 112;
 
@@ -96,10 +97,15 @@ export interface OnboardingFeaturesSheetProps {
 export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): ReactElement {
   const insets = useSafeAreaInsets();
   const theme = useOnboardingTheme();
+  const reduceMotion = useReducedMotion();
+  const heroEntering = reduceMotion ? undefined : FadeInDown.duration(400);
+  const featureEntering = (index: number) =>
+    reduceMotion ? undefined : FadeIn.delay(120 + 80 * index).duration(300);
 
   return (
     <Modal
-      animationType="slide"
+      accessibilityViewIsModal
+      animationType={reduceMotion ? 'none' : 'slide'}
       presentationStyle="fullScreen"
       visible={props.visible}
       onRequestClose={props.onLogIn}
@@ -117,7 +123,7 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View entering={FadeInDown.duration(400)} className="w-full max-w-md items-center pt-4">
+          <Animated.View entering={heroEntering} className="w-full max-w-md items-center pt-4">
             <View className="mb-5 items-center self-center">
               <AppIconMark size={HERO_ICON_SIZE} theme={theme} />
             </View>
@@ -139,10 +145,7 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
 
           <View className="flex-1 justify-center">
             {FEATURES.map((feature, index) => (
-              <Animated.View
-                key={feature.title}
-                entering={FadeIn.delay(120 + 80 * index).duration(300)}
-              >
+              <Animated.View key={feature.title} entering={featureEntering(index)}>
                 <FeatureListRow feature={feature} theme={theme} />
               </Animated.View>
             ))}
@@ -151,7 +154,7 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
           <Pressable
             accessibilityLabel="Create my first event"
             accessibilityRole="button"
-            className="mt-4 items-center rounded-2xl py-4"
+            className="mt-4 min-h-[44px] items-center justify-center rounded-2xl"
             style={{ backgroundColor: theme.accent }}
             onPress={props.onCreateEvent}
           >
@@ -163,7 +166,7 @@ export function OnboardingFeaturesSheet(props: OnboardingFeaturesSheetProps): Re
           <Pressable
             accessibilityLabel="Log in"
             accessibilityRole="button"
-            className="mt-3 items-center py-3"
+            className="mt-3 min-h-[44px] items-center justify-center"
             onPress={props.onLogIn}
           >
             <Text className="text-base font-medium" style={{ color: theme.muted }}>

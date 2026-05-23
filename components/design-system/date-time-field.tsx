@@ -4,6 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Modal, Platform, Pressable, Text, View } from 'react-native';
 
 import { DsButton } from '@/components/design-system/button';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { t } from '@/lib/i18n/t';
 
 export type DsDateTimeMode = 'date' | 'time' | 'datetime';
@@ -34,6 +35,7 @@ export function DsDateTimeField({
   optional = false,
 }: DsDateTimeFieldProps): ReactElement {
   const [open, setOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
   const labelText = `${label}${optional ? ` (${t('ds_textField_optional')})` : ''}`;
 
   if (Platform.OS === 'web') {
@@ -69,7 +71,7 @@ export function DsDateTimeField({
         accessibilityHint={t('ds_dateTimeField_choose')}
         accessibilityLabel={`${labelText}, ${formatValue(value, mode)}`}
         accessibilityRole="button"
-        className="rounded-ds-md border border-neutral-300 bg-white px-ds-lg py-ds-md dark:border-neutral-600 dark:bg-neutral-900"
+        className="min-h-[44px] justify-center rounded-ds-md border border-neutral-300 bg-white px-ds-lg py-ds-md dark:border-neutral-600 dark:bg-neutral-900"
         onPress={() => setOpen(true)}
       >
         <Text allowFontScaling className="text-body text-neutral-900 dark:text-neutral-100" maxFontSizeMultiplier={2}>
@@ -78,14 +80,20 @@ export function DsDateTimeField({
       </Pressable>
 
       {Platform.OS === 'ios' ? (
-        <Modal animationType="slide" transparent visible={open} onRequestClose={() => setOpen(false)}>
+        <Modal
+          accessibilityViewIsModal
+          animationType={reduceMotion ? 'none' : 'slide'}
+          transparent
+          visible={open}
+          onRequestClose={() => setOpen(false)}
+        >
           <View className="flex-1 justify-end bg-black/40">
             <View className="rounded-t-ds-md bg-white p-ds-lg dark:bg-neutral-900">
               <View className="mb-ds-md flex-row items-center gap-ds-sm">
                 <Pressable
                   accessibilityLabel={t('ds_modal_close_a11y')}
                   accessibilityRole="button"
-                  className="rounded-ds-sm p-ds-sm"
+                  className="min-h-[44px] min-w-[44px] items-center justify-center rounded-ds-sm p-ds-sm"
                   hitSlop={8}
                   onPress={() => setOpen(false)}
                 >

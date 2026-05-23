@@ -20,6 +20,7 @@ import { VoteBar } from '@/components/events/vote-bar';
 import { WebVoteAppLink } from '@/components/linking/web-vote-app-link';
 import { useWebOpenVoteInApp } from '@/hooks/use-web-open-vote-in-app';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { formatVoteYesNoLabel, formatVotesForTimeLabel } from '@/lib/accessibility/vote-controls';
 import { APP_STORE_APP_ID } from '@/lib/constants/native-app-linking';
 import { isConvexConfigured } from '@/lib/convex/client';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
@@ -74,6 +75,7 @@ export default function VoteByTokenScreen(): ReactElement {
   const [proposeOpen, setProposeOpen] = useState(false);
   const [proposeAt, setProposeAt] = useState(() => new Date(Date.now() + DEFAULT_PROPOSE_OFFSET_MS));
   const [voted, setVoted] = useState(false);
+  const [myVotes, setMyVotes] = useState<Record<string, 'yes' | 'no'>>({});
   const [nowMs, setNowMs] = useState(() => Date.now());
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -113,7 +115,9 @@ export default function VoteByTokenScreen(): ReactElement {
     if (event == null || typeof event !== 'object' || !('deadline' in event)) {
       return '';
     }
-    return `Closes ${formatDeadlineLine(event.deadline, nowMs)}`;
+    return t('vote_guest_closes_line', {
+      deadline: formatDeadlineLine(event.deadline, nowMs),
+    });
   }, [event, nowMs]);
 
   const setVote = useMutation(guestSetVoteMutation);
@@ -126,7 +130,7 @@ export default function VoteByTokenScreen(): ReactElement {
       }
       const n = name.trim();
       if (n.length === 0) {
-        setError('Enter your name so the host knows who voted.');
+        setError(t('invitee_name_required'));
         return;
       }
       setStoredGuestName(n);
@@ -137,15 +141,16 @@ export default function VoteByTokenScreen(): ReactElement {
           shareToken: token,
           voterSessionId: sessionId,
           voterName: n,
-          timeslotId,
           vote,
+          timeslotId,
         });
+        setMyVotes((prev) => ({ ...prev, [timeslotId]: vote }));
         setVoted(true);
       } catch (e: unknown) {
         if (isEventAtCapacityError(e)) {
           setError(t('vote_event_at_capacity'));
         } else {
-          setError(formatMutationError(e, 'Could not save vote'));
+          setError(formatMutationError(e, t('invitee_vote_error')));
         }
       } finally {
         setBusy(null);
@@ -160,7 +165,7 @@ export default function VoteByTokenScreen(): ReactElement {
     }
     const n = name.trim();
     if (n.length === 0) {
-      setError('Enter your name first.');
+      setError(t('vote_guest_name_required_first'));
       return;
     }
     setStoredGuestName(n);
@@ -169,7 +174,7 @@ export default function VoteByTokenScreen(): ReactElement {
     try {
       const startMs = proposeAt.getTime();
       if (!Number.isFinite(startMs)) {
-        setError('Enter a valid date and time.');
+        setError(t('invitee_propose_invalid_time'));
         setBusy(null);
         return;
       }
@@ -181,7 +186,7 @@ export default function VoteByTokenScreen(): ReactElement {
       });
       setProposeOpen(false);
     } catch (e: unknown) {
-      setError(formatMutationError(e, 'Could not submit proposal'));
+      setError(formatMutationError(e, t('invitee_propose_error')));
     } finally {
       setBusy(null);
     }
@@ -190,8 +195,12 @@ export default function VoteByTokenScreen(): ReactElement {
   if (!configured) {
     return (
       <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
-        <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
-          Set EXPO_PUBLIC_CONVEX_URL to load this invite.
+        <Text
+          allowFontScaling
+          className="text-center text-base text-neutral-700 dark:text-neutral-300"
+          maxFontSizeMultiplier={2}
+        >
+          {t('vote_guest_convex_not_configured')}
         </Text>
       </View>
     );
@@ -200,8 +209,12 @@ export default function VoteByTokenScreen(): ReactElement {
   if (token == null || token.length < 8) {
     return (
       <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
-        <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
-          This voting link is invalid.
+        <Text
+          allowFontScaling
+          className="text-center text-base text-neutral-700 dark:text-neutral-300"
+          maxFontSizeMultiplier={2}
+        >
+          {t('vote_guest_invalid_link')}
         </Text>
       </View>
     );
@@ -211,9 +224,9 @@ export default function VoteByTokenScreen(): ReactElement {
     return (
       <View
         className="flex-1 items-center justify-center bg-white dark:bg-black"
-        accessibilityLabel="Loading event"
+        accessibilityLabel={t('vote_guest_loading_a11y')}
       >
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" accessibilityLabel={t('a11y_loading')} />
       </View>
     );
   }
@@ -221,44 +234,62 @@ export default function VoteByTokenScreen(): ReactElement {
   if (event === null) {
     return (
       <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
-        <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
-          This link does not match an event. Check with the host for an updated link.
+        <Text
+          allowFontScaling
+          className="text-center text-base text-neutral-700 dark:text-neutral-300"
+          maxFontSizeMultiplier={2}
+        >
+          {t('vote_guest_not_found')}
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Go to home"
-          className="mt-8 rounded-lg bg-[#FF6B5C] px-5 py-2.5 active:opacity-90"
+          accessibilityLabel={t('vote_guest_go_home_a11y')}
+          className="mt-8 min-h-[44px] items-center justify-center rounded-lg bg-[#FF6B5C] px-5 active:opacity-90"
           onPress={() => {
             router.replace('/');
           }}
         >
-          <Text className="text-sm font-semibold text-white">Go to home</Text>
+          <Text allowFontScaling className="text-sm font-semibold text-white" maxFontSizeMultiplier={2}>
+            {t('vote_guest_go_home')}
+          </Text>
         </Pressable>
       </View>
     );
   }
 
   if (event.status === 'decided' && event.decidedStartTime != null) {
+    const decidedTime = formatTimeslotWithTimezone(event.decidedStartTime);
     return (
       <ScrollView
         className="flex-1 bg-white dark:bg-black"
         contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 24 }}
       >
-        <Text className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">{event.title}</Text>
-        <Text className="mt-4 text-base text-neutral-700 dark:text-neutral-300">
-          {event.ownerName} picked a time:{' '}
-          <Text className="font-semibold">{formatTimeslotWithTimezone(event.decidedStartTime)}</Text>
+        <Text
+          allowFontScaling
+          className="text-xl font-semibold text-neutral-900 dark:text-neutral-100"
+          maxFontSizeMultiplier={2}
+        >
+          {event.title}
+        </Text>
+        <Text allowFontScaling className="mt-4 text-base text-neutral-700 dark:text-neutral-300" maxFontSizeMultiplier={2}>
+          {t('vote_guest_decided_line', { host: event.ownerName, time: decidedTime })}
         </Text>
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel="Get the Agree on a Time app on the App Store"
-          className="mt-8 items-center rounded-xl bg-[#FF6B5C] py-3.5 active:opacity-90"
+          accessibilityLabel={t('vote_guest_get_app_a11y')}
+          className="mt-8 min-h-[44px] items-center justify-center rounded-xl bg-[#FF6B5C] active:opacity-90"
           onPress={() => void Linking.openURL(APP_STORE_URL)}
         >
-          <Text className="text-base font-semibold text-white">Get the app</Text>
+          <Text allowFontScaling className="text-base font-semibold text-white" maxFontSizeMultiplier={2}>
+            {t('vote_guest_get_app')}
+          </Text>
         </Pressable>
-        <Text className="mt-4 text-center text-sm text-neutral-500 dark:text-neutral-500">
-          Host your own polls with Agree on a Time.
+        <Text
+          allowFontScaling
+          className="mt-4 text-center text-sm text-neutral-500 dark:text-neutral-500"
+          maxFontSizeMultiplier={2}
+        >
+          {t('vote_guest_host_footer')}
         </Text>
       </ScrollView>
     );
@@ -267,8 +298,12 @@ export default function VoteByTokenScreen(): ReactElement {
   if (event.status !== 'open') {
     return (
       <View className="flex-1 items-center justify-center bg-white px-6 dark:bg-black">
-        <Text className="text-center text-base text-neutral-700 dark:text-neutral-300">
-          Voting is closed for this event.
+        <Text
+          allowFontScaling
+          className="text-center text-base text-neutral-700 dark:text-neutral-300"
+          maxFontSizeMultiplier={2}
+        >
+          {t('vote_guest_voting_closed')}
         </Text>
       </View>
     );
@@ -280,17 +315,25 @@ export default function VoteByTokenScreen(): ReactElement {
       contentContainerStyle={{ padding: 16, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }}
     >
       {token != null && token.length >= 8 ? <WebVoteAppLink shareToken={token} /> : null}
-      <Text className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{event.title}</Text>
+      <Text allowFontScaling className="text-2xl font-bold text-neutral-900 dark:text-neutral-100" maxFontSizeMultiplier={2}>
+        {event.title}
+      </Text>
       {event.description != null && event.description.length > 0 ? (
-        <Text className="mt-2 text-base text-neutral-600 dark:text-neutral-400">{event.description}</Text>
+        <Text allowFontScaling className="mt-2 text-base text-neutral-600 dark:text-neutral-400" maxFontSizeMultiplier={2}>
+          {event.description}
+        </Text>
       ) : null}
-      <Text className="mt-2 text-sm text-neutral-500 dark:text-neutral-500">{deadlineLine}</Text>
+      <Text allowFontScaling className="mt-2 text-sm text-neutral-500 dark:text-neutral-500" maxFontSizeMultiplier={2}>
+        {deadlineLine}
+      </Text>
 
-      <Text className="mt-6 text-sm font-semibold text-neutral-800 dark:text-neutral-200">Your name</Text>
+      <Text allowFontScaling className="mt-6 text-sm font-semibold text-neutral-800 dark:text-neutral-200" maxFontSizeMultiplier={2}>
+        {t('vote_guest_your_name')}
+      </Text>
       <TextInput
-        accessibilityLabel="Your name for voting"
-        className="mt-2 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
-        placeholder="Required"
+        accessibilityLabel={t('vote_guest_your_name_a11y')}
+        className="mt-2 min-h-[44px] rounded-lg border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
+        placeholder={t('vote_guest_name_placeholder')}
         value={name}
         onChangeText={setName}
         autoCapitalize="words"
@@ -302,16 +345,18 @@ export default function VoteByTokenScreen(): ReactElement {
         </Text>
       ) : null}
 
-      <Text className="mt-8 text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400">
-        Times
+      <Text allowFontScaling className="mt-8 text-sm font-semibold uppercase text-neutral-500 dark:text-neutral-400" maxFontSizeMultiplier={2}>
+        {t('vote_guest_times')}
       </Text>
       {event.approvedTimeslots.map((slot) => {
         const loading = busy != null && busy.startsWith(`${slot._id}:`);
-        const barLabel = `Votes for ${formatTimeslotWithTimezone(slot.startTime)}`;
+        const timeLabel = formatTimeslotWithTimezone(slot.startTime);
+        const barLabel = formatVotesForTimeLabel(timeLabel);
+        const myVote = myVotes[slot._id];
         return (
           <View key={slot._id} className="mt-4 rounded-xl border border-neutral-200 p-3 dark:border-neutral-700">
-            <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-              {formatTimeslotWithTimezone(slot.startTime)}
+            <Text allowFontScaling className="text-base font-semibold text-neutral-900 dark:text-neutral-100" maxFontSizeMultiplier={2}>
+              {timeLabel}
             </Text>
             <View className="mt-2">
               <VoteBar
@@ -320,31 +365,52 @@ export default function VoteByTokenScreen(): ReactElement {
                 accessibilityLabel={barLabel}
               />
             </View>
+            {myVote != null ? (
+              <Text allowFontScaling className="mt-2 text-sm text-neutral-600 dark:text-neutral-400" maxFontSizeMultiplier={2}>
+                {t('vote_guest_your_vote', {
+                  vote: myVote === 'yes' ? t('invitee_vote_yes') : t('invitee_vote_no'),
+                })}
+              </Text>
+            ) : null}
             <View className="mt-3 flex-row gap-2">
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Vote yes for ${formatTimeslotWithTimezone(slot.startTime)}`}
+                accessibilityLabel={formatVoteYesNoLabel(timeLabel, 'yes', myVote === 'yes')}
+                accessibilityState={{ selected: myVote === 'yes' }}
                 disabled={loading}
-                className="flex-1 items-center rounded-lg bg-emerald-600 py-2.5 active:opacity-90 disabled:opacity-50"
+                className={`min-h-[44px] flex-1 items-center justify-center rounded-lg active:opacity-90 disabled:opacity-50 ${
+                  myVote === 'yes' ? 'bg-emerald-700' : 'bg-emerald-600'
+                }`}
                 onPress={() => void onVote(slot._id, 'yes')}
               >
                 {loading && busy === `${slot._id}:yes` ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text className="text-sm font-semibold text-white">Yes</Text>
+                  <Text allowFontScaling className="text-sm font-semibold text-white" maxFontSizeMultiplier={2}>
+                    {myVote === 'yes' ? '✓ ' : ''}
+                    {t('invitee_vote_yes')}
+                  </Text>
                 )}
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Vote no for ${formatTimeslotWithTimezone(slot.startTime)}`}
+                accessibilityLabel={formatVoteYesNoLabel(timeLabel, 'no', myVote === 'no')}
+                accessibilityState={{ selected: myVote === 'no' }}
                 disabled={loading}
-                className="flex-1 items-center rounded-lg border border-neutral-300 bg-white py-2.5 active:bg-neutral-50 disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800"
+                className={`min-h-[44px] flex-1 items-center justify-center rounded-lg border active:bg-neutral-50 disabled:opacity-50 dark:active:bg-neutral-800 ${
+                  myVote === 'no'
+                    ? 'border-neutral-500 bg-neutral-100 dark:border-neutral-400 dark:bg-neutral-800'
+                    : 'border-neutral-300 bg-white dark:border-neutral-600 dark:bg-neutral-900'
+                }`}
                 onPress={() => void onVote(slot._id, 'no')}
               >
                 {loading && busy === `${slot._id}:no` ? (
                   <ActivityIndicator color="#666" />
                 ) : (
-                  <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">No</Text>
+                  <Text allowFontScaling className="text-sm font-semibold text-neutral-900 dark:text-neutral-100" maxFontSizeMultiplier={2}>
+                    {myVote === 'no' ? '✗ ' : ''}
+                    {t('invitee_vote_no')}
+                  </Text>
                 )}
               </Pressable>
             </View>
@@ -356,8 +422,10 @@ export default function VoteByTokenScreen(): ReactElement {
         <View className="mt-8">
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={proposeOpen ? 'Hide propose time form' : 'Propose another time'}
-            className="rounded-lg border border-dashed border-neutral-400 py-3 dark:border-neutral-600"
+            accessibilityLabel={
+              proposeOpen ? t('invitee_hide_propose_a11y') : t('invitee_show_propose_a11y')
+            }
+            className="min-h-[44px] justify-center rounded-lg border border-dashed border-neutral-400 dark:border-neutral-600"
             onPress={() => {
               setProposeOpen((open) => {
                 if (!open) {
@@ -367,15 +435,15 @@ export default function VoteByTokenScreen(): ReactElement {
               });
             }}
           >
-            <Text className="text-center text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-              {proposeOpen ? 'Hide proposal' : 'Propose another time'}
+            <Text allowFontScaling className="text-center text-sm font-semibold text-neutral-800 dark:text-neutral-200" maxFontSizeMultiplier={2}>
+              {proposeOpen ? t('invitee_hide_propose') : t('invitee_show_propose')}
             </Text>
           </Pressable>
           {proposeOpen ? (
             <View className="mt-4">
               {Platform.OS === 'web' ? (
                 <WebDatetimeLocalInput
-                  accessibilityLabel="Proposed date and time"
+                  accessibilityLabel={t('invitee_propose_datetime_a11y')}
                   colorScheme={webScheme}
                   minMs={nowMs + 60_000}
                   valueMs={proposeAt.getTime()}
@@ -397,15 +465,17 @@ export default function VoteByTokenScreen(): ReactElement {
               )}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Submit proposed time"
+                accessibilityLabel={t('invitee_submit_proposal_a11y')}
                 disabled={busy === 'propose'}
-                className="mt-4 items-center rounded-lg bg-[#FF6B5C] py-3 active:opacity-90 disabled:opacity-50"
+                className="mt-4 min-h-[44px] items-center justify-center rounded-lg bg-[#FF6B5C] active:opacity-90 disabled:opacity-50"
                 onPress={() => void onPropose()}
               >
                 {busy === 'propose' ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text className="text-sm font-semibold text-white">Submit proposal</Text>
+                  <Text allowFontScaling className="text-sm font-semibold text-white" maxFontSizeMultiplier={2}>
+                    {t('invitee_submit_proposal')}
+                  </Text>
                 )}
               </Pressable>
             </View>
@@ -415,13 +485,13 @@ export default function VoteByTokenScreen(): ReactElement {
 
       {voted ? (
         <View className="mt-8 rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/30" accessibilityLiveRegion="polite">
-          <Text className="text-center text-base font-semibold text-emerald-800 dark:text-emerald-200">
-            Got it — we&apos;ll let you know when {event.ownerName} picks a time.
+          <Text allowFontScaling className="text-center text-base font-semibold text-emerald-800 dark:text-emerald-200" maxFontSizeMultiplier={2}>
+            {t('invitee_vote_ack', { host: event.ownerName })}
           </Text>
         </View>
       ) : (
-        <Text className="mt-10 text-center text-xs text-neutral-500 dark:text-neutral-500">
-          We&apos;ll let you know when {event.ownerName} picks a time.
+        <Text allowFontScaling className="mt-10 text-center text-xs text-neutral-500 dark:text-neutral-500" maxFontSizeMultiplier={2}>
+          {t('invitee_vote_footer', { host: event.ownerName })}
         </Text>
       )}
     </ScrollView>
