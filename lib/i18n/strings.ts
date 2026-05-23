@@ -54,6 +54,9 @@ export const strings = {
 
   vote_event_at_capacity:
     'This event has reached its voting limit. The organizer can upgrade to allow more responses.',
+  vote_open_in_app: 'Open in app',
+  vote_open_in_app_a11y: 'Open this vote in the Agree on a Time app',
+  vote_open_in_app_hint: 'Have the app installed? Open this vote in Agree on a Time for a better experience.',
 
   invitee_event_not_found: 'Event not found. Check with the host for an updated link.',
   invitee_voting_closed: 'Voting is closed for this event.',
