@@ -1,6 +1,8 @@
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 
+import { deleteAvailabilityForEvent } from './availabilityGrid';
+
 const BATCH_SIZE = 256;
 
 /** Removes all votes and timeslots for an event, then the event row (DEV-445). */
@@ -20,6 +22,8 @@ export async function deleteEventAndDependents(
       await ctx.db.delete(vote._id);
     }
   }
+
+  await deleteAvailabilityForEvent(ctx, eventId);
 
   while (true) {
     const timeslots = await ctx.db

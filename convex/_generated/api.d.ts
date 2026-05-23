@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as availabilityGrid from "../availabilityGrid.js";
 import type * as crons from "../crons.js";
 import type * as eventDeletion from "../eventDeletion.js";
 import type * as events from "../events.js";
@@ -28,6 +29,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  availabilityGrid: typeof availabilityGrid;
   crons: typeof crons;
   eventDeletion: typeof eventDeletion;
   events: typeof events;

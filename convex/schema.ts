@@ -25,6 +25,8 @@ export default defineSchema({
     title: v.string(),
     description: v.optional(v.string()),
     status: v.union(v.literal('open'), v.literal('closed'), v.literal('decided')),
+    /** `discrete` = yes/no slots (default); `range` = availability grid (Agree+). */
+    schedulingMode: v.optional(v.union(v.literal('discrete'), v.literal('range'))),
     deadline: v.number(),
     allowInviteeProposals: v.boolean(),
     decidedTimeslotId: v.optional(v.id('timeslots')),
@@ -40,8 +42,12 @@ export default defineSchema({
 
   timeslots: defineTable({
     eventId: v.id('events'),
+    /** `discrete` (default) uses `startTime`; `range` uses `startBound` / `endBound`. */
+    type: v.optional(v.union(v.literal('discrete'), v.literal('range'))),
     startTime: v.number(),
     endTime: v.optional(v.number()),
+    startBound: v.optional(v.number()),
+    endBound: v.optional(v.number()),
     proposedBy: v.optional(v.id('users')),
     /** Display name when a guest (web) proposes a pending slot. */
     proposedByGuestName: v.optional(v.string()),
@@ -64,4 +70,18 @@ export default defineSchema({
     .index('by_event_and_session', ['eventId', 'voterSessionId'])
     .index('by_timeslot', ['timeslotId'])
     .index('by_voter_user', ['voterUserId']),
+
+  availabilityBlocks: defineTable({
+    eventId: v.id('events'),
+    timeslotId: v.id('timeslots'),
+    voterName: v.string(),
+    voterUserId: v.optional(v.id('users')),
+    voterSessionId: v.optional(v.string()),
+    blockIndex: v.number(),
+    available: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index('by_event', ['eventId'])
+    .index('by_timeslot', ['timeslotId'])
+    .index('by_timeslot_and_session', ['timeslotId', 'voterSessionId']),
 });

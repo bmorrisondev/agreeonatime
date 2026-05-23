@@ -149,6 +149,20 @@ export async function assertCanCreateActiveEvent(
 /**
  * Throws when a free event already has the maximum number of unique voters and this is a new voter.
  */
+/** Agree+ only: availability grid / range scheduling (DEV-434). */
+export async function assertCanUseAvailabilityGrid(
+  ctx: MutationCtx,
+  ownerId: Id<'users'>,
+): Promise<void> {
+  const user = await ctx.db.get(ownerId);
+  if (user == null) {
+    throw new ConvexError('Account not found — try signing in again.');
+  }
+  if (!userHasPro(user)) {
+    throw new ConvexError('Availability windows are an Agree+ feature. Subscribe to create range events.');
+  }
+}
+
 export async function assertCanAcceptNewVoter(
   ctx: MutationCtx,
   event: Pick<Doc<'events'>, '_id' | 'ownerId'>,
