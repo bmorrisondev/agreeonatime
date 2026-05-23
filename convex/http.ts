@@ -5,9 +5,54 @@ import { internal } from './_generated/api';
 import { httpAction } from './_generated/server';
 
 import { authComponent, createAuth } from './auth';
+import { parseReminderUnsubscribeToken } from './reminderUnsubscribe';
 import { webAuthOrigins } from './site_origins';
 
 const http = httpRouter();
+
+function unsubscribeHtml(title: string, message: string): string {
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${title}</title></head><body style="font-family:system-ui,sans-serif;background:#1C1A2E;color:#FFFFFF;padding:32px;max-width:560px;margin:0 auto"><h1 style="color:#FF6B5C;font-size:24px">${title}</h1><p style="color:#8884AA;line-height:1.5">${message}</p></body></html>`;
+}
+
+/** One-click unsubscribe from invitee vote reminders (DEV-435). */
+http.route({
+  path: '/unsubscribe',
+  method: 'GET',
+  handler: httpAction(async (ctx, req) => {
+    const url = new URL(req.url);
+    const token = url.searchParams.get('token')?.trim() ?? '';
+    if (token.length === 0) {
+      return new Response(unsubscribeHtml('Invalid link', 'This unsubscribe link is invalid.'), {
+        status: 400,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
+
+    const parsed = await parseReminderUnsubscribeToken(token);
+    if (parsed == null) {
+      return new Response(unsubscribeHtml('Invalid link', 'This unsubscribe link is invalid or expired.'), {
+        status: 400,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
+
+    await ctx.runMutation(internal.reminderEmails.recordEmailUnsubscribe, {
+      email: parsed.email,
+      eventId: parsed.eventId,
+    });
+
+    return new Response(
+      unsubscribeHtml(
+        'Unsubscribed',
+        'You will no longer receive vote reminders for this event.',
+      ),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      },
+    );
+  }),
+});
 
 /** RevenueCat webhook — set the same bearer token in the RC dashboard and `REVENUECAT_WEBHOOK_AUTHORIZATION`. */
 http.route({
