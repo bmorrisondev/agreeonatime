@@ -1,0 +1,2 @@
+# Placeholder — replace pub-XXXXXXXXXXXXXXXX with your AdMob publisher id (DEV-451).
+google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
