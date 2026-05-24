@@ -16,7 +16,9 @@ import {
   countActiveEventsForOwner,
   FREE_MAX_ACTIVE_OPEN_EVENTS,
   isProProductId,
+  ownerHasActiveSubFromUser,
   PRO_ENTITLEMENT_ID,
+  syncOwnerHasActiveSubOnEvents,
   userHasPro,
 } from './subscriptionLimits';
 import { betterAuthUserIdString } from './users';
@@ -229,6 +231,13 @@ export const applyProExpiresAt = internalMutation({
     }
 
     await ctx.db.patch(user._id, { proExpiresAt: proExpiresAt ?? undefined });
+
+    const updated = await ctx.db.get(user._id);
+    if (updated == null) {
+      return;
+    }
+    const ownerHasActiveSub = ownerHasActiveSubFromUser(updated);
+    await syncOwnerHasActiveSubOnEvents(ctx, user._id, ownerHasActiveSub);
   },
 });
 

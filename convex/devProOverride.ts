@@ -4,6 +4,7 @@ import { ConvexError, v } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { mutation } from './_generated/server';
 import { authComponent } from './auth';
+import { ownerHasActiveSubFromUser, syncOwnerHasActiveSubOnEvents } from './subscriptionLimits';
 import { betterAuthUserIdString } from './users';
 
 /** When true on a Convex deployment, dev Pro override mutations are allowed. Never set in production. */
@@ -50,6 +51,15 @@ export const setDevProOverride = mutation({
     await ctx.db.patch(user._id, {
       devProOverride: args.enabled ? true : undefined,
     });
+
+    const updated = await ctx.db.get(user._id);
+    if (updated != null) {
+      await syncOwnerHasActiveSubOnEvents(
+        ctx,
+        user._id,
+        ownerHasActiveSubFromUser(updated),
+      );
+    }
 
     return { enabled: args.enabled };
   },

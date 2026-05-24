@@ -22,6 +22,7 @@ import {
   assertCanCreateActiveEvent,
   assertCanUseAvailabilityGrid,
   isHistoryLocked,
+  ownerHasActiveSubFromUser,
   userHasPro,
   voterKey,
 } from './subscriptionLimits';
@@ -190,7 +191,6 @@ export const create = mutation({
     }
     const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
     await assertCanCreateActiveEvent(ctx, userId);
-
     const owner = await ctx.db.get(userId);
     if (owner == null) {
       throw new ConvexError('Account not found — try signing in again.');
@@ -262,6 +262,7 @@ export const create = mutation({
         remindersEnabled,
         createdAt,
         shareToken,
+        ownerHasActiveSub: ownerHasActiveSubFromUser(owner, now),
       });
 
       for (const w of windows) {
@@ -299,6 +300,7 @@ export const create = mutation({
       remindersEnabled,
       createdAt,
       shareToken,
+      ownerHasActiveSub: ownerHasActiveSubFromUser(owner, now),
     });
 
     for (const startTime of starts) {

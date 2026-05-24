@@ -59,6 +59,30 @@ export function userHasPro(
   return userHasDevProOverride(user);
 }
 
+/** Snapshot for ad gating on web guest flows (DEV-452). */
+export function ownerHasActiveSubFromUser(
+  user: Pick<Doc<'users'>, 'proExpiresAt' | 'devProOverride'>,
+  nowMs: number = Date.now(),
+): boolean {
+  return userHasPro(user, nowMs);
+}
+
+export async function syncOwnerHasActiveSubOnEvents(
+  ctx: MutationCtx,
+  ownerId: Id<'users'>,
+  ownerHasActiveSub: boolean,
+): Promise<void> {
+  const owned = await ctx.db
+    .query('events')
+    .withIndex('by_owner', (q) => q.eq('ownerId', ownerId))
+    .collect();
+  for (const event of owned) {
+    if (event.ownerHasActiveSub !== ownerHasActiveSub) {
+      await ctx.db.patch(event._id, { ownerHasActiveSub });
+    }
+  }
+}
+
 export function voterKey(v: {
   voterName: string;
   voterUserId?: Id<'users'>;

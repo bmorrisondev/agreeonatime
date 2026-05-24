@@ -38,6 +38,8 @@ export default defineSchema({
     /** Notification tracking — set by cron after sending (DEV-391). */
     deadlineReminderSent: v.optional(v.boolean()),
     deadlineReachedSent: v.optional(v.boolean()),
+    /** Whether the event owner had an active Pro subscription when last synced (DEV-452). */
+    ownerHasActiveSub: v.optional(v.boolean()),
     /** Agree+ automatic invitee reminders (DEV-435). */
     remindersEnabled: v.optional(v.boolean()),
     remindersSent: v.optional(

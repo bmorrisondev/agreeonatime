@@ -15,6 +15,7 @@
     "format:check": "prettier --check .",
     "generate:splash": "node ./scripts/generate-splash.mjs",
     "test:e2e": "playwright test",
+    "test:unit": "node --experimental-strip-types --test lib/ads/compute-ad-eligibility.test.ts",
     "prebuild:device": "pnpm install --prefer-offline",
     "build:device": "eas build --profile development-device --platform ios --local --output ./builds/agreeonatime.ipa && ./scripts/install-on-device.sh",
     "prebuild:preview": "pnpm install --prefer-offline",
