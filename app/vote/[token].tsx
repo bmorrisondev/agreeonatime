@@ -17,7 +17,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvailabilityGrid } from '@/components/availability/availability-grid';
-import { AdVoteGatePlaceholder } from '@/components/ads/ad-vote-gate-placeholder';
+import { AdBanner } from '@/components/ads/ad-banner';
 import { VoteBar } from '@/components/events/vote-bar';
 import type { GridSpec, RangeWindow } from '@/lib/availability/grid';
 import { WebVoteAppLink } from '@/components/linking/web-vote-app-link';
@@ -39,6 +39,7 @@ import {
   setStoredGuestName,
 } from '@/lib/guest/voter-session';
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
+import { AD_PLACEMENT_IDS } from '@/lib/ads/constants';
 import { EVENT_TIME_MINUTE_INTERVAL, roundDate } from '@/lib/events/time-rounding';
 
 const APP_STORE_URL = `https://apps.apple.com/app/agree-on-a-time/id${APP_STORE_APP_ID}`;
@@ -586,7 +587,11 @@ export default function VoteByTokenScreen(): ReactElement {
         </>
       )}
 
-      <AdVoteGatePlaceholder ownerHasActiveSub={event.ownerHasActiveSub} />
+      <AdBanner
+        placement={AD_PLACEMENT_IDS.webVoteBanner}
+        voterMode
+        ownerHasActiveSub={event.ownerHasActiveSub}
+      />
 
       {voted ? (
         <View className="mt-8 rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/30" accessibilityLiveRegion="polite">

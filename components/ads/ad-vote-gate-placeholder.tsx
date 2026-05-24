@@ -8,8 +8,7 @@ export interface AdVoteGatePlaceholderProps {
 }
 
 /**
- * Dev/preview stand-in for the web vote banner (DEV-452 gate check).
- * Replaced by real AdMob banner in DEV-454 once the SDK is configured.
+ * Dev stand-in when AdMob SDK is not installed (DEV-454 falls back here in __DEV__).
  */
 export function AdVoteGatePlaceholder({
   ownerHasActiveSub,
