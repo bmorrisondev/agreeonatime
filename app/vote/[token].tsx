@@ -17,6 +17,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvailabilityGrid } from '@/components/availability/availability-grid';
+import { AdVoteGatePlaceholder } from '@/components/ads/ad-vote-gate-placeholder';
 import { VoteBar } from '@/components/events/vote-bar';
 import type { GridSpec, RangeWindow } from '@/lib/availability/grid';
 import { WebVoteAppLink } from '@/components/linking/web-vote-app-link';
@@ -584,6 +585,8 @@ export default function VoteByTokenScreen(): ReactElement {
 
         </>
       )}
+
+      <AdVoteGatePlaceholder ownerHasActiveSub={event.ownerHasActiveSub} />
 
       {voted ? (
         <View className="mt-8 rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/30" accessibilityLiveRegion="polite">
