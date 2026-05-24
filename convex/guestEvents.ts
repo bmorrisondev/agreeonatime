@@ -4,6 +4,7 @@ import { ConvexError, v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import { mutation, query, type MutationCtx } from './_generated/server';
 
+import { authComponent } from './auth';
 import {
   buildGridSpecFromWindows,
   eventSchedulingMode,
