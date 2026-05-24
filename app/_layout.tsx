@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 
 import '../global.css';
 
+import { AdMobInit } from '@/components/ads/admob-init';
 import { EnsureConvexUser } from '@/components/auth/ensure-convex-user';
 import { ModalHeaderClose } from '@/components/navigation/modal-header-close';
 import { RegisterExpoPush } from '@/components/register-expo-push';
@@ -60,6 +61,7 @@ export default function RootLayout(): ReactElement {
     return (
       <>
         <NativeSplashFontsOnlyGate />
+        <AdMobInit />
         <NavigationTree />
       </>
     );
@@ -74,6 +76,7 @@ export default function RootLayout(): ReactElement {
     <ConvexProvider client={convex}>
       <ConvexBetterAuthProvider authClient={authClient} client={convex}>
         <NativeSplashConvexAuthGate />
+        <AdMobInit />
         <RevenueCatInit />
         <RegisterExpoPush />
         <EnsureConvexUser />

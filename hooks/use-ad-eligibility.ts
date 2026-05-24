@@ -53,6 +53,10 @@ export function useAdEligibility(options?: UseAdEligibilityOptions): AdEligibili
       };
     }
 
+    if (Platform.OS !== 'ios') {
+      return AD_ELIGIBILITY_SUPPRESSED;
+    }
+
     return { showAds: storeShowAds, loading: storeLoading };
   }, [voterMode, options?.ownerHasActiveSub, storeShowAds, storeLoading]);
 }

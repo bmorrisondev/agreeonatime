@@ -20,11 +20,14 @@ import { DsButton } from '@/components/design-system/button';
 import { DsModal } from '@/components/design-system/modal-sheet';
 import { DsToast } from '@/components/design-system';
 import { AvailabilityGrid } from '@/components/availability/availability-grid';
+import { AdBanner } from '@/components/ads/ad-banner';
+import { AdInterstitial } from '@/components/ads/ad-interstitial';
 import { AddToCalendarButton } from '@/components/events/add-to-calendar-button';
 import { AgreedCardPreview } from '@/components/events/agreed-card-preview';
 import { InviteeEventView } from '@/components/events/invitee-event-view';
 import { VoteBar } from '@/components/events/vote-bar';
 import { formatBlockTimeLabel, type GridSpec, type RangeWindow } from '@/lib/availability/grid';
+import { AD_PLACEMENT_IDS } from '@/lib/ads/constants';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { useSubscription } from '@/hooks/use-subscription';
 import { buildVoteUrl } from '@/lib/events/build-share-url';
@@ -509,6 +512,8 @@ export default function EventDetailScreen(): ReactElement {
           </Text>
         </Pressable>
       </ScrollView>
+      {event.status === 'open' ? <AdInterstitial /> : null}
+      <AdBanner placement={AD_PLACEMENT_IDS.eventDetailBanner} />
       <DsModal
         visible={deleteModalVisible}
         title={t('event_delete_modal_title')}

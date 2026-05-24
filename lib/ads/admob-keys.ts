@@ -18,7 +18,10 @@ function firstNonEmpty(keys: readonly (string | undefined)[]): string | undefine
 
 /** AdMob iOS application id (`ca-app-pub-…~…`). */
 export function getAdMobIosAppId(): string | undefined {
-  return firstNonEmpty([process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID]);
+  return firstNonEmpty([
+    process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID,
+    process.env.EXPO_PUBLIC_ADMOB_APP_ID_IOS,
+  ]);
 }
 
 /** AdMob web application id for Expo Web surfaces. */

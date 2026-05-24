@@ -16,7 +16,9 @@
       "deploymentTarget": "16.4",
       "bundleIdentifier": "me.brianmm.agreeonatime",
       "supportsTablet": false,
-      "associatedDomains": ["applinks:app.agreeonatime.com"],
+      "associatedDomains": [
+        "applinks:app.agreeonatime.com"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

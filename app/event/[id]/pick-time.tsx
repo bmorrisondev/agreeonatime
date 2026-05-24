@@ -7,6 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VoteBar } from '@/components/events/vote-bar';
+import { showPostConfirmInterstitial } from '@/components/ads/ad-interstitial';
 import { formatPickTimeSlotLabel, formatVotesForTimeLabel } from '@/lib/accessibility/vote-controls';
 import { isConvexConfigured } from '@/lib/convex/client';
 import { formatTimeslotWithTimezone } from '@/lib/events/format-event-home';
@@ -70,6 +71,7 @@ export default function PickTimeScreen(): ReactElement {
     setSubmitting(true);
     try {
       await finalize({ eventId: id, timeslotId: effectiveSelection });
+      await showPostConfirmInterstitial();
       router.replace({
         pathname: '/event/[id]/decided',
         params: { id, startTimeMs: String(selectedSlot.startTime) },
