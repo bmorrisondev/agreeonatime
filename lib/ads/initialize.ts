@@ -1,5 +1,6 @@
 import { hasAdMobConfigForPlatform, resolveAdMobAppIdForInit } from '@/lib/ads/admob-keys';
 import { isAdsInitialized, markAdsInitialized } from '@/lib/ads/configured-state';
+import { shouldLogAdMobDiagnostics } from '@/lib/ads/log-diagnostics';
 import { supportsAdsPlatform } from '@/lib/ads/platform';
 import { isMobileAdsSdkInstalled, loadMobileAdsSdk } from '@/lib/ads/sdk';
 
@@ -20,7 +21,7 @@ export function initializeAds(): Promise<void> {
 
   initPromise = (async () => {
     if (!hasAdMobConfigForPlatform()) {
-      if (__DEV__) {
+      if (shouldLogAdMobDiagnostics()) {
         console.warn('[AdMob] No app id in env — skipping SDK init');
       }
       return;
@@ -28,15 +29,15 @@ export function initializeAds(): Promise<void> {
 
     const appId = resolveAdMobAppIdForInit();
     if (appId == null) {
-      if (__DEV__) {
+      if (shouldLogAdMobDiagnostics()) {
         console.warn('[AdMob] Could not resolve app id — skipping SDK init');
       }
       return;
     }
 
     if (!isMobileAdsSdkInstalled()) {
-      if (__DEV__) {
-        console.warn('[AdMob] react-native-google-mobile-ads not installed — add in DEV-451');
+      if (shouldLogAdMobDiagnostics()) {
+        console.warn('[AdMob] react-native-google-mobile-ads not installed');
       }
       return;
     }
@@ -49,13 +50,11 @@ export function initializeAds(): Promise<void> {
     try {
       await sdk.MobileAds().initialize();
       markAdsInitialized();
-      if (__DEV__) {
-        console.info('[AdMob] MobileAds initialized', { appId: `${appId.slice(0, 20)}…` });
+      if (shouldLogAdMobDiagnostics()) {
+        console.info('[AdMob] initializeAds — MobileAds ready', { appId: `${appId.slice(0, 20)}…` });
       }
     } catch (err) {
-      if (__DEV__) {
-        console.warn('[AdMob] MobileAds.initialize failed', err);
-      }
+      console.warn('[AdMob] MobileAds.initialize failed', err);
     }
   })();
 

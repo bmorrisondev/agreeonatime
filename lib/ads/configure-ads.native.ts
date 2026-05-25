@@ -4,6 +4,7 @@ import {
   isAdMobConfigured,
   markAdMobConfigured,
 } from '@/lib/ads/configured-state';
+import { shouldLogAdMobDiagnostics } from '@/lib/ads/log-diagnostics';
 import { supportsAdMobPlatform } from '@/lib/ads/platform';
 
 /**
@@ -17,6 +18,9 @@ export async function configureAds(): Promise<void> {
   try {
     await mobileAds().initialize();
     markAdMobConfigured();
+    if (shouldLogAdMobDiagnostics()) {
+      console.info('[AdMob] configureAds — MobileAds initialized');
+    }
   } catch (error: unknown) {
     console.warn('[AdMob] mobileAds().initialize failed', error);
   }

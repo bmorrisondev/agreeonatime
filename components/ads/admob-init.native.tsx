@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { AppState, InteractionManager } from 'react-native';
 
 import { configureAds, requestAdTrackingPermission, supportsAdMobPlatform } from '@/lib/ads';
+import { shouldLogAdMobDiagnostics } from '@/lib/ads/log-diagnostics';
 
 async function waitForActiveApp(): Promise<void> {
   if (AppState.currentState === 'active') {
@@ -46,6 +47,9 @@ export function AdMobInit(): ReactElement | null {
       await waitUntilReadyForAtt();
       await requestAdTrackingPermission();
       await configureAds();
+      if (shouldLogAdMobDiagnostics()) {
+        console.info('[AdMob] AdMobInit complete');
+      }
     })();
   }, []);
 

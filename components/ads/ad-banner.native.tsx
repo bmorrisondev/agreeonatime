@@ -9,9 +9,7 @@ import { loadBannerAdSdk } from '@/lib/ads/banner-ad-sdk';
 import { AD_ACCESSIBILITY_LABEL } from '@/lib/ads/constants';
 import { initializeAds } from '@/lib/ads/initialize';
 
-function shouldLogAdDiagnostics(): boolean {
-  return __DEV__ || process.env.EXPO_PUBLIC_DEV_TOOLS === 'true';
-}
+import { shouldLogAdMobDiagnostics } from '@/lib/ads/log-diagnostics';
 
 /** iOS app banners — viewer subscription gate via RevenueCat + Convex (DEV-453). */
 export function AdBanner({ placement }: AdBannerProps): ReactElement | null {
@@ -36,7 +34,7 @@ export function AdBanner({ placement }: AdBannerProps): ReactElement | null {
   }, [placement, showAds]);
 
   useEffect(() => {
-    if (!shouldLogAdDiagnostics()) {
+    if (!shouldLogAdMobDiagnostics()) {
       return;
     }
     console.info('[AdMob] banner gate', {
@@ -85,7 +83,7 @@ export function AdBanner({ placement }: AdBannerProps): ReactElement | null {
           onAdLoaded={() => {
             setAdVisible(true);
             setLoadFailed(false);
-            if (shouldLogAdDiagnostics()) {
+            if (shouldLogAdMobDiagnostics()) {
               console.info('[AdMob] banner loaded', { placement });
             }
           }}

@@ -4,9 +4,7 @@ import {
 } from 'expo-tracking-transparency';
 import { Platform } from 'react-native';
 
-function shouldLogAttDiagnostics(): boolean {
-  return __DEV__ || process.env.EXPO_PUBLIC_DEV_TOOLS === 'true';
-}
+import { shouldLogAdMobDiagnostics } from '@/lib/ads/log-diagnostics';
 
 /**
  * Requests App Tracking Transparency on iOS when still undetermined.
@@ -18,14 +16,17 @@ export async function requestAdTrackingPermission(): Promise<void> {
 
   try {
     const current = await getTrackingPermissionsAsync();
-    if (shouldLogAttDiagnostics()) {
+    if (shouldLogAdMobDiagnostics()) {
       console.info('[AdMob] ATT status before request:', current.status);
     }
     if (current.status !== 'undetermined') {
+      if (shouldLogAdMobDiagnostics()) {
+        console.info('[AdMob] ATT skipped — already', current.status);
+      }
       return;
     }
     const result = await requestTrackingPermissionsAsync();
-    if (shouldLogAttDiagnostics()) {
+    if (shouldLogAdMobDiagnostics()) {
       console.info('[AdMob] ATT status after request:', result.status);
     }
   } catch (error: unknown) {
