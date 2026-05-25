@@ -1,7 +1,8 @@
 // @ts-nocheck — Run `pnpm convex:dev` for generated types.
 import { v } from 'convex/values';
 
-import { internalAction, internalMutation } from './_generated/server';
+import { internal } from './_generated/api';
+import { internalAction, internalMutation, internalQuery } from './_generated/server';
 
 /** Resend a simple “time locked in” email to the owner (DEV-391). */
 export const ownerDecidedEmail = internalAction({
@@ -94,5 +95,69 @@ export const deadlineSweep = internalMutation({
     if (near > 0) {
       console.log(`[cron] Open events with deadline in next 24h: ${near}`);
     }
+  },
+});
+
+/** Owner push when a new vote arrives (DEV-391). */
+export const notifyOwnerOfVote = internalAction({
+  args: {
+    eventId: v.id('events'),
+    voterName: v.string(),
+    timeslotStart: v.number(),
+    vote: v.union(v.literal('yes'), v.literal('no')),
+  },
+  handler: async (ctx, args) => {
+    const event = await ctx.runQuery(internal.notifications.getEventOwnerPushTargets, {
+      eventId: args.eventId,
+    });
+    if (event == null || event.pushTokens.length === 0) {
+      return;
+    }
+    await ctx.runAction(internal.notifications.sendExpoPush, {
+      expoPushTokens: event.pushTokens,
+      title: 'New vote',
+      body: `${args.voterName} voted on ${event.title}`,
+      data: { eventId: String(args.eventId) },
+    });
+  },
+});
+
+/** Owner push when an invitee proposes a time (DEV-391). */
+export const notifyOwnerOfProposal = internalAction({
+  args: {
+    eventId: v.id('events'),
+    timeslotStart: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const event = await ctx.runQuery(internal.notifications.getEventOwnerPushTargets, {
+      eventId: args.eventId,
+    });
+    if (event == null || event.pushTokens.length === 0) {
+      return;
+    }
+    await ctx.runAction(internal.notifications.sendExpoPush, {
+      expoPushTokens: event.pushTokens,
+      title: 'New time proposed',
+      body: `Someone proposed a time for ${event.title}`,
+      data: { eventId: String(args.eventId) },
+    });
+  },
+});
+
+export const getEventOwnerPushTargets = internalQuery({
+  args: { eventId: v.id('events') },
+  handler: async (ctx, { eventId }) => {
+    const event = await ctx.db.get(eventId);
+    if (event == null) {
+      return null;
+    }
+    const owner = await ctx.db.get(event.ownerId);
+    if (owner == null) {
+      return null;
+    }
+    return {
+      title: event.title,
+      pushTokens: owner.pushTokens,
+    };
   },
 });

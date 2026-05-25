@@ -11,11 +11,14 @@ import {
 } from './_generated/server';
 
 import { authComponent } from './auth';
+import { isDevProOverrideDeploymentEnabled } from './devProOverride';
 import {
   countActiveEventsForOwner,
   FREE_MAX_ACTIVE_OPEN_EVENTS,
   isProProductId,
+  ownerHasActiveSubFromUser,
   PRO_ENTITLEMENT_ID,
+  syncOwnerHasActiveSubOnEvents,
   userHasPro,
 } from './subscriptionLimits';
 import { betterAuthUserIdString } from './users';
@@ -228,6 +231,13 @@ export const applyProExpiresAt = internalMutation({
     }
 
     await ctx.db.patch(user._id, { proExpiresAt: proExpiresAt ?? undefined });
+
+    const updated = await ctx.db.get(user._id);
+    if (updated == null) {
+      return;
+    }
+    const ownerHasActiveSub = ownerHasActiveSubFromUser(updated);
+    await syncOwnerHasActiveSubOnEvents(ctx, user._id, ownerHasActiveSub);
   },
 });
 
@@ -297,11 +307,15 @@ export const getCreateEligibility = query({
     const canCreateMore =
       isPro || activeOpenCount < FREE_MAX_ACTIVE_OPEN_EVENTS;
 
+    const devProOverrideAvailable = isDevProOverrideDeploymentEnabled();
+
     return {
       isPro,
       activeOpenCount,
       maxActiveEvents: isPro ? null : FREE_MAX_ACTIVE_OPEN_EVENTS,
       canCreateMore,
+      devProOverrideAvailable,
+      devProOverride: devProOverrideAvailable ? user.devProOverride === true : undefined,
     };
   },
 });

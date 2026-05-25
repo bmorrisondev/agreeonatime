@@ -4,6 +4,7 @@ import { useConvexAuth } from 'convex/react';
 
 import { authClient } from '@/lib/auth-client';
 import { identifyUser, resetUser } from '@/lib/purchases';
+import { useAdEligibilityStore } from '@/lib/store/ad-eligibility-store';
 
 /**
  * Renderless component that syncs the authenticated user with RevenueCat.
@@ -22,12 +23,16 @@ export function RevenueCatIdentify(): ReactElement | null {
     const userId = isAuthenticated ? session.data?.user?.id : undefined;
 
     if (userId != null && identifiedRef.current !== userId) {
+      if (identifiedRef.current != null) {
+        useAdEligibilityStore.getState().reset();
+      }
       identifiedRef.current = userId;
       void identifyUser(userId);
     }
 
     if (!isAuthenticated && identifiedRef.current != null) {
       identifiedRef.current = null;
+      useAdEligibilityStore.getState().reset();
       void resetUser();
     }
   }, [isAuthenticated, isLoading, session.data?.user?.id]);

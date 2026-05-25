@@ -14,10 +14,12 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PaywallModal } from '@/components/purchases/paywall-modal';
+import { AdBanner } from '@/components/ads/ad-banner';
 import { TabMainHeader } from '@/components/navigation/tab-main-header';
 import { HomeHeaderCreateButton } from '@/components/navigation/home-header-create-button';
 import { useCreateEventGate } from '@/hooks/use-create-event-gate';
 import { isConvexConfigured } from '@/lib/convex/client';
+import { AD_PLACEMENT_IDS } from '@/lib/ads/constants';
 import {
   formatDeadlineLine,
   formatDecidedTime,
@@ -229,6 +231,7 @@ function HomeScreenContent(): ReactElement {
           ))
         )}
       </ScrollView>
+      {!isEmpty ? <AdBanner placement={AD_PLACEMENT_IDS.eventListBanner} /> : null}
       <PaywallModal visible={paywallVisible} onClose={closePaywall} />
     </View>
   );

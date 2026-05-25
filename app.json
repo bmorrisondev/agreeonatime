@@ -2,7 +2,7 @@
   "expo": {
     "name": "Agree on a Time",
     "slug": "agreeonatime",
-    "version": "1.0.1",
+    "version": "1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "splash": {
@@ -16,7 +16,9 @@
       "deploymentTarget": "16.4",
       "bundleIdentifier": "me.brianmm.agreeonatime",
       "supportsTablet": false,
-      "associatedDomains": ["applinks:app.agreeonatime.com"],
+      "associatedDomains": [
+        "applinks:app.agreeonatime.com"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

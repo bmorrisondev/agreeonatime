@@ -16,6 +16,8 @@ export default defineSchema({
     pushTokens: v.array(v.string()),
     /** Pro entitlement expiry (ms). Set via RevenueCat sync / webhook. */
     proExpiresAt: v.optional(v.number()),
+    /** Dev-only Agree+ bypass when `DEV_PRO_OVERRIDE_ENABLED` on the deployment. */
+    devProOverride: v.optional(v.boolean()),
   })
     .index('by_auth_user', ['authUserId'])
     .index('by_email', ['email']),
@@ -25,6 +27,8 @@ export default defineSchema({
     title: v.string(),
     description: v.optional(v.string()),
     status: v.union(v.literal('open'), v.literal('closed'), v.literal('decided')),
+    /** `discrete` = yes/no slots (default); `range` = availability grid (Agree+). */
+    schedulingMode: v.optional(v.union(v.literal('discrete'), v.literal('range'))),
     deadline: v.number(),
     allowInviteeProposals: v.boolean(),
     decidedTimeslotId: v.optional(v.id('timeslots')),
@@ -34,14 +38,48 @@ export default defineSchema({
     /** Notification tracking — set by cron after sending (DEV-391). */
     deadlineReminderSent: v.optional(v.boolean()),
     deadlineReachedSent: v.optional(v.boolean()),
+    /** Whether the event owner had an active Pro subscription when last synced (DEV-452). */
+    ownerHasActiveSub: v.optional(v.boolean()),
+    /** Agree+ automatic invitee reminders (DEV-435). */
+    remindersEnabled: v.optional(v.boolean()),
+    remindersSent: v.optional(
+      v.object({
+        h48: v.optional(v.boolean()),
+        h24: v.optional(v.boolean()),
+      }),
+    ),
   })
     .index('by_share_token', ['shareToken'])
-    .index('by_owner', ['ownerId']),
+    .index('by_owner', ['ownerId'])
+    .index('by_status_and_deadline', ['status', 'deadline']),
+
+  eventInvitees: defineTable({
+    eventId: v.id('events'),
+    email: v.string(),
+    name: v.optional(v.string()),
+    voterUserId: v.optional(v.id('users')),
+    voterSessionId: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index('by_event', ['eventId'])
+    .index('by_event_and_email', ['eventId', 'email']),
+
+  emailUnsubscribes: defineTable({
+    email: v.string(),
+    eventId: v.id('events'),
+    createdAt: v.number(),
+  })
+    .index('by_email_and_event', ['email', 'eventId'])
+    .index('by_event', ['eventId']),
 
   timeslots: defineTable({
     eventId: v.id('events'),
+    /** `discrete` (default) uses `startTime`; `range` uses `startBound` / `endBound`. */
+    type: v.optional(v.union(v.literal('discrete'), v.literal('range'))),
     startTime: v.number(),
     endTime: v.optional(v.number()),
+    startBound: v.optional(v.number()),
+    endBound: v.optional(v.number()),
     proposedBy: v.optional(v.id('users')),
     /** Display name when a guest (web) proposes a pending slot. */
     proposedByGuestName: v.optional(v.string()),
@@ -64,4 +102,18 @@ export default defineSchema({
     .index('by_event_and_session', ['eventId', 'voterSessionId'])
     .index('by_timeslot', ['timeslotId'])
     .index('by_voter_user', ['voterUserId']),
+
+  availabilityBlocks: defineTable({
+    eventId: v.id('events'),
+    timeslotId: v.id('timeslots'),
+    voterName: v.string(),
+    voterUserId: v.optional(v.id('users')),
+    voterSessionId: v.optional(v.string()),
+    blockIndex: v.number(),
+    available: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index('by_event', ['eventId'])
+    .index('by_timeslot', ['timeslotId'])
+    .index('by_timeslot_and_session', ['timeslotId', 'voterSessionId']),
 });

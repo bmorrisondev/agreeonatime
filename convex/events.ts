@@ -8,12 +8,26 @@ import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/s
 import { authComponent } from './auth';
 import { deleteEventAndDependents } from './eventDeletion';
 import {
+  blockIndexToIntervalMs,
+  buildGridSpecFromWindows,
+  computeOverlapCounts,
+  eventSchedulingMode,
+  findBestWindowSuggestion,
+  isBlockInAnyWindow,
+  loadRangeWindowsForEvent,
+  rangeWindowValidator,
+} from './availabilityGrid';
+import {
   assertCanAcceptNewVoter,
   assertCanCreateActiveEvent,
+  assertCanUseAvailabilityGrid,
   isHistoryLocked,
+  ownerHasActiveSubFromUser,
+  userHasPro,
   voterKey,
 } from './subscriptionLimits';
 import { ensureAppUserIdForAuthUser, betterAuthUserIdString } from './users';
+import { roundTimeMs } from './timeRounding';
 
 function randomShareTokenHex(): string {
   const bytes = new Uint8Array(24);
@@ -161,10 +175,14 @@ export const create = mutation({
   args: {
     title: v.string(),
     description: v.optional(v.string()),
+    schedulingMode: v.optional(v.union(v.literal('discrete'), v.literal('range'))),
     /** Proposed slot start instants (ms since epoch), in submission order. */
-    timeslotStarts: v.array(v.number()),
+    timeslotStarts: v.optional(v.array(v.number())),
+    /** Range windows for availability grid events (Agree+). */
+    rangeWindows: v.optional(v.array(rangeWindowValidator)),
     deadline: v.number(),
     allowInviteeProposals: v.boolean(),
+    remindersEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<Id<'events'>> => {
     const authUser = await authComponent.safeGetAuthUser(ctx);
@@ -173,45 +191,122 @@ export const create = mutation({
     }
     const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
     await assertCanCreateActiveEvent(ctx, userId);
+    const owner = await ctx.db.get(userId);
+    if (owner == null) {
+      throw new ConvexError('Account not found — try signing in again.');
+    }
+    const isPro = userHasPro(owner);
 
     const title = args.title.trim();
     if (title.length === 0) {
       throw new ConvexError('Title is required');
     }
 
-    const starts = args.timeslotStarts;
-    if (starts.length < 2 || starts.length > 20) {
-      throw new ConvexError('Add between 2 and 20 proposed times');
-    }
+    const mode = args.schedulingMode ?? 'discrete';
 
     const now = Date.now();
-    if (args.deadline <= now) {
+    const deadline = roundTimeMs(args.deadline);
+    if (deadline <= now) {
       throw new ConvexError('Voting deadline must be in the future');
     }
-    const latestSlot = Math.max(...starts);
-    if (args.deadline >= latestSlot) {
-      throw new ConvexError('Voting deadline must be before the latest proposed time');
-    }
+
 
     const descRaw = args.description?.trim();
     const description = descRaw != null && descRaw.length > 0 ? descRaw : undefined;
 
+    let remindersEnabled = isPro;
+    if (args.remindersEnabled === true) {
+      if (!isPro) {
+        throw new ConvexError('Automatic reminders require Agree+');
+      }
+      remindersEnabled = true;
+    } else if (args.remindersEnabled === false) {
+      remindersEnabled = false;
+    }
+
     const shareToken = await uniqueShareToken(ctx);
     const createdAt = now;
+
+    if (mode === 'range') {
+      await assertCanUseAvailabilityGrid(ctx, userId);
+      const windows = args.rangeWindows ?? [];
+      if (windows.length === 0 || windows.length > 14) {
+        throw new ConvexError('Add between 1 and 14 availability windows');
+      }
+      let earliest = Infinity;
+      for (const w of windows) {
+        if (w.endBound <= w.startBound) {
+          throw new ConvexError('Each window must end after it starts');
+        }
+        if (w.endBound - w.startBound < 30 * 60 * 1000) {
+          throw new ConvexError('Each window must be at least 30 minutes');
+        }
+        earliest = Math.min(earliest, w.startBound);
+      }
+      if (args.deadline >= earliest) {
+        throw new ConvexError('Voting deadline must be before the first availability window');
+      }
+      const spec = buildGridSpecFromWindows(windows);
+      if (spec == null) {
+        throw new ConvexError('Could not build availability grid from windows');
+      }
+
+      const eventId = await ctx.db.insert('events', {
+        ownerId: userId,
+        title,
+        description,
+        status: 'open',
+        schedulingMode: 'range',
+        deadline,
+        allowInviteeProposals: false,
+        remindersEnabled,
+        createdAt,
+        shareToken,
+        ownerHasActiveSub: ownerHasActiveSubFromUser(owner, now),
+      });
+
+      for (const w of windows) {
+        await ctx.db.insert('timeslots', {
+          eventId,
+          type: 'range',
+          startTime: w.startBound,
+          startBound: w.startBound,
+          endBound: w.endBound,
+          proposedBy: userId,
+          approvalStatus: 'approved',
+          createdAt,
+        });
+      }
+      return eventId;
+    }
+
+    const starts = (args.timeslotStarts ?? []).map((startTime) => roundTimeMs(startTime));
+    if (starts.length < 2 || starts.length > 20) {
+      throw new ConvexError('Add between 2 and 20 proposed times');
+    }
+    const latestSlot = Math.max(...starts);
+    if (deadline >= latestSlot) {
+      throw new ConvexError('Voting deadline must be before the latest proposed time');
+    }
+
     const eventId = await ctx.db.insert('events', {
       ownerId: userId,
       title,
       description,
       status: 'open',
-      deadline: args.deadline,
+      schedulingMode: 'discrete',
+      deadline,
       allowInviteeProposals: args.allowInviteeProposals,
+      remindersEnabled,
       createdAt,
       shareToken,
+      ownerHasActiveSub: ownerHasActiveSubFromUser(owner, now),
     });
 
     for (const startTime of starts) {
       await ctx.db.insert('timeslots', {
         eventId,
+        type: 'discrete',
         startTime,
         proposedBy: userId,
         approvalStatus: 'approved',
@@ -279,6 +374,50 @@ export const getForOwner = query({
     timeslots.sort((a, b) => a.startTime - b.startTime);
 
     const historyLocked = isHistoryLocked(user, event.createdAt);
+    const schedulingMode = eventSchedulingMode(event);
+
+    if (schedulingMode === 'range') {
+      const windows = await loadRangeWindowsForEvent(ctx, eventId);
+      const gridSpec = buildGridSpecFromWindows(windows);
+      const blocks = await ctx.db
+        .query('availabilityBlocks')
+        .withIndex('by_event', (q) => q.eq('eventId', eventId))
+        .collect();
+      const voterKeys = new Set<string>();
+      for (const row of blocks) {
+        if (row.available) {
+          voterKeys.add(voterKey(row));
+        }
+      }
+      const overlapCounts =
+        gridSpec != null && !historyLocked ? computeOverlapCounts(blocks, gridSpec) : [];
+      const bestWindow =
+        gridSpec != null && overlapCounts.length > 0
+          ? findBestWindowSuggestion(overlapCounts, gridSpec)
+          : null;
+
+      return {
+        _id: event._id,
+        title: event.title,
+        description: event.description,
+        status: event.status,
+        deadline: event.deadline,
+        shareToken: event.shareToken,
+        allowInviteeProposals: event.allowInviteeProposals,
+        createdAt: event.createdAt,
+        decidedTimeslotId: event.decidedTimeslotId,
+        decidedStartTime,
+        distinctVoterCount: historyLocked ? 0 : voterKeys.size,
+        isHistoryLocked: historyLocked,
+        schedulingMode: 'range' as const,
+        rangeWindows: windows,
+        gridSpec: gridSpec ?? undefined,
+        overlapCounts,
+        bestWindow: bestWindow ?? undefined,
+        approvedTimeslots: [],
+        pendingTimeslots: [],
+      };
+    }
 
     const approvedTimeslots = timeslots
       .filter((t) => t.approvalStatus === 'approved')
@@ -333,9 +472,85 @@ export const getForOwner = query({
       decidedStartTime,
       distinctVoterCount: historyLocked ? 0 : voterKeys.size,
       isHistoryLocked: historyLocked,
+      schedulingMode: 'discrete' as const,
       approvedTimeslots,
       pendingTimeslots,
     };
+  },
+});
+
+/** Owner picks a winning availability block (DEV-434). Creates a discrete decided timeslot. */
+export const finalizeRangeBlock = mutation({
+  args: {
+    eventId: v.id('events'),
+    blockIndex: v.number(),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (!authUser) {
+      throw new ConvexError('Sign in to pick a time');
+    }
+    const userId = await ensureAppUserIdForAuthUser(ctx, authUser);
+
+    const event = await ctx.db.get(args.eventId);
+    if (!event || event.ownerId !== userId) {
+      throw new ConvexError('Event not found or you are not the owner');
+    }
+    if (eventSchedulingMode(event) !== 'range') {
+      throw new ConvexError('This event does not use availability windows');
+    }
+    if (event.status !== 'open') {
+      throw new ConvexError('This event is already finalized');
+    }
+
+    const windows = await loadRangeWindowsForEvent(ctx, args.eventId);
+    const gridSpec = buildGridSpecFromWindows(windows);
+    if (gridSpec == null) {
+      throw new ConvexError('Availability grid not found');
+    }
+    if (args.blockIndex < 0 || args.blockIndex >= gridSpec.totalBlocks) {
+      throw new ConvexError('Invalid time block');
+    }
+
+    if (!isBlockInAnyWindow(gridSpec, args.blockIndex, windows)) {
+      throw new ConvexError('That block is outside the availability windows');
+    }
+
+    const { startMs, endMs } = blockIndexToIntervalMs(gridSpec, args.blockIndex);
+
+    const rangeSlot = await ctx.db
+      .query('timeslots')
+      .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+      .first();
+    if (rangeSlot == null) {
+      throw new ConvexError('No range timeslot found');
+    }
+
+    const now = Date.now();
+    const decidedSlotId = await ctx.db.insert('timeslots', {
+      eventId: args.eventId,
+      type: 'discrete',
+      startTime: startMs,
+      endTime: endMs,
+      proposedBy: userId,
+      approvalStatus: 'approved',
+      createdAt: now,
+    });
+
+    await ctx.db.patch(args.eventId, {
+      status: 'decided',
+      decidedTimeslotId: decidedSlotId,
+    });
+
+    const owner = await ctx.db.get(userId);
+    const ownerEmail = owner?.email ?? '';
+    if (ownerEmail.length > 0) {
+      await ctx.scheduler.runAfter(0, internal.notifications.ownerDecidedEmail, {
+        ownerEmail,
+        eventTitle: event.title,
+        startTime: startMs,
+      });
+    }
   },
 });
 
@@ -633,11 +848,12 @@ export const proposeTimeslot = mutation({
     if (!event.allowInviteeProposals) {
       throw new ConvexError('This event does not accept new time proposals');
     }
+    const startTime = roundTimeMs(args.startTime);
     const now = Date.now();
     if (now > event.deadline) {
       throw new ConvexError('The voting deadline has passed');
     }
-    if (args.startTime <= now) {
+    if (startTime <= now) {
       throw new ConvexError('Proposed time must be in the future');
     }
 
@@ -649,7 +865,7 @@ export const proposeTimeslot = mutation({
 
     const slotId = await ctx.db.insert('timeslots', {
       eventId: args.eventId,
-      startTime: args.startTime,
+      startTime,
       proposedBy,
       approvalStatus: 'pending',
       createdAt: now,
@@ -657,7 +873,7 @@ export const proposeTimeslot = mutation({
 
     await ctx.scheduler.runAfter(0, internal.notifications.notifyOwnerOfProposal, {
       eventId: args.eventId,
-      timeslotStart: args.startTime,
+      timeslotStart: startTime,
     });
 
     return slotId;

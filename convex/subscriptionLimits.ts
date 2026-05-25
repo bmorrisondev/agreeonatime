@@ -3,6 +3,7 @@ import { ConvexError } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
+import { userHasDevProOverride } from './devProOverride';
 
 /** RevenueCat entitlement identifier — must match the dashboard. */
 export const PRO_ENTITLEMENT_ID = 'pro';
@@ -48,8 +49,38 @@ export function subscriptionLimitError(
   return new ConvexError({ code, message } satisfies SubscriptionLimitErrorPayload);
 }
 
-export function userHasPro(user: Pick<Doc<'users'>, 'proExpiresAt'>, nowMs: number = Date.now()): boolean {
-  return user.proExpiresAt != null && user.proExpiresAt > nowMs;
+export function userHasPro(
+  user: Pick<Doc<'users'>, 'proExpiresAt' | 'devProOverride'>,
+  nowMs: number = Date.now(),
+): boolean {
+  if (user.proExpiresAt != null && user.proExpiresAt > nowMs) {
+    return true;
+  }
+  return userHasDevProOverride(user);
+}
+
+/** Snapshot for ad gating on web guest flows (DEV-452). */
+export function ownerHasActiveSubFromUser(
+  user: Pick<Doc<'users'>, 'proExpiresAt' | 'devProOverride'>,
+  nowMs: number = Date.now(),
+): boolean {
+  return userHasPro(user, nowMs);
+}
+
+export async function syncOwnerHasActiveSubOnEvents(
+  ctx: MutationCtx,
+  ownerId: Id<'users'>,
+  ownerHasActiveSub: boolean,
+): Promise<void> {
+  const owned = await ctx.db
+    .query('events')
+    .withIndex('by_owner', (q) => q.eq('ownerId', ownerId))
+    .collect();
+  for (const event of owned) {
+    if (event.ownerHasActiveSub !== ownerHasActiveSub) {
+      await ctx.db.patch(event._id, { ownerHasActiveSub });
+    }
+  }
 }
 
 export function voterKey(v: {
@@ -149,6 +180,20 @@ export async function assertCanCreateActiveEvent(
 /**
  * Throws when a free event already has the maximum number of unique voters and this is a new voter.
  */
+/** Agree+ only: availability grid / range scheduling (DEV-434). */
+export async function assertCanUseAvailabilityGrid(
+  ctx: MutationCtx,
+  ownerId: Id<'users'>,
+): Promise<void> {
+  const user = await ctx.db.get(ownerId);
+  if (user == null) {
+    throw new ConvexError('Account not found — try signing in again.');
+  }
+  if (!userHasPro(user)) {
+    throw new ConvexError('Availability windows are an Agree+ feature. Subscribe to create range events.');
+  }
+}
+
 export async function assertCanAcceptNewVoter(
   ctx: MutationCtx,
   event: Pick<Doc<'events'>, '_id' | 'ownerId'>,
