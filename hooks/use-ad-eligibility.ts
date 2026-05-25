@@ -21,6 +21,7 @@ export interface UseAdEligibilityOptions {
 /**
  * App surfaces: Convex + RevenueCat pro state via {@link useSubscription} (DEV-452).
  * Web vote page: pass `voterMode` + `ownerHasActiveSub` from the guest event query (DEV-454).
+ * Web signed-in app: same gate as iOS via {@link useSubscription}.
  */
 export function useAdEligibility(options?: UseAdEligibilityOptions): AdEligibilityState {
   const voterMode = options?.voterMode === true;
@@ -40,7 +41,7 @@ export function useAdEligibility(options?: UseAdEligibilityOptions): AdEligibili
       };
     }
 
-    if (Platform.OS !== 'ios') {
+    if (Platform.OS !== 'ios' && Platform.OS !== 'web') {
       return AD_ELIGIBILITY_SUPPRESSED;
     }
 
