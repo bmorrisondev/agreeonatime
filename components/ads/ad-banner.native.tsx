@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { Text, View, useWindowDimensions } from 'react-native';
 
 import type { AdBannerProps } from '@/components/ads/ad-banner';
 import { useAdEligibility } from '@/hooks/use-ad-eligibility';
@@ -9,11 +9,16 @@ import { loadBannerAdSdk } from '@/lib/ads/banner-ad-sdk';
 import { AD_ACCESSIBILITY_LABEL } from '@/lib/ads/constants';
 import { initializeAds } from '@/lib/ads/initialize';
 
-/** iOS app banners — viewer subscription gate via RevenueCat (DEV-453). */
+function shouldLogAdDiagnostics(): boolean {
+  return __DEV__ || process.env.EXPO_PUBLIC_DEV_TOOLS === 'true';
+}
+
+/** iOS app banners — viewer subscription gate via RevenueCat + Convex (DEV-453). */
 export function AdBanner({ placement }: AdBannerProps): ReactElement | null {
   const { showAds, loading } = useAdEligibility();
   const { width } = useWindowDimensions();
   const [adVisible, setAdVisible] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [initDone, setInitDone] = useState(false);
 
   const bannerSdk = useMemo(() => loadBannerAdSdk(), []);
@@ -27,7 +32,22 @@ export function AdBanner({ placement }: AdBannerProps): ReactElement | null {
 
   useEffect(() => {
     setAdVisible(false);
+    setLoadFailed(false);
   }, [placement, showAds]);
+
+  useEffect(() => {
+    if (!shouldLogAdDiagnostics()) {
+      return;
+    }
+    console.info('[AdMob] banner gate', {
+      placement,
+      showAds,
+      loading,
+      initDone,
+      hasSdk: bannerSdk != null,
+      unitId: unitId != null ? `${unitId.slice(0, 24)}…` : null,
+    });
+  }, [placement, showAds, loading, initDone, bannerSdk, unitId]);
 
   if (loading || !showAds || !initDone || bannerSdk == null || unitId == null) {
     return null;
@@ -35,13 +55,27 @@ export function AdBanner({ placement }: AdBannerProps): ReactElement | null {
 
   const { BannerAd, BannerAdSize } = bannerSdk;
 
+  if (loadFailed && process.env.EXPO_PUBLIC_DEV_TOOLS === 'true') {
+    return (
+      <View
+        accessibilityLabel={AD_ACCESSIBILITY_LABEL}
+        accessibilityRole="text"
+        className="min-h-[50px] items-center justify-center border-t border-dashed border-amber-400 bg-amber-50 py-3 dark:border-amber-600 dark:bg-amber-950"
+      >
+        <Text className="text-center text-xs text-amber-800 dark:text-amber-200">
+          Ad failed to load — check device logs for [AdMob]
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View
       accessibilityLabel={AD_ACCESSIBILITY_LABEL}
       accessibilityRole="text"
       className="items-center border-t border-neutral-200 bg-neutral-50 py-2 dark:border-neutral-800 dark:bg-neutral-950"
       importantForAccessibility="yes"
-      style={adVisible ? undefined : { height: 0, overflow: 'hidden', opacity: 0 }}
+      style={adVisible ? undefined : { minHeight: 50, overflow: 'hidden', opacity: adVisible ? 1 : 0.3 }}
     >
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <BannerAd
@@ -50,9 +84,15 @@ export function AdBanner({ placement }: AdBannerProps): ReactElement | null {
           width={width}
           onAdLoaded={() => {
             setAdVisible(true);
+            setLoadFailed(false);
+            if (shouldLogAdDiagnostics()) {
+              console.info('[AdMob] banner loaded', { placement });
+            }
           }}
-          onAdFailedToLoad={() => {
+          onAdFailedToLoad={(error) => {
             setAdVisible(false);
+            setLoadFailed(true);
+            console.warn('[AdMob] banner failed to load', { placement, error });
           }}
         />
       </View>

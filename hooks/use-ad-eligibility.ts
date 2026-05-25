@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Platform } from 'react-native';
 
-import { useAdEligibilityStore } from '@/lib/store/ad-eligibility-store';
+import { useSubscription } from '@/hooks/use-subscription';
 import {
   AD_ELIGIBILITY_LOADING,
   AD_ELIGIBILITY_SUPPRESSED,
@@ -19,25 +19,12 @@ export interface UseAdEligibilityOptions {
 }
 
 /**
- * App surfaces: RevenueCat entitlement via Zustand (DEV-452).
+ * App surfaces: Convex + RevenueCat pro state via {@link useSubscription} (DEV-452).
  * Web vote page: pass `voterMode` + `ownerHasActiveSub` from the guest event query (DEV-454).
  */
 export function useAdEligibility(options?: UseAdEligibilityOptions): AdEligibilityState {
   const voterMode = options?.voterMode === true;
-  const storeShowAds = useAdEligibilityStore((state) => state.showAds);
-  const storeLoading = useAdEligibilityStore((state) => state.loading);
-  const ensureLoaded = useAdEligibilityStore((state) => state.ensureLoaded);
-  const registerCustomerInfoListener = useAdEligibilityStore(
-    (state) => state.registerCustomerInfoListener,
-  );
-
-  useEffect(() => {
-    if (voterMode) {
-      return;
-    }
-    registerCustomerInfoListener();
-    void ensureLoaded();
-  }, [voterMode, ensureLoaded, registerCustomerInfoListener]);
+  const subscription = useSubscription();
 
   return useMemo((): AdEligibilityState => {
     if (voterMode) {
@@ -57,6 +44,13 @@ export function useAdEligibility(options?: UseAdEligibilityOptions): AdEligibili
       return AD_ELIGIBILITY_SUPPRESSED;
     }
 
-    return { showAds: storeShowAds, loading: storeLoading };
-  }, [voterMode, options?.ownerHasActiveSub, storeShowAds, storeLoading]);
+    if (!subscription.isLoaded) {
+      return AD_ELIGIBILITY_LOADING;
+    }
+
+    return {
+      showAds: !subscription.isPro,
+      loading: false,
+    };
+  }, [voterMode, options?.ownerHasActiveSub, subscription.isLoaded, subscription.isPro]);
 }

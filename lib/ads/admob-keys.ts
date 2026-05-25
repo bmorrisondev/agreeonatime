@@ -61,31 +61,32 @@ function getTestAdUnitIdForPlacement(placement: AdPlacementId): string {
   return GOOGLE_TEST_AD_UNITS.banner;
 }
 
+function shouldUseTestAdUnits(): boolean {
+  return __DEV__ || process.env.EXPO_PUBLIC_DEV_TOOLS === 'true';
+}
+
 /**
  * Resolved ad unit id for a placement.
- * Production: env only. Development: env, else Google test units.
+ * Preview/dev (`EXPO_PUBLIC_DEV_TOOLS` or `__DEV__`): Google test units (guaranteed fill).
+ * Production: env-configured unit ids only.
  */
 export function getAdUnitIdForPlacement(placement: AdPlacementId): string | undefined {
-  const configured = getConfiguredAdUnitId(placement);
-  if (configured != null) {
-    return configured;
-  }
-  if (__DEV__) {
+  if (shouldUseTestAdUnits()) {
     return getTestAdUnitIdForPlacement(placement);
   }
-  return undefined;
+  return getConfiguredAdUnitId(placement);
 }
 
 /** Whether env (or dev test fallback) provides enough config to request ads. */
 export function hasAdMobConfigForPlatform(): boolean {
   const appId = getAdMobAppIdForPlatform();
-  if (appId == null) {
-    if (__DEV__) {
-      return Platform.OS === 'ios' || Platform.OS === 'web';
-    }
-    return false;
+  if (appId != null) {
+    return true;
   }
-  return true;
+  if (shouldUseTestAdUnits() && (Platform.OS === 'ios' || Platform.OS === 'web')) {
+    return true;
+  }
+  return false;
 }
 
 /** App id used at SDK init — production env or dev test id. */
@@ -94,7 +95,7 @@ export function resolveAdMobAppIdForInit(): string | undefined {
   if (configured != null) {
     return configured;
   }
-  if (__DEV__ && Platform.OS === 'ios') {
+  if (shouldUseTestAdUnits() && Platform.OS === 'ios') {
     return GOOGLE_TEST_APP_IDS.ios;
   }
   return undefined;

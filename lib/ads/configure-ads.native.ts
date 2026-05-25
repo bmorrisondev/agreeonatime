@@ -18,8 +18,6 @@ export async function configureAds(): Promise<void> {
     await mobileAds().initialize();
     markAdMobConfigured();
   } catch (error: unknown) {
-    if (__DEV__) {
-      console.warn('[AdMob] mobileAds().initialize failed', error);
-    }
+    console.warn('[AdMob] mobileAds().initialize failed', error);
   }
 }
