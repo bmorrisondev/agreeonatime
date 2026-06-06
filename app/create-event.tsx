@@ -2,8 +2,8 @@ import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { makeFunctionReference } from 'convex/server';
-import { useMutation } from 'convex/react';
-import { router } from 'expo-router';
+import { useMutation, useQuery } from 'convex/react';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -21,6 +21,8 @@ import { formatDateTimeMs } from '@/lib/events/format-event-home';
 import { RangeWindowEditor } from '@/components/availability/range-window-editor';
 import {
   buildDefaultEventSlots,
+  buildEmptyEventForm,
+  EVENT_DAY_MS,
   EVENT_HOUR_MS,
   EVENT_MAX_SLOTS,
   validateEventForm,
@@ -41,8 +43,18 @@ import { isConvexConfigured } from '@/lib/convex/client';
 import { useCalendarConflicts } from '@/hooks/use-calendar-conflicts';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCreateEventGate } from '@/hooks/use-create-event-gate';
+import { t } from '@/lib/i18n/t';
 
 const createEventMutation = makeFunctionReference<'mutation'>('events:create');
+const getTemplateVoterNamesQuery = makeFunctionReference<'query'>('events:getTemplateVoterNames');
+
+function normalizeSearchParam(value: string | string[] | undefined): string | undefined {
+  if (value == null) {
+    return undefined;
+  }
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw.length > 0 ? raw : undefined;
+}
 
 /** Modal stack header ~height for iOS keyboard avoidance (avoid @react-navigation/* on Expo SDK 56 web export). */
 const IOS_MODAL_KEYBOARD_HEADER_OFFSET = 56;
@@ -54,11 +66,23 @@ export default function CreateEventScreen(): ReactElement {
   const colorScheme = useColorScheme();
   const webScheme = colorScheme === 'dark' ? 'dark' : 'light';
   const configured = isConvexConfigured();
-  const defaults = useMemo(() => buildDefaultEventSlots(), []);
+  const searchParams = useLocalSearchParams<{
+    templateSourceEventId?: string | string[];
+    title?: string | string[];
+    description?: string | string[];
+  }>();
+  const templateSourceEventId = normalizeSearchParam(searchParams.templateSourceEventId);
+  const isTemplateMode = templateSourceEventId != null;
+  const defaults = useMemo(
+    () => (isTemplateMode ? buildEmptyEventForm() : buildDefaultEventSlots()),
+    [isTemplateMode],
+  );
   const rangeDefaults = useMemo(() => buildDefaultRangeEvent(), []);
   const [schedulingMode, setSchedulingMode] = useState<'discrete' | 'range'>('discrete');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState(() => normalizeSearchParam(searchParams.title) ?? '');
+  const [description, setDescription] = useState(
+    () => normalizeSearchParam(searchParams.description) ?? '',
+  );
   const [slotStarts, setSlotStarts] = useState<number[]>(defaults.slotStarts);
   const [rangeWindows, setRangeWindows] = useState<RangeWindow[]>(rangeDefaults.rangeWindows);
   const [deadline, setDeadline] = useState(defaults.deadline);
@@ -76,6 +100,10 @@ export default function CreateEventScreen(): ReactElement {
   const createEvent = useMutation(createEventMutation);
   const { paywallVisible, closePaywall, openPaywall, subscription } = useCreateEventGate();
   const calendarConflicts = useCalendarConflicts(slotStarts);
+  const templateVoterNames = useQuery(
+    getTemplateVoterNamesQuery,
+    configured && templateSourceEventId != null ? { eventId: templateSourceEventId } : 'skip',
+  );
 
   const onCheckCalendar = useCallback(() => {
     if (subscription.isLoaded && !subscription.isPro) {
@@ -84,6 +112,13 @@ export default function CreateEventScreen(): ReactElement {
     }
     void calendarConflicts.checkCalendar();
   }, [calendarConflicts, openPaywall, subscription.isLoaded, subscription.isPro]);
+
+  const openDeadlinePicker = useCallback(() => {
+    if (deadline <= 0) {
+      setDeadline(roundTimeMs(Date.now() + EVENT_DAY_MS));
+    }
+    setPicker({ kind: 'deadline' });
+  }, [deadline]);
 
   const onSelectSchedulingMode = useCallback(
     (mode: 'discrete' | 'range') => {
@@ -289,6 +324,43 @@ export default function CreateEventScreen(): ReactElement {
           value={description}
         />
 
+        {isTemplateMode ? (
+          <View className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-3 dark:border-neutral-700 dark:bg-neutral-900/50">
+            <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              {t('create_event_template_people_heading')}
+            </Text>
+            <Text className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
+              {t('create_event_template_people_body')}
+            </Text>
+            {templateVoterNames === undefined ? (
+              <ActivityIndicator
+                accessibilityLabel={t('a11y_loading')}
+                className="mt-3"
+                size="small"
+              />
+            ) : templateVoterNames != null && templateVoterNames.length > 0 ? (
+              <View
+                accessibilityRole="list"
+                className="mt-3 flex-row flex-wrap gap-2"
+              >
+                {templateVoterNames.map((name) => (
+                  <View
+                    key={name}
+                    accessibilityLabel={name}
+                    className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 dark:border-neutral-600 dark:bg-neutral-950"
+                  >
+                    <Text className="text-sm text-neutral-800 dark:text-neutral-200">{name}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">
+                {t('create_event_template_people_empty')}
+              </Text>
+            )}
+          </View>
+        ) : null}
+
         <Text className="mb-1 text-sm font-medium text-neutral-700 dark:text-neutral-300">Scheduling</Text>
         <View className="mb-4 flex-row gap-2">
           <Pressable
@@ -386,6 +458,13 @@ export default function CreateEventScreen(): ReactElement {
             ? 'Use the date and time fields below each row to change a slot.'
             : 'Tap a time to open the picker; new rows open the picker automatically.'}
         </Text>
+
+        {slotStarts.length === 0 ? (
+          <Text className="mb-2 text-sm text-neutral-600 dark:text-neutral-400">
+            Add at least two proposed times for this event.
+          </Text>
+        ) : null}
+
         {slotStarts.map((ms, index) => {
           const label = `Proposed time ${index + 1}, ${formatDateTimeMs(ms)}. Opens date and time picker.`;
           const hasConflict = calendarConflicts.conflictingIndexes.has(index);
@@ -443,12 +522,14 @@ export default function CreateEventScreen(): ReactElement {
         {slotStarts.length < EVENT_MAX_SLOTS ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Add another proposed time"
+            accessibilityLabel={slotStarts.length === 0 ? 'Add proposed time' : 'Add another proposed time'}
             className="mb-6 self-start rounded-lg border border-dashed border-neutral-400 px-3 py-2 dark:border-neutral-500"
             disabled={submitting}
             onPress={addSlot}
           >
-            <Text className="text-sm font-medium text-neutral-800 dark:text-neutral-200">+ Add time</Text>
+            <Text className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+              {slotStarts.length === 0 ? '+ Add time' : '+ Add another time'}
+            </Text>
           </Pressable>
         ) : (
           <Text className="mb-6 text-xs text-neutral-500 dark:text-neutral-400">Maximum {EVENT_MAX_SLOTS} times reached.</Text>
@@ -459,25 +540,49 @@ export default function CreateEventScreen(): ReactElement {
         <Text className="mb-1 text-sm font-medium text-neutral-700 dark:text-neutral-300">Voting deadline</Text>
         {Platform.OS === 'web' ? (
           <View className="mb-6">
-            <WebDatetimeLocalInput
-              accessibilityLabel="Voting deadline"
-              colorScheme={webScheme}
-              disabled={submitting}
-              valueMs={deadline}
-              onChangeMs={setDeadline}
-            />
+            {deadline > 0 ? (
+              <WebDatetimeLocalInput
+                accessibilityLabel="Voting deadline"
+                colorScheme={webScheme}
+                disabled={submitting}
+                valueMs={deadline}
+                onChangeMs={setDeadline}
+              />
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('create_event_template_deadline_unset_a11y')}
+                className="rounded-lg border border-dashed border-neutral-400 px-3 py-3 dark:border-neutral-500"
+                disabled={submitting}
+                onPress={openDeadlinePicker}
+              >
+                <Text className="text-base text-neutral-600 dark:text-neutral-400">
+                  {t('create_event_template_deadline_unset')}
+                </Text>
+              </Pressable>
+            )}
           </View>
         ) : (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Voting deadline, ${formatDateTimeMs(deadline)}. Opens date and time picker.`}
+            accessibilityLabel={
+              deadline > 0
+                ? `Voting deadline, ${formatDateTimeMs(deadline)}. Opens date and time picker.`
+                : t('create_event_template_deadline_unset_a11y')
+            }
             className="mb-6 rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-3 dark:border-neutral-600 dark:bg-neutral-900"
             disabled={submitting}
-            onPress={() => {
-              setPicker({ kind: 'deadline' });
-            }}
+            onPress={openDeadlinePicker}
           >
-            <Text className="text-base text-neutral-900 dark:text-neutral-100">{formatDateTimeMs(deadline)}</Text>
+            <Text
+              className={`text-base ${
+                deadline > 0
+                  ? 'text-neutral-900 dark:text-neutral-100'
+                  : 'text-neutral-600 dark:text-neutral-400'
+              }`}
+            >
+              {deadline > 0 ? formatDateTimeMs(deadline) : t('create_event_template_deadline_unset')}
+            </Text>
           </Pressable>
         )}
 

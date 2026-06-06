@@ -206,6 +206,30 @@ export default function EventDecidedScreen(): ReactElement {
 
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={t('decided_use_as_template_a11y')}
+          className="mt-3 min-h-[44px] items-center justify-center rounded-lg border border-neutral-300 bg-white active:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800"
+          onPress={() => {
+            router.push({
+              pathname: '/create-event',
+              params: {
+                templateSourceEventId: id,
+                title: event.title,
+                ...(description != null && description.length > 0 ? { description } : {}),
+              },
+            });
+          }}
+        >
+          <Text
+            allowFontScaling
+            className="text-base font-semibold text-neutral-900 dark:text-neutral-100"
+            maxFontSizeMultiplier={2}
+          >
+            {t('decided_use_as_template')}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
           accessibilityLabel={t('decided_done_a11y')}
           className="mt-4 min-h-[44px] items-center justify-center rounded-lg border border-neutral-300 bg-white active:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800"
           onPress={onDone}

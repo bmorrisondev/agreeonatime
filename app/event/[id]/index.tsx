@@ -280,6 +280,27 @@ export default function EventDetailScreen(): ReactElement {
                 <Text className="text-base font-semibold text-white">{t('decided_share_news')}</Text>
               )}
             </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('event_use_as_template_a11y')}
+              className="mt-3 min-h-[44px] items-center justify-center rounded-lg border border-neutral-300 bg-white active:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900 dark:active:bg-neutral-800"
+              onPress={() => {
+                router.push({
+                  pathname: '/create-event',
+                  params: {
+                    templateSourceEventId: event._id,
+                    title: event.title,
+                    ...(event.description != null && event.description.length > 0
+                      ? { description: event.description }
+                      : {}),
+                  },
+                });
+              }}
+            >
+              <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+                {t('event_use_as_template')}
+              </Text>
+            </Pressable>
           </>
         ) : null}
 

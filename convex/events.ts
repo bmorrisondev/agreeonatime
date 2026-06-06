@@ -479,6 +479,65 @@ export const getForOwner = query({
   },
 });
 
+/** Distinct voter display names from a past event for template create flow (DEV-442). */
+export const getTemplateVoterNames = query({
+  args: { eventId: v.id('events') },
+  returns: v.union(v.null(), v.array(v.string())),
+  handler: async (ctx, { eventId }) => {
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (!authUser) {
+      return null;
+    }
+    const authId = betterAuthUserIdString(authUser);
+    if (authId == null) {
+      return null;
+    }
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_auth_user', (q) => q.eq('authUserId', authId))
+      .unique();
+    if (!user) {
+      return null;
+    }
+    const event = await ctx.db.get(eventId);
+    if (!event || event.ownerId !== user._id) {
+      return null;
+    }
+
+    const namesByKey = new Map<string, string>();
+    const schedulingMode = eventSchedulingMode(event);
+
+    if (schedulingMode === 'range') {
+      const blocks = await ctx.db
+        .query('availabilityBlocks')
+        .withIndex('by_event', (q) => q.eq('eventId', eventId))
+        .collect();
+      for (const row of blocks) {
+        if (!row.available) {
+          continue;
+        }
+        const key = voterKey(row);
+        if (!namesByKey.has(key)) {
+          namesByKey.set(key, row.voterName);
+        }
+      }
+    } else {
+      const votes = await ctx.db
+        .query('votes')
+        .withIndex('by_event', (q) => q.eq('eventId', eventId))
+        .collect();
+      for (const row of votes) {
+        const key = voterKey(row);
+        if (!namesByKey.has(key)) {
+          namesByKey.set(key, row.voterName);
+        }
+      }
+    }
+
+    return Array.from(namesByKey.values()).sort((a, b) => a.localeCompare(b));
+  },
+});
+
 /** Owner picks a winning availability block (DEV-434). Creates a discrete decided timeslot. */
 export const finalizeRangeBlock = mutation({
   args: {

@@ -20,6 +20,11 @@ export function buildDefaultEventSlots(): { slotStarts: number[]; deadline: numb
   return { slotStarts: [first, second], deadline };
 }
 
+/** Template flow (DEV-442): owner fills times and deadline from scratch. */
+export function buildEmptyEventForm(): { slotStarts: number[]; deadline: number } {
+  return { slotStarts: [], deadline: 0 };
+}
+
 export function validateEventForm(params: EventFormValidationInput): string | null {
   if (params.title.trim().length === 0) {
     return 'Title is required';
@@ -28,6 +33,9 @@ export function validateEventForm(params: EventFormValidationInput): string | nu
     return `Add between 2 and ${String(EVENT_MAX_SLOTS)} proposed times`;
   }
   const now = Date.now();
+  if (params.deadline <= 0) {
+    return 'Set a voting deadline';
+  }
   if (params.deadline <= now) {
     return 'Voting deadline must be in the future';
   }

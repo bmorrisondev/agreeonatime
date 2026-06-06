@@ -141,6 +141,18 @@ export const strings = {
   decided_back: 'Back to event',
   decided_share_a11y: 'Share voting link',
   decided_share: 'Share link',
+  decided_use_as_template: 'Use as template',
+  decided_use_as_template_a11y: 'Create a new event from this template',
+
+  event_use_as_template: 'Use as template',
+  event_use_as_template_a11y: 'Create a new event from this template',
+
+  create_event_template_people_heading: 'People from last time',
+  create_event_template_people_body:
+    'Share the new link with them again. Names are for reference only.',
+  create_event_template_people_empty: 'No voters from the last event.',
+  create_event_template_deadline_unset: 'Set voting deadline',
+  create_event_template_deadline_unset_a11y: 'Set voting deadline. Opens date and time picker.',
 
   agreed_card_headline: 'Agreed',
   agreed_card_tagline: 'Agreed with Agree on a Time',
