@@ -65,7 +65,13 @@
           "color": "#FF6B5C"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Agree on a Time checks your Apple Calendar for scheduling conflicts. Calendar data stays on your device."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

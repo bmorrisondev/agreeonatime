@@ -32,10 +32,14 @@ import {
 import type { RangeWindow } from '@/lib/availability/grid';
 import { EVENT_TIME_MINUTE_INTERVAL, roundTimeMs } from '@/lib/events/time-rounding';
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
+import { CalendarConflictBadge } from '@/components/calendar/calendar-conflict-badge';
+import { CalendarIosDownloadCta } from '@/components/calendar/calendar-ios-download-cta';
+import { CheckCalendarSection } from '@/components/calendar/check-calendar-section';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
 import { isTooManyActiveEventsError } from '@/lib/convex/subscription-errors';
 import { isConvexConfigured } from '@/lib/convex/client';
+import { useCalendarConflicts } from '@/hooks/use-calendar-conflicts';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCreateEventGate } from '@/hooks/use-create-event-gate';
 
@@ -72,6 +76,15 @@ export default function CreateEventScreen(): ReactElement {
 
   const createEvent = useMutation(createEventMutation);
   const { paywallVisible, closePaywall, openPaywall, subscription } = useCreateEventGate();
+  const calendarConflicts = useCalendarConflicts(slotStarts);
+
+  const onCheckCalendar = useCallback(() => {
+    if (subscription.isLoaded && !subscription.isPro) {
+      openPaywall();
+      return;
+    }
+    void calendarConflicts.checkCalendar();
+  }, [calendarConflicts, openPaywall, subscription.isLoaded, subscription.isPro]);
 
   const onSelectSchedulingMode = useCallback(
     (mode: 'discrete' | 'range') => {
@@ -346,10 +359,23 @@ export default function CreateEventScreen(): ReactElement {
             : 'Tap a time to open the picker; new rows open the picker automatically.'}
         </Text>
 
+        {Platform.OS === 'web' ? (
+          <CalendarIosDownloadCta />
+        ) : (
+          <CheckCalendarSection
+            disabled={submitting}
+            errorMessage={calendarConflicts.errorMessage}
+            status={calendarConflicts.status}
+            onPressCheck={onCheckCalendar}
+          />
+        )}
+
         {slotStarts.map((ms, index) => {
           const label = `Proposed time ${index + 1}, ${formatDateTimeMs(ms)}. Opens date and time picker.`;
+          const hasConflict = calendarConflicts.conflictingIndexes.has(index);
           return (
-            <View key={`slot-row-${String(index)}`} className="mb-2 flex-row items-center gap-2">
+            <View key={`slot-row-${String(index)}`} className="mb-2">
+              <View className="flex-row items-center gap-2">
               {Platform.OS === 'web' ? (
                 <View className="flex-1">
                   <WebDatetimeLocalInput
@@ -392,6 +418,8 @@ export default function CreateEventScreen(): ReactElement {
                   <Text className="text-base text-neutral-700 dark:text-neutral-300">Remove</Text>
                 </Pressable>
               ) : null}
+              </View>
+              <CalendarConflictBadge visible={hasConflict} />
             </View>
           );
         })}
