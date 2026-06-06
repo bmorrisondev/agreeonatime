@@ -162,6 +162,8 @@ export const strings = {
   create_event_calendar_ios_cta: 'Get the iOS app',
   create_event_calendar_ios_cta_a11y:
     'Download Agree on a Time on the App Store for calendar integration',
+  create_event_calendar_ios_chip: 'Calendar sync',
+  create_event_calendar_ios_chip_badge: 'iOS app',
 
   settings_title: 'Settings',
   settings_account_header: 'Account',

@@ -33,8 +33,7 @@ import type { RangeWindow } from '@/lib/availability/grid';
 import { EVENT_TIME_MINUTE_INTERVAL, roundTimeMs } from '@/lib/events/time-rounding';
 import { WebDatetimeLocalInput } from '@/lib/events/web-datetime-local';
 import { CalendarConflictBadge } from '@/components/calendar/calendar-conflict-badge';
-import { CalendarIosDownloadCta } from '@/components/calendar/calendar-ios-download-cta';
-import { CheckCalendarSection } from '@/components/calendar/check-calendar-section';
+import { ProposedTimesHelpers } from '@/components/events/proposed-times-helpers';
 import { PaywallModal } from '@/components/purchases/paywall-modal';
 import { formatMutationError } from '@/lib/convex/format-mutation-error';
 import { isTooManyActiveEventsError } from '@/lib/convex/subscription-errors';
@@ -170,6 +169,15 @@ export default function CreateEventScreen(): ReactElement {
         });
       }
       return next;
+    });
+  }, []);
+
+  const addSuggestedSlot = useCallback((startTimeMs: number) => {
+    setSlotStarts((rows) => {
+      if (rows.length >= EVENT_MAX_SLOTS) {
+        return rows;
+      }
+      return [...rows, startTimeMs];
     });
   }, []);
 
@@ -351,25 +359,33 @@ export default function CreateEventScreen(): ReactElement {
           </View>
         ) : (
           <>
-        <Text className="mb-1 text-sm font-medium text-neutral-700 dark:text-neutral-300">Proposed times</Text>
-        <Text className="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
+        <Text className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">Proposed times</Text>
+
+        <ProposedTimesHelpers
+          ai={{
+            deadlineMs: deadline,
+            disabled: submitting,
+            existingSlotMs: slotStarts,
+            isLoaded: subscription.isLoaded,
+            isPro: subscription.isPro,
+            slotCount: slotStarts.length,
+            onAddSlot: addSuggestedSlot,
+            onOpenPaywall: openPaywall,
+          }}
+          calendar={{
+            disabled: submitting,
+            errorMessage: calendarConflicts.errorMessage,
+            status: calendarConflicts.status,
+            onPressCheck: onCheckCalendar,
+          }}
+        />
+
+        <Text className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
           At least 2 times, up to {EVENT_MAX_SLOTS}. Voting must end before your latest time.{' '}
           {Platform.OS === 'web'
             ? 'Use the date and time fields below each row to change a slot.'
             : 'Tap a time to open the picker; new rows open the picker automatically.'}
         </Text>
-
-        {Platform.OS === 'web' ? (
-          <CalendarIosDownloadCta />
-        ) : (
-          <CheckCalendarSection
-            disabled={submitting}
-            errorMessage={calendarConflicts.errorMessage}
-            status={calendarConflicts.status}
-            onPressCheck={onCheckCalendar}
-          />
-        )}
-
         {slotStarts.map((ms, index) => {
           const label = `Proposed time ${index + 1}, ${formatDateTimeMs(ms)}. Opens date and time picker.`;
           const hasConflict = calendarConflicts.conflictingIndexes.has(index);

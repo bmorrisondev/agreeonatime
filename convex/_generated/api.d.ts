@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as aiSuggestions from "../aiSuggestions.js";
 import type * as auth from "../auth.js";
 import type * as availabilityGrid from "../availabilityGrid.js";
 import type * as crons from "../crons.js";
@@ -33,6 +34,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiSuggestions: typeof aiSuggestions;
   auth: typeof auth;
   availabilityGrid: typeof availabilityGrid;
   crons: typeof crons;
