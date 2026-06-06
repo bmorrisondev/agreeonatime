@@ -70,6 +70,8 @@ Script: `scripts/create-apple-review-user.sh` (defaults to `https://hearty-grass
 
 ## Local build → TestFlight (`scripts/deploy-testflight-local.sh`)
 
+To reuse this workflow in another Expo app, see [deploy-testflight-local-porting.md](./deploy-testflight-local-porting.md).
+
 Runs on **macOS** with Xcode and the [EAS CLI](https://docs.expo.dev/build/setup-local-builds/) (`eas` on your PATH):
 
 1. `eas build --profile production --platform ios --local --output ./builds/agreeonatime.ipa`
