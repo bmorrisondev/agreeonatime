@@ -157,6 +157,11 @@ export const strings = {
   add_to_calendar_error_title: 'Could not open calendar',
   add_to_calendar_error_body:
     'Try again on your device, or add the event manually in your calendar app.',
+  create_event_calendar_ios_hint:
+    'Check Apple Calendar for conflicts when proposing times — available in the iOS app with Agree+.',
+  create_event_calendar_ios_cta: 'Get the iOS app',
+  create_event_calendar_ios_cta_a11y:
+    'Download Agree on a Time on the App Store for calendar integration',
 
   settings_title: 'Settings',
   settings_account_header: 'Account',
