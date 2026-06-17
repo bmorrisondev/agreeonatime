@@ -153,6 +153,12 @@ export const strings = {
   create_event_template_people_empty: 'No voters from the last event.',
   create_event_template_deadline_unset: 'Set voting deadline',
   create_event_template_deadline_unset_a11y: 'Set voting deadline. Opens date and time picker.',
+  create_event_template_notify_heading: 'Notify app users from last time',
+  create_event_template_notify_breakdown:
+    '{{appCount}} app users · {{linkCount}} link-only — share the link with link-only guests.',
+  create_event_template_notify_a11y: 'Notify returning app users from last time',
+  create_event_template_notify_none:
+    'No app users with notifications enabled from last time — share the link manually.',
 
   agreed_card_headline: 'Agreed',
   agreed_card_tagline: 'Agreed with Agree on a Time',

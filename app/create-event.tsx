@@ -47,6 +47,7 @@ import { t } from '@/lib/i18n/t';
 
 const createEventMutation = makeFunctionReference<'mutation'>('events:create');
 const getTemplateVoterNamesQuery = makeFunctionReference<'query'>('events:getTemplateVoterNames');
+const getTemplateNotifySummaryQuery = makeFunctionReference<'query'>('events:getTemplateNotifySummary');
 
 function normalizeSearchParam(value: string | string[] | undefined): string | undefined {
   if (value == null) {
@@ -88,6 +89,7 @@ export default function CreateEventScreen(): ReactElement {
   const [deadline, setDeadline] = useState(defaults.deadline);
   const [allowInviteeProposals, setAllowInviteeProposals] = useState(true);
   const [remindersEnabled, setRemindersEnabled] = useState(true);
+  const [notifyReturningInvitees, setNotifyReturningInvitees] = useState(false);
   const [picker, setPicker] = useState<PickerTarget | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +104,10 @@ export default function CreateEventScreen(): ReactElement {
   const calendarConflicts = useCalendarConflicts(slotStarts);
   const templateVoterNames = useQuery(
     getTemplateVoterNamesQuery,
+    configured && templateSourceEventId != null ? { eventId: templateSourceEventId } : 'skip',
+  );
+  const templateNotifySummary = useQuery(
+    getTemplateNotifySummaryQuery,
     configured && templateSourceEventId != null ? { eventId: templateSourceEventId } : 'skip',
   );
 
@@ -247,6 +253,11 @@ export default function CreateEventScreen(): ReactElement {
         deadline,
         allowInviteeProposals,
         remindersEnabled: subscription.isPro ? remindersEnabled : false,
+        templateSourceEventId: templateSourceEventId ?? undefined,
+        notifyReturningInvitees:
+          isTemplateMode && notifyReturningInvitees && (templateNotifySummary?.appUserCount ?? 0) > 0
+            ? true
+            : undefined,
       });
       router.replace(`/event/${id}`);
     } catch (e: unknown) {
@@ -271,6 +282,10 @@ export default function CreateEventScreen(): ReactElement {
     subscription.canCreateMore,
     subscription.isLoaded,
     subscription.isPro,
+    isTemplateMode,
+    notifyReturningInvitees,
+    templateNotifySummary?.appUserCount,
+    templateSourceEventId,
     title,
   ]);
 
@@ -358,6 +373,37 @@ export default function CreateEventScreen(): ReactElement {
                 {t('create_event_template_people_empty')}
               </Text>
             )}
+          </View>
+        ) : null}
+
+        {isTemplateMode &&
+        templateNotifySummary != null &&
+        (templateNotifySummary.appUserCount > 0 || templateNotifySummary.linkOnlyCount > 0) ? (
+          <View className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-3 dark:border-neutral-700 dark:bg-neutral-900/50">
+            <View className="flex-row items-center justify-between gap-3">
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                  {t('create_event_template_notify_heading')}
+                </Text>
+                <Text className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
+                  {t('create_event_template_notify_breakdown', {
+                    appCount: templateNotifySummary.appUserCount,
+                    linkCount: templateNotifySummary.linkOnlyCount,
+                  })}
+                </Text>
+              </View>
+              <Switch
+                accessibilityLabel={t('create_event_template_notify_a11y')}
+                disabled={submitting || templateNotifySummary.appUserCount === 0}
+                onValueChange={setNotifyReturningInvitees}
+                value={notifyReturningInvitees && templateNotifySummary.appUserCount > 0}
+              />
+            </View>
+            {templateNotifySummary.appUserCount === 0 ? (
+              <Text className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                {t('create_event_template_notify_none')}
+              </Text>
+            ) : null}
           </View>
         ) : null}
 

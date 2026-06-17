@@ -161,3 +161,94 @@ export const getEventOwnerPushTargets = internalQuery({
     };
   },
 });
+
+/** Resolve push tokens for app users who voted on a template source event (DEV-500). */
+export const getReturningInviteePushTargets = internalQuery({
+  args: {
+    sourceEventId: v.id('events'),
+    ownerId: v.id('users'),
+  },
+  handler: async (ctx, { sourceEventId, ownerId }) => {
+    const source = await ctx.db.get(sourceEventId);
+    if (source == null || source.ownerId !== ownerId) {
+      return { pushTokens: [] as string[], notifiableCount: 0 };
+    }
+
+    const userIds = new Set<string>();
+
+    const votes = await ctx.db
+      .query('votes')
+      .withIndex('by_event', (q) => q.eq('eventId', sourceEventId))
+      .collect();
+    for (const row of votes) {
+      if (row.voterUserId != null && row.voterUserId !== ownerId) {
+        userIds.add(row.voterUserId);
+      }
+    }
+
+    const invitees = await ctx.db
+      .query('eventInvitees')
+      .withIndex('by_event', (q) => q.eq('eventId', sourceEventId))
+      .collect();
+    for (const row of invitees) {
+      if (row.voterUserId != null && row.voterUserId !== ownerId) {
+        userIds.add(row.voterUserId);
+      }
+    }
+
+    const blocks = await ctx.db
+      .query('availabilityBlocks')
+      .withIndex('by_event', (q) => q.eq('eventId', sourceEventId))
+      .collect();
+    for (const row of blocks) {
+      if (row.voterUserId != null && row.voterUserId !== ownerId) {
+        userIds.add(row.voterUserId);
+      }
+    }
+
+    const pushTokens: string[] = [];
+    for (const userId of userIds) {
+      const user = await ctx.db.get(userId);
+      if (user == null || user.pushTokens.length === 0) {
+        continue;
+      }
+      for (const token of user.pushTokens) {
+        if (!pushTokens.includes(token)) {
+          pushTokens.push(token);
+        }
+      }
+    }
+
+    return { pushTokens, notifiableCount: userIds.size };
+  },
+});
+
+/** Push returning app users when owner re-schedules from a template (DEV-500). */
+export const notifyReturningInviteesOfTemplateEvent = internalAction({
+  args: {
+    sourceEventId: v.id('events'),
+    newEventId: v.id('events'),
+    ownerId: v.id('users'),
+    eventTitle: v.string(),
+    shareToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const targets = await ctx.runQuery(internal.notifications.getReturningInviteePushTargets, {
+      sourceEventId: args.sourceEventId,
+      ownerId: args.ownerId,
+    });
+    if (targets.pushTokens.length === 0) {
+      return;
+    }
+
+    await ctx.runAction(internal.notifications.sendExpoPush, {
+      expoPushTokens: targets.pushTokens,
+      title: 'New poll',
+      body: `${args.eventTitle} — tap to vote`,
+      data: {
+        shareToken: args.shareToken,
+        eventId: String(args.newEventId),
+      },
+    });
+  },
+});

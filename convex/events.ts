@@ -183,6 +183,10 @@ export const create = mutation({
     deadline: v.number(),
     allowInviteeProposals: v.boolean(),
     remindersEnabled: v.optional(v.boolean()),
+    /** Source event when creating from template (DEV-442 / DEV-500). */
+    templateSourceEventId: v.optional(v.id('events')),
+    /** Push notify returning app users from template roster (DEV-500). */
+    notifyReturningInvitees: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<Id<'events'>> => {
     const authUser = await authComponent.safeGetAuthUser(ctx);
@@ -213,6 +217,19 @@ export const create = mutation({
 
     const descRaw = args.description?.trim();
     const description = descRaw != null && descRaw.length > 0 ? descRaw : undefined;
+
+    if (args.notifyReturningInvitees === true && args.templateSourceEventId == null) {
+      throw new ConvexError('Template source event is required to notify returning invitees');
+    }
+
+    let templateSourceEventId: Id<'events'> | undefined;
+    if (args.templateSourceEventId != null) {
+      const source = await ctx.db.get(args.templateSourceEventId);
+      if (!source || source.ownerId !== userId) {
+        throw new ConvexError('Template source event not found');
+      }
+      templateSourceEventId = source._id;
+    }
 
     let remindersEnabled = isPro;
     if (args.remindersEnabled === true) {
@@ -303,7 +320,7 @@ export const create = mutation({
       ownerHasActiveSub: ownerHasActiveSubFromUser(owner, now),
     });
 
-    for (const startTime of starts) {
+      for (const startTime of starts) {
       await ctx.db.insert('timeslots', {
         eventId,
         type: 'discrete',
@@ -311,6 +328,16 @@ export const create = mutation({
         proposedBy: userId,
         approvalStatus: 'approved',
         createdAt,
+      });
+    }
+
+    if (args.notifyReturningInvitees === true && templateSourceEventId != null) {
+      await ctx.scheduler.runAfter(0, internal.notifications.notifyReturningInviteesOfTemplateEvent, {
+        sourceEventId: templateSourceEventId,
+        newEventId: eventId,
+        ownerId: userId,
+        eventTitle: title,
+        shareToken,
       });
     }
 
@@ -535,6 +562,133 @@ export const getTemplateVoterNames = query({
     }
 
     return Array.from(namesByKey.values()).sort((a, b) => a.localeCompare(b));
+  },
+});
+
+async function collectDistinctVoterUserIds(
+  ctx: QueryCtx,
+  eventId: Id<'events'>,
+): Promise<Set<Id<'users'>>> {
+  const userIds = new Set<Id<'users'>>();
+
+  const votes = await ctx.db
+    .query('votes')
+    .withIndex('by_event', (q) => q.eq('eventId', eventId))
+    .collect();
+  for (const row of votes) {
+    if (row.voterUserId != null) {
+      userIds.add(row.voterUserId);
+    }
+  }
+
+  const invitees = await ctx.db
+    .query('eventInvitees')
+    .withIndex('by_event', (q) => q.eq('eventId', eventId))
+    .collect();
+  for (const row of invitees) {
+    if (row.voterUserId != null) {
+      userIds.add(row.voterUserId);
+    }
+  }
+
+  const blocks = await ctx.db
+    .query('availabilityBlocks')
+    .withIndex('by_event', (q) => q.eq('eventId', eventId))
+    .collect();
+  for (const row of blocks) {
+    if (row.voterUserId != null) {
+      userIds.add(row.voterUserId);
+    }
+  }
+
+  return userIds;
+}
+
+async function countDistinctLinkOnlyVoters(ctx: QueryCtx, eventId: Id<'events'>): Promise<number> {
+  const event = await ctx.db.get(eventId);
+  if (event == null) {
+    return 0;
+  }
+
+  const namesByKey = new Map<string, string>();
+  const schedulingMode = eventSchedulingMode(event);
+
+  if (schedulingMode === 'range') {
+    const blocks = await ctx.db
+      .query('availabilityBlocks')
+      .withIndex('by_event', (q) => q.eq('eventId', eventId))
+      .collect();
+    for (const row of blocks) {
+      if (!row.available) {
+        continue;
+      }
+      const key = voterKey(row);
+      if (!namesByKey.has(key) && row.voterUserId == null) {
+        namesByKey.set(key, row.voterName);
+      }
+    }
+  } else {
+    const votes = await ctx.db
+      .query('votes')
+      .withIndex('by_event', (q) => q.eq('eventId', eventId))
+      .collect();
+    for (const row of votes) {
+      const key = voterKey(row);
+      if (!namesByKey.has(key) && row.voterUserId == null) {
+        namesByKey.set(key, row.voterName);
+      }
+    }
+  }
+
+  return namesByKey.size;
+}
+
+/** App-user vs link-only breakdown for template auto-invite (DEV-500). */
+export const getTemplateNotifySummary = query({
+  args: { eventId: v.id('events') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      appUserCount: v.number(),
+      linkOnlyCount: v.number(),
+    }),
+  ),
+  handler: async (ctx, { eventId }) => {
+    const authUser = await authComponent.safeGetAuthUser(ctx);
+    if (!authUser) {
+      return null;
+    }
+    const authId = betterAuthUserIdString(authUser);
+    if (authId == null) {
+      return null;
+    }
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_auth_user', (q) => q.eq('authUserId', authId))
+      .unique();
+    if (!user) {
+      return null;
+    }
+    const event = await ctx.db.get(eventId);
+    if (!event || event.ownerId !== user._id) {
+      return null;
+    }
+
+    const voterUserIds = await collectDistinctVoterUserIds(ctx, eventId);
+    let appUserCount = 0;
+    for (const voterUserId of voterUserIds) {
+      if (voterUserId === user._id) {
+        continue;
+      }
+      const voter = await ctx.db.get(voterUserId);
+      if (voter != null && voter.pushTokens.length > 0) {
+        appUserCount += 1;
+      }
+    }
+
+    const linkOnlyCount = await countDistinctLinkOnlyVoters(ctx, eventId);
+
+    return { appUserCount, linkOnlyCount };
   },
 });
 
