@@ -53,6 +53,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: [
       ...pluginsWithoutAdMob,
       [
+        '@sentry/react-native/expo',
+        {
+          url: 'https://sentry.io/',
+        },
+      ],
+      [
         'react-native-google-mobile-ads',
         {
           androidAppId,

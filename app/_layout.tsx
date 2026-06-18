@@ -20,6 +20,9 @@ import { NativeSplashConvexAuthGate, NativeSplashFontsOnlyGate } from '@/compone
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { authClient } from '@/lib/auth-client';
 import { isConvexConfigured } from '@/lib/convex/client';
+import { initSentry, Sentry } from '@/lib/sentry';
+
+initSentry();
 
 void SplashScreen.preventAutoHideAsync().catch((error: unknown) => {
   console.error('[RootLayout] SplashScreen.preventAutoHideAsync failed', error);
@@ -54,7 +57,7 @@ function NavigationTree(): ReactElement {
   );
 }
 
-export default function RootLayout(): ReactElement {
+function RootLayout(): ReactElement {
   const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 
   if (!isConvexConfigured() || convexUrl == null || convexUrl.length === 0) {
@@ -87,3 +90,5 @@ export default function RootLayout(): ReactElement {
     </ConvexProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

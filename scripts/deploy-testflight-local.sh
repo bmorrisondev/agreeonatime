@@ -9,6 +9,12 @@ cd "$ROOT"
 IPA="./builds/agreeonatime.ipa"
 SKIP_SUBMIT="${SKIP_TESTFLIGHT_SUBMIT:-}"
 
+# Secrets: Infisical (preferred) then optional .env.local fallback.
+if [[ -f "$ROOT/ci/load-infisical-env.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$ROOT/ci/load-infisical-env.sh"
+fi
+
 if [[ -f .env.local ]]; then
   set -a
   # shellcheck source=/dev/null
@@ -59,11 +65,11 @@ fi
 check_disk_space
 
 require_env EXPO_TOKEN \
-  "Create at https://expo.dev/settings/access-tokens and export it or add to .env.local."
+  "Add EXPO_TOKEN to Infisical (Agree on a Time → prod) or export it / add to .env.local. https://expo.dev/settings/access-tokens"
 
 if [[ "${SKIP_SUBMIT}" != "1" ]]; then
   require_env EXPO_APPLE_APP_SPECIFIC_PASSWORD \
-    "Create at https://appleid.apple.com/account/manage → App-Specific Passwords, then add to .env.local."
+    "Add EXPO_APPLE_APP_SPECIFIC_PASSWORD to Infisical (prod) or .env.local. https://appleid.apple.com/account/manage → App-Specific Passwords"
 fi
 
 if [[ "${CI:-}" == "true" || "${CI:-}" == "1" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
@@ -82,6 +88,7 @@ eas build \
   --platform ios \
   --local \
   --non-interactive \
+  --clear-cache \
   --output "$IPA"
 
 if [[ ! -f "$IPA" ]]; then

@@ -33,6 +33,9 @@ yarn-error.*
 # local env files
 .env
 .env*.local
+sentry.properties
+credentials.json
+credentials/
 
 # Playwright
 /test-results/

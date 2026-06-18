@@ -26,15 +26,11 @@
 # Simulator dev client
 pnpm dlx eas-cli@latest build --profile development --platform ios
 
-# TestFlight-ready binary
-pnpm dlx eas-cli@latest build --profile production --platform ios
-
-# TestFlight via EAS cloud build + submit
-# Add EXPO_APPLE_APP_SPECIFIC_PASSWORD to .env.local, then:
+# TestFlight (local build + submit — required for this project)
 pnpm testflight
-
-# Local build on your Mac + submit (no EAS cloud compile)
-# Required in .env.local (or shell): EXPO_TOKEN, EXPO_APPLE_APP_SPECIFIC_PASSWORD
+# or:
+# Secrets from Infisical (`.infisical.json` + `infisical login`) or `.env.local` fallback.
+# Required in Infisical prod (or shell): EXPO_TOKEN, EXPO_APPLE_APP_SPECIFIC_PASSWORD
 pnpm deploy:testflight:local
 
 # Same steps manually:
@@ -51,7 +47,7 @@ SKIP_TESTFLIGHT_SUBMIT=1 pnpm deploy:testflight:local
 
 1. Create a password at [appleid.apple.com](https://appleid.apple.com/account/manage) → Sign-In and Security → App-Specific Passwords.
 2. Export `EXPO_APPLE_APP_SPECIFIC_PASSWORD` in your shell, or add it to `.env.local` (never commit).
-3. Run `pnpx testflight` or `eas build --platform ios --profile production --submit`.
+3. Run `pnpm testflight` or `pnpm deploy:testflight:local`.
 
 If ASC API key setup in `eas credentials` returns Apple 403, this path still works.
 
@@ -79,12 +75,16 @@ Runs on **macOS** with Xcode and the [EAS CLI](https://docs.expo.dev/build/setup
 
 **Required env (script fails fast if missing):**
 
-| Variable | When |
-|----------|------|
-| `EXPO_TOKEN` | Always — [Expo access token](https://expo.dev/settings/access-tokens) |
-| `EXPO_APPLE_APP_SPECIFIC_PASSWORD` | Submit — [app-specific password](https://expo.fyi/apple-app-specific-password) |
+| Variable | When | Where to set |
+|----------|------|--------------|
+| `EXPO_TOKEN` | Always | Infisical **Agree on a Time → prod** (or `.env.local`) — [Expo access token](https://expo.dev/settings/access-tokens) |
+| `EXPO_APPLE_APP_SPECIFIC_PASSWORD` | Submit | Infisical **prod** (or `.env.local`) — [app-specific password](https://expo.fyi/apple-app-specific-password) |
+
+Infisical: `infisical login` then run `pnpm deploy:testflight:local` (loads via `ci/load-infisical-env.sh` + `.infisical.json`).
 
 **One-time:** iOS distribution credentials in EAS for `me.brianmm.agreeonatime` (`eas credentials`). Local builds pull signing from EAS.
+
+**Apple Distribution vs iPhone Distribution:** Xcode 26+ expects an **Apple Distribution** identity. If you created the cert in Keychain/Xcode, EAS may still hold an older **iPhone Distribution** cert — local archives fail with “provisioning profile doesn't include signing certificate Apple Distribution”. Fix: export the **Apple Distribution** `.p12` from Keychain Access, then `eas credentials -p ios` → production → **Add distribution certificate** → upload the `.p12` → regenerate the App Store provisioning profile. Never commit `credentials.json` or `credentials/ios/*`.
 
 | Variable | Notes |
 |----------|--------|
