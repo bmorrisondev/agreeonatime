@@ -17,6 +17,7 @@ cd "$ROOT"
 source "$ROOT/scripts/lib/ios-signing-infisical-path.sh"
 
 SKIP_KEYCHAIN_IMPORT=0
+QUIET=0
 
 usage() {
   cat <<EOF
@@ -24,16 +25,27 @@ Usage: $(basename "$0") [options]
 
 Options:
   --skip-keychain-import   Write credentials/ios only; do not import into Keychain
+  --quiet                  Minimal output (for use by sync-ios-signing-to-infisical.sh)
   -h, --help               Show this help
 
 Reads Infisical env=${IOS_SIGNING_INFISICAL_ENV} path=${IOS_SIGNING_INFISICAL_PATH}
 EOF
 }
 
+log() {
+  if [[ "$QUIET" != "1" ]]; then
+    echo "$@"
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-keychain-import)
       SKIP_KEYCHAIN_IMPORT=1
+      shift
+      ;;
+    --quiet)
+      QUIET=1
       shift
       ;;
     -h | --help)
@@ -147,16 +159,16 @@ PROFILE_DEST="${HOME}/Library/MobileDevice/Provisioning Profiles/aoat-${!IOS_SIG
 mkdir -p "$(dirname "$PROFILE_DEST")"
 cp "$PROFILE_PATH" "$PROFILE_DEST"
 
-echo "==> Wrote credentials/ios/* and credentials.json"
-echo "==> Installed provisioning profile: ${PROFILE_DEST}"
-echo "==> Expected cert serial: ${!IOS_SIGNING_SECRET_CERT_SERIAL}"
+log "==> Wrote credentials/ios/* and credentials.json"
+log "==> Installed provisioning profile: ${PROFILE_DEST}"
+log "==> Expected cert serial: ${!IOS_SIGNING_SECRET_CERT_SERIAL}"
 
 if [[ "$SKIP_KEYCHAIN_IMPORT" == "1" ]]; then
-  echo "==> Skipped Keychain import (--skip-keychain-import)"
+  log "==> Skipped Keychain import (--skip-keychain-import)"
   exit 0
 fi
 
-echo "==> Importing distribution certificate into login keychain (macOS may prompt for permission)"
+log "==> Importing distribution certificate into login keychain (macOS may prompt for permission)"
 security import "$P12_PATH" \
   -k "$HOME/Library/Keychains/login.keychain-db" \
   -P "${!IOS_SIGNING_SECRET_P12_PASSWORD}" \
@@ -164,11 +176,13 @@ security import "$P12_PATH" \
   -T /usr/bin/security \
   -A
 
-echo
-echo "Keychain identities:"
-security find-identity -v -p codesigning 2>/dev/null | grep -i distribution || true
+if [[ "$QUIET" != "1" ]]; then
+  echo
+  echo "Keychain identities:"
+  security find-identity -v -p codesigning 2>/dev/null | grep -Ei 'Apple Distribution|iPhone Distribution' || true
 
-echo
-echo "✅ Restore complete."
-echo "Ensure EAS production credentials use serial ${!IOS_SIGNING_SECRET_CERT_SERIAL} (eas credentials -p ios)."
-echo "Then test: SKIP_TESTFLIGHT_SUBMIT=1 pnpm deploy:testflight:local"
+  echo
+  echo "✅ Restore complete."
+  echo "Ensure EAS production credentials use serial ${!IOS_SIGNING_SECRET_CERT_SERIAL} (eas credentials -p ios)."
+  echo "Then test: SKIP_TESTFLIGHT_SUBMIT=1 pnpm deploy:testflight:local"
+fi
