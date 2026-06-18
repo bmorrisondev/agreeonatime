@@ -26,6 +26,8 @@
     "build:sim": "eas build --profile development --platform ios --local --output ./builds/agreeonatime.tar.gz",
     "testflight": "bash ./scripts/testflight.sh",
     "deploy:testflight:local": "bash ./scripts/deploy-testflight-local.sh",
+    "sync:ios-signing": "bash ./scripts/sync-ios-signing-to-infisical.sh",
+    "restore:ios-signing": "bash ./scripts/restore-ios-signing-from-infisical.sh",
     "create:apple-review-user": "bash ./scripts/create-apple-review-user.sh",
     "export:app-icon": "node ./scripts/export-app-icon.mjs",
     "setup:revenuecat-verify": "node ./scripts/verify-revenuecat-entitlements.mjs",
