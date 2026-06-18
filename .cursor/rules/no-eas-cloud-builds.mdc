@@ -1,0 +1,27 @@
+---
+description: Never use EAS cloud builds; local iOS builds only
+alwaysApply: true
+---
+
+# No EAS cloud builds
+
+**Never** start, suggest, or run **EAS cloud** iOS/Android builds for this project.
+
+## Forbidden
+
+- `eas build` **without** `--local`
+- `eas submit --latest` (submits a cloud artifact)
+- `pnpm testflight` / `pnpx testflight` (cloud build + submit)
+- Triggering cloud builds to "refresh credentials" or as a workaround
+
+## Required instead
+
+- **TestFlight / production iOS:** `infisical run --env prod -- pnpm deploy:testflight:local`
+- **Other iOS binaries:** existing `pnpm run build:*` scripts — all use `--local`
+- **Submit:** only from a **local** IPA: `eas submit --path ./builds/agreeonatime.ipa`
+
+Local builds still use EAS **credential storage** (`eas credentials`) and `EXPO_TOKEN`; only the **compile** runs on the Mac.
+
+## If asked to "build on EAS"
+
+Decline, explain the project policy, and use the local script above.
