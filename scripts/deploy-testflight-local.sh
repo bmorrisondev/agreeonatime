@@ -80,6 +80,13 @@ fi
 export EXPO_PUBLIC_APP_ENV=production
 export EXPO_PUBLIC_DEV_TOOLS=false
 
+# Sentry native source maps need org, project, and auth token. Skip upload when unset
+# so local production archives still succeed (runtime error reporting still works via DSN).
+if [[ -z "${SENTRY_ORG:-}" || -z "${SENTRY_PROJECT:-}" || -z "${SENTRY_AUTH_TOKEN:-}" ]]; then
+  export SENTRY_DISABLE_AUTO_UPLOAD=true
+  echo "==> Sentry: SENTRY_ORG/PROJECT/AUTH_TOKEN not set — skipping source map upload"
+fi
+
 mkdir -p builds
 
 echo "==> eas build (production, local, non-interactive)"
