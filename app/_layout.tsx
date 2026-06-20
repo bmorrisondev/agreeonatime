@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-naviga
 import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
 import { ConvexReactClient, ConvexProvider } from 'convex/react';
 import { Stack } from 'expo-router';
+import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -28,32 +29,48 @@ void SplashScreen.preventAutoHideAsync().catch((error: unknown) => {
   console.error('[RootLayout] SplashScreen.preventAutoHideAsync failed', error);
 });
 
+function WebBrandHead(): ReactElement {
+  return (
+    <Head>
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+      <link rel="alternate icon" href="/favicon.ico" />
+      <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+      <link rel="manifest" href="/manifest.json" />
+      <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#FF6B5C" />
+      <meta name="theme-color" content="#FF6B5C" />
+    </Head>
+  );
+}
+
 function NavigationTree(): ReactElement {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="create-event"
-          options={{
-            presentation: 'modal',
-            title: 'New event',
-            headerLeft: () => <ModalHeaderClose />,
-          }}
-        />
-        <Stack.Screen name="event/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="vote/[token]" options={{ title: 'Vote' }} />
-        <Stack.Screen name="settings" options={{ headerShown: false }} />
-        <Stack.Screen name="design-system" options={{ headerShown: true }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <>
+      <WebBrandHead />
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="create-event"
+            options={{
+              presentation: 'modal',
+              title: 'New event',
+              headerLeft: () => <ModalHeaderClose />,
+            }}
+          />
+          <Stack.Screen name="event/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="vote/[token]" options={{ title: 'Vote' }} />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="design-system" options={{ headerShown: true }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </>
   );
 }
 

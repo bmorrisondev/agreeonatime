@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img">
+  <title>Agree on a Time favicon</title>
+  <desc>Off-black tile with a coral italic period mark for the When. visual identity.</desc>
+  <rect width="512" height="512" rx="112" fill="#0A0A0B"/>
+  <g transform="translate(256 294) skewX(-8)">
+    <ellipse cx="0" cy="0" rx="112" ry="126" fill="#FF6B5C"/>
+    <ellipse cx="-34" cy="-44" rx="26" ry="18" fill="#FF8A7D" opacity=".36"/>
+  </g>
+</svg>
