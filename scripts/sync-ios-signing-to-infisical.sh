@@ -173,7 +173,7 @@ EOF
 
 try_restore_from_infisical() {
   local quiet="${1:-0}"
-  local restore_args=()
+  local restore_args=(--import-login-keychain)
   if [[ "$quiet" == "1" ]]; then
     restore_args+=(--quiet)
   fi

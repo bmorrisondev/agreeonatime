@@ -73,6 +73,10 @@ if [[ -n "${INFISICAL_PROJECT_ID:-}" ]]; then
   _infisical_args+=(--projectId="$INFISICAL_PROJECT_ID")
 fi
 
+if [[ -n "${INFISICAL_TOKEN:-}" ]]; then
+  _infisical_args+=(--token="$INFISICAL_TOKEN")
+fi
+
 if [[ -n "${INFISICAL_DOMAIN:-}" ]]; then
   _infisical_args+=(--domain="$INFISICAL_DOMAIN")
 elif [[ -n "${INFISICAL_API_URL:-}" ]]; then

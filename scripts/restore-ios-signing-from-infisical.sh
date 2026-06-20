@@ -3,10 +3,9 @@
 #
 # Usage:
 #   ./scripts/restore-ios-signing-from-infisical.sh
-#   ./scripts/restore-ios-signing-from-infisical.sh --skip-keychain-import
+#   ./scripts/restore-ios-signing-from-infisical.sh --import-login-keychain
 #
 # After restore, verify:
-#   security find-identity -v -p codesigning | grep -i distribution
 #   pnpm deploy:testflight:local   # or SKIP_TESTFLIGHT_SUBMIT=1 …
 set -euo pipefail
 
@@ -16,7 +15,7 @@ cd "$ROOT"
 # shellcheck disable=SC1091
 source "$ROOT/scripts/lib/ios-signing-infisical-path.sh"
 
-SKIP_KEYCHAIN_IMPORT=0
+IMPORT_LOGIN_KEYCHAIN=0
 QUIET=0
 
 usage() {
@@ -24,7 +23,8 @@ usage() {
 Usage: $(basename "$0") [options]
 
 Options:
-  --skip-keychain-import   Write credentials/ios only; do not import into Keychain
+  --import-login-keychain  Legacy/manual fallback: also import into login.keychain-db
+  --skip-keychain-import   Deprecated no-op; file-only restore is the default
   --quiet                  Minimal output (for use by sync-ios-signing-to-infisical.sh)
   -h, --help               Show this help
 
@@ -40,8 +40,11 @@ log() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --import-login-keychain)
+      IMPORT_LOGIN_KEYCHAIN=1
+      shift
+      ;;
     --skip-keychain-import)
-      SKIP_KEYCHAIN_IMPORT=1
       shift
       ;;
     --quiet)
@@ -82,14 +85,21 @@ cleanup() {
 trap cleanup EXIT
 
 ENV_FILE="${WORK_DIR}/ios-signing.env"
+INFISICAL_EXPORT_ARGS=(
+  export
+  --env="$IOS_SIGNING_INFISICAL_ENV"
+  --path="$IOS_SIGNING_INFISICAL_PATH"
+  --format=dotenv
+  --silent
+)
+
+if [[ -n "${INFISICAL_TOKEN:-}" ]]; then
+  INFISICAL_EXPORT_ARGS+=(--token="$INFISICAL_TOKEN")
+fi
+
 (
   cd "$ROOT"
-  infisical export \
-    --env="$IOS_SIGNING_INFISICAL_ENV" \
-    --path="$IOS_SIGNING_INFISICAL_PATH" \
-    --format=dotenv \
-    --silent \
-    >"$ENV_FILE"
+  infisical "${INFISICAL_EXPORT_ARGS[@]}" >"$ENV_FILE"
 )
 
 if [[ ! -s "$ENV_FILE" ]]; then
@@ -131,7 +141,7 @@ cp "$PROFILE_PATH" "$CREDS_DIR/profile.mobileprovision"
 chmod 600 "$CREDS_DIR/distribution.p12" "$CREDS_DIR/profile.mobileprovision"
 
 P12_PASSWORD_VALUE="${!IOS_SIGNING_SECRET_P12_PASSWORD}"
-node -e "
+P12_PASSWORD="$P12_PASSWORD_VALUE" node -e "
 const fs = require('fs');
 const path = require('path');
 const out = {
@@ -144,7 +154,7 @@ const out = {
   },
 };
 fs.writeFileSync(path.join(process.cwd(), 'credentials.json'), JSON.stringify(out, null, 2) + '\n', { mode: 0o600 });
-" P12_PASSWORD="$P12_PASSWORD_VALUE"
+"
 
 IMPORTED_SERIAL="$(openssl pkcs12 -in "$P12_PATH" -passin "pass:${!IOS_SIGNING_SECRET_P12_PASSWORD}" -nokeys -clcerts 2>/dev/null \
   | openssl x509 -noout -serial \
@@ -163,12 +173,12 @@ log "==> Wrote credentials/ios/* and credentials.json"
 log "==> Installed provisioning profile: ${PROFILE_DEST}"
 log "==> Expected cert serial: ${!IOS_SIGNING_SECRET_CERT_SERIAL}"
 
-if [[ "$SKIP_KEYCHAIN_IMPORT" == "1" ]]; then
-  log "==> Skipped Keychain import (--skip-keychain-import)"
+if [[ "$IMPORT_LOGIN_KEYCHAIN" != "1" ]]; then
+  log "==> File-only restore complete; login keychain import skipped by default"
   exit 0
 fi
 
-log "==> Importing distribution certificate into login keychain (macOS may prompt for permission)"
+log "==> Importing distribution certificate into login keychain (legacy/manual fallback)"
 security import "$P12_PATH" \
   -k "$HOME/Library/Keychains/login.keychain-db" \
   -P "${!IOS_SIGNING_SECRET_P12_PASSWORD}" \

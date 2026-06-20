@@ -22,6 +22,11 @@ if [[ -f .env.local ]]; then
   set +a
 fi
 
+if [[ -f "$ROOT/ci/map-expo-public-env.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$ROOT/ci/map-expo-public-env.sh"
+fi
+
 require_env() {
   local name="$1"
   local hint="$2"
@@ -68,8 +73,10 @@ require_env EXPO_TOKEN \
   "Add EXPO_TOKEN to Infisical (Agree on a Time → prod) or export it / add to .env.local. https://expo.dev/settings/access-tokens"
 
 if [[ "${SKIP_SUBMIT}" != "1" ]]; then
-  require_env EXPO_APPLE_APP_SPECIFIC_PASSWORD \
-    "Add EXPO_APPLE_APP_SPECIFIC_PASSWORD to Infisical (prod) or .env.local. https://appleid.apple.com/account/manage → App-Specific Passwords"
+  if [[ -z "${ASC_API_KEY_JSON_BASE64:-}" ]]; then
+    require_env EXPO_APPLE_APP_SPECIFIC_PASSWORD \
+      "Add EXPO_APPLE_APP_SPECIFIC_PASSWORD or ASC_API_KEY_JSON_BASE64 to Infisical (prod), CI, or .env.local."
+  fi
 fi
 
 if [[ "${CI:-}" == "true" || "${CI:-}" == "1" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
@@ -79,6 +86,7 @@ fi
 # Do not bake preview/dev flags from .env.local into App Store binaries.
 export EXPO_PUBLIC_APP_ENV=production
 export EXPO_PUBLIC_DEV_TOOLS=false
+export EAS_BUILD_DISABLE_EXPO_DOCTOR_STEP="${EAS_BUILD_DISABLE_EXPO_DOCTOR_STEP:-1}"
 
 # Sentry native source maps need org, project, and auth token. Skip upload when unset
 # so local production archives still succeed (runtime error reporting still works via DSN).
@@ -88,6 +96,28 @@ if [[ -z "${SENTRY_ORG:-}" || -z "${SENTRY_PROJECT:-}" || -z "${SENTRY_AUTH_TOKE
 fi
 
 mkdir -p builds
+
+if [[ -n "${ASC_API_KEY_JSON_BASE64:-}" ]]; then
+  ASC_API_KEY_PATH="${ASC_API_KEY_PATH:-$ROOT/builds/asc-api-key.json}"
+  printf '%s' "$ASC_API_KEY_JSON_BASE64" | base64 -D >"$ASC_API_KEY_PATH"
+  chmod 600 "$ASC_API_KEY_PATH"
+  export EXPO_ASC_API_KEY_PATH="$ASC_API_KEY_PATH"
+fi
+
+if [[ "${SKIP_IOS_SIGNING_RESTORE:-0}" != "1" ]]; then
+  RESTORE_ARGS=(--quiet)
+  if [[ "${IOS_SIGNING_IMPORT_LOGIN_KEYCHAIN:-0}" == "1" ]]; then
+    RESTORE_ARGS+=(--import-login-keychain)
+  fi
+
+  echo "==> Restoring iOS signing assets from Infisical"
+  "$ROOT/scripts/restore-ios-signing-from-infisical.sh" "${RESTORE_ARGS[@]}"
+fi
+
+if [[ ! -f "$ROOT/credentials/ios/distribution.p12" || ! -f "$ROOT/credentials/ios/profile.mobileprovision" || ! -f "$ROOT/credentials.json" ]]; then
+  echo "Missing local iOS signing files. Expected credentials/ios/* and credentials.json." >&2
+  exit 1
+fi
 
 echo "==> eas build (production, local, non-interactive)"
 eas build \

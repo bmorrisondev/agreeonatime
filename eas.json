@@ -101,7 +101,8 @@
         "EXPO_PUBLIC_ADMOB_POST_CONFIRM_INTERSTITIAL_UNIT_ID": "ca-app-pub-7070984643674033/6895052739"
       },
       "ios": {
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "credentialsSource": "local"
       }
     }
   },
