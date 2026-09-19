@@ -1,5 +1,5 @@
 <!-- BEGIN shared agent standards -->
-<!-- source: 3969fad14443fb85ea7df0298340e94368baee5a -->
+<!-- source: 0cc09783fd034ef395f29abdc82e831b917da122 -->
 
 # Agent Standards
 
